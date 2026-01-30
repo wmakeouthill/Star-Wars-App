@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.infrastructure.config.settings import get_settings
 from app.interfaces.api.v1.routers import (
+    auth,
     health,
     characters,
     planets,
@@ -9,6 +10,7 @@ from app.interfaces.api.v1.routers import (
     films,
     chat,
     gamification,
+    character_image_fallbacks,
     vehicles,
     species,
 )
@@ -23,12 +25,14 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_allow_origins,
-        allow_credentials=False,
+        # Necessário para refresh token via cookie (best practice: access token em memória + refresh httpOnly).
+        allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
 
     app.include_router(health.router, prefix=API_V1_PREFIX)
+    app.include_router(auth.router, prefix=API_V1_PREFIX)
     app.include_router(characters.router, prefix=API_V1_PREFIX)
     app.include_router(planets.router, prefix=API_V1_PREFIX)
     app.include_router(starships.router, prefix=API_V1_PREFIX)
@@ -36,6 +40,7 @@ def create_app() -> FastAPI:
     app.include_router(chat.router, prefix=API_V1_PREFIX)
 
     app.include_router(gamification.router, prefix=API_V1_PREFIX)
+    app.include_router(character_image_fallbacks.router, prefix=API_V1_PREFIX)
     app.include_router(vehicles.router, prefix=API_V1_PREFIX)
     app.include_router(species.router, prefix=API_V1_PREFIX)
 

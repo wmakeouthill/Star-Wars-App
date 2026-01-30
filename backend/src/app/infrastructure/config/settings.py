@@ -83,6 +83,63 @@ class Settings(BaseSettings):
         ]
     )
 
+    # ============================================================
+    # Auth (JWT) + Google OAuth (ID token)
+    # ============================================================
+    jwt_secret_key: str = Field(default="CHANGE_ME", repr=False)
+    jwt_issuer: str = "holocron-analytics"
+    jwt_access_ttl_seconds: int = 60 * 15  # 15m
+    jwt_refresh_ttl_seconds: int = 60 * 60 * 24 * 30  # 30d
+
+    # Google OAuth Client ID (NÃO é segredo, mas não deve ficar hardcoded no código)
+    google_oauth_client_id: str | None = None
+
+    # Cookies (refresh token)
+    auth_cookie_secure: bool = False  # em produção (HTTPS) defina true
+    auth_cookie_samesite: str = "lax"  # lax|strict|none
+
+    # ============================================================
+    # Database (PostgreSQL)
+    # ============================================================
+    database_url: str | None = None
+    database_host: str | None = None
+    database_port: int = 5432
+    database_name: str | None = None
+    database_username: str | None = None
+    database_password: str | None = Field(default=None, repr=False)
+
+    @property
+    def sqlalchemy_database_url(self) -> str:
+        """
+        Prioriza `DATABASE_URL`. Caso contrário, monta via campos separados.
+
+        Formato SQLAlchemy (sync):
+        postgresql+psycopg2://user:pass@host:port/dbname
+        """
+        if self.database_url and self.database_url.strip():
+            return self.database_url.strip()
+
+        host = (self.database_host or "").strip()
+        name = (self.database_name or "").strip()
+        user = (self.database_username or "").strip()
+        password = self.database_password or ""
+
+        if not (host and name and user):
+            # Mantém erro claro para quem configurar o .env
+            raise ValueError(
+                "Config de banco incompleta. Defina DATABASE_URL ou "
+                "DATABASE_HOST, DATABASE_NAME, DATABASE_USERNAME, DATABASE_PASSWORD."
+            )
+
+        # password pode conter caracteres especiais (ex.: @, :)
+        # então fazemos URL-encode de forma segura.
+        from urllib.parse import quote_plus
+
+        return (
+            "postgresql+psycopg2://"
+            f"{quote_plus(user)}:{quote_plus(password)}@{host}:{self.database_port}/{name}"
+        )
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     @classmethod

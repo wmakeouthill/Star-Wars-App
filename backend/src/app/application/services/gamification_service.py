@@ -2,90 +2,111 @@ from __future__ import annotations
 
 from dataclasses import asdict
 from datetime import date
-from typing import Dict, List, Tuple
+from typing import List
+
+import uuid
+
+from sqlalchemy import select, desc
+from sqlalchemy.orm import Session
 
 from app.domain.entities.gamification import Achievement, UserGamification
+from app.domain.enums.jedi_rank import JediRank
+from app.infrastructure.db.models.gamification import AchievementModel, UserAchievementModel, UserGamificationModel
 
 class GamificationService:
-    def __init__(self):
-        self._users: Dict[str, UserGamification] = {}
-        self._achievements: Dict[str, Achievement] = {}
-        self._daily_progress: Dict[Tuple[str, str], int] = {}
-        self._daily_completed: set[Tuple[str, str]] = set()
+    def _try_parse_user_uuid(self, user_id: str) -> uuid.UUID | None:
+        try:
+            return uuid.UUID(str(user_id))
+        except Exception:
+            return None
 
-        self._register_default_achievements()
+    def _ensure_user_row(self, user_uuid: uuid.UUID, db: Session) -> UserGamificationModel:
+        row = db.get(UserGamificationModel, user_uuid)
+        if row is None:
+            row = UserGamificationModel(user_id=user_uuid, total_xp=0, total_queries=0, chat_messages=0, jedi_rank=JediRank.YOUNGLING.value)
+            db.add(row)
+            db.flush()
+        return row
 
-    def _register_default_achievements(self) -> None:
-        # MVP: conjunto pequeno (expandimos depois conforme as regras do planejamento)
-        defaults = [
-            Achievement(
-                id="primeiro_contato",
-                name="Primeiro Contato",
-                description="Sua primeira interação com o Holocron.",
-                xp_reward=25,
-            ),
-            Achievement(
-                id="amigo_yoda",
-                name="Amigo do Yoda",
-                description="Envie 5 mensagens ao Mestre Yoda.",
-                xp_reward=50,
-            ),
-            Achievement(
-                id="explorador",
-                name="Explorador da Galáxia",
-                description="Realize 10 consultas aos arquivos do Holocron.",
-                xp_reward=50,
-            ),
-        ]
-        for a in defaults:
-            self.register_achievement(a)
+    def _list_achievements(self, db: Session) -> List[Achievement]:
+        rows = db.scalars(select(AchievementModel).order_by(AchievementModel.id)).all()
+        return [Achievement(id=r.id, name=r.name, description=r.description, xp_reward=r.xp_reward) for r in rows]
 
-    def get_user_gamification(self, user_id: str) -> UserGamification:
-        if user_id not in self._users:
-            self._users[user_id] = UserGamification(user_id=user_id)
-        return self._users[user_id]
+    def _unlocked_ids(self, user_uuid: uuid.UUID, db: Session) -> set[str]:
+        rows = db.scalars(select(UserAchievementModel.achievement_id).where(UserAchievementModel.user_id == user_uuid)).all()
+        return set(rows)
 
-    def get_user_profile(self, user_id: str) -> UserGamification:
-        return self.get_user_gamification(user_id)
+    def get_user_profile(self, user_id: str, db: Session) -> UserGamification:
+        user_uuid = self._try_parse_user_uuid(user_id)
+        if user_uuid is None:
+            return UserGamification(user_id=user_id)
 
-    def record_query(self, user_id: str, xp_awarded: int) -> List[Achievement]:
-        user = self.get_user_gamification(user_id)
-        user.record_query(xp_awarded)
-        return self._check_achievements(user)
+        row = self._ensure_user_row(user_uuid, db)
+        unlocked = self._unlocked_ids(user_uuid, db)
+        achievements = [a for a in self._list_achievements(db) if a.id in unlocked]
 
-    def record_chat_message(self, user_id: str, xp_awarded: int) -> List[Achievement]:
-        user = self.get_user_gamification(user_id)
-        user.record_chat_message(xp_awarded)
-        unlocked = self._check_achievements(user)
-        self._maybe_apply_daily_challenge(user_id)
+        return UserGamification(
+            user_id=str(row.user_id),
+            total_xp=int(row.total_xp),
+            jedi_rank=JediRank(row.jedi_rank),
+            total_queries=int(row.total_queries),
+            chat_messages=int(row.chat_messages),
+            achievements=achievements,
+        )
+
+    def record_query(self, user_id: str, xp_awarded: int, db: Session) -> List[Achievement]:
+        user_uuid = self._try_parse_user_uuid(user_id)
+        if user_uuid is None:
+            return []
+
+        row = self._ensure_user_row(user_uuid, db)
+        row.total_queries += 1
+        row.total_xp += max(0, int(xp_awarded))
+        row.jedi_rank = JediRank.from_xp(int(row.total_xp)).value
+
+        unlocked = self._apply_achievement_rules(user_uuid, row, db)
+        db.commit()
         return unlocked
 
-    def add_achievement(self, user_id: str, achievement_id: str):
-        user = self.get_user_gamification(user_id)
-        achievement = self._achievements.get(achievement_id)
-        if achievement:
-            user.add_achievement(achievement)
+    def record_chat_message(self, user_id: str, xp_awarded: int, db: Session) -> List[Achievement]:
+        user_uuid = self._try_parse_user_uuid(user_id)
+        if user_uuid is None:
+            return []
 
-    def register_achievement(self, achievement: Achievement):
-        self._achievements[achievement.id] = achievement
+        row = self._ensure_user_row(user_uuid, db)
+        row.chat_messages += 1
+        row.total_xp += max(0, int(xp_awarded))
+        row.jedi_rank = JediRank.from_xp(int(row.total_xp)).value
 
-    def list_achievements(self) -> List[Achievement]:
-        return list(self._achievements.values())
+        unlocked = self._apply_achievement_rules(user_uuid, row, db)
+        db.commit()
+        return unlocked
 
-    def get_leaderboard(self, limit: int = 10) -> List[UserGamification]:
-        users = list(self._users.values())
-        users.sort(key=lambda u: u.total_xp, reverse=True)
-        return users[: max(1, limit)]
+    def get_leaderboard(self, db: Session, limit: int = 10) -> List[UserGamification]:
+        limit = max(1, int(limit))
+        rows = db.scalars(
+            select(UserGamificationModel).order_by(desc(UserGamificationModel.total_xp)).limit(limit)
+        ).all()
+        result: List[UserGamification] = []
+        for r in rows:
+            result.append(
+                UserGamification(
+                    user_id=str(r.user_id),
+                    total_xp=int(r.total_xp),
+                    jedi_rank=JediRank(r.jedi_rank),
+                    total_queries=int(r.total_queries),
+                    chat_messages=int(r.chat_messages),
+                    achievements=[],
+                )
+            )
+        return result
 
-    def get_achievements_for_user(self, user_id: str) -> List[dict]:
-        """
-        Retorna todas as conquistas com status unlocked.
-        MVP: formato em dict para facilitar o router (sem criar mais entidades).
-        """
-        user = self.get_user_gamification(user_id)
-        unlocked_ids = {a.id for a in user.achievements}
+    def get_achievements_for_user(self, user_id: str, db: Session) -> List[dict]:
+        user_uuid = self._try_parse_user_uuid(user_id)
+        achievements = self._list_achievements(db)
+        unlocked_ids = self._unlocked_ids(user_uuid, db) if user_uuid else set()
         result: List[dict] = []
-        for a in self.list_achievements():
+        for a in achievements:
             payload = asdict(a)
             payload["unlocked"] = a.id in unlocked_ids
             result.append(payload)
@@ -94,57 +115,59 @@ class GamificationService:
     def get_daily_challenge(self, user_id: str) -> dict:
         """
         MVP: desafio diário único baseado em chat.
+
+        Observação: por enquanto o progresso diário NÃO é persistido.
+        Quando conectarmos com o histórico de mensagens, dá para calcular por data.
         """
         today = date.today().isoformat()
         challenge_id = f"daily_chat_{today}"
         target = 3
-        key = (user_id, today)
-        progress = self._daily_progress.get(key, 0)
-        completed = key in self._daily_completed
+        _ = self._try_parse_user_uuid(user_id)
         return {
             "id": challenge_id,
             "title": "Desafio Diário",
             "description": f"Envie {target} mensagens ao Mestre Yoda hoje.",
             "xp_reward": 30,
-            "completed": completed,
-            "progress_current": progress,
+            "completed": False,
+            "progress_current": None,
             "progress_target": target,
         }
 
-    def _maybe_apply_daily_challenge(self, user_id: str) -> None:
-        today = date.today().isoformat()
-        key = (user_id, today)
-        if key in self._daily_completed:
-            return
+    def _apply_achievement_rules(
+        self,
+        user_uuid: uuid.UUID,
+        row: UserGamificationModel,
+        db: Session,
+    ) -> List[Achievement]:
+        """
+        Regras atuais (MVP):
+        - primeiro_contato: total_queries + chat_messages >= 1
+        - amigo_yoda: chat_messages >= 5
+        - explorador: total_queries >= 10
+        """
+        unlocked_now: List[Achievement] = []
 
-        # Progresso: chat_messages do dia (MVP simplificado: apenas contador incremental)
-        progress = self._daily_progress.get(key, 0) + 1
-        self._daily_progress[key] = progress
-
-        target = 3
-        if progress >= target:
-            self._daily_completed.add(key)
-            # Recompensa única
-            self.get_user_gamification(user_id).add_xp(30)
-
-    def _check_achievements(self, user: UserGamification) -> List[Achievement]:
-        unlocked: List[Achievement] = []
+        all_achievements = {a.id: a for a in self._list_achievements(db)}
+        unlocked = self._unlocked_ids(user_uuid, db)
 
         def unlock(achievement_id: str) -> None:
-            a = self._achievements.get(achievement_id)
+            if achievement_id in unlocked:
+                return
+            a = all_achievements.get(achievement_id)
             if not a:
                 return
-            before = {x.id for x in user.achievements}
-            user.add_achievement(a)
-            after = {x.id for x in user.achievements}
-            if after != before:
-                unlocked.append(a)
+            db.add(UserAchievementModel(user_id=user_uuid, achievement_id=achievement_id))
+            unlocked.add(achievement_id)
+            # bônus de XP da conquista
+            row.total_xp += int(a.xp_reward)
+            row.jedi_rank = JediRank.from_xp(int(row.total_xp)).value
+            unlocked_now.append(a)
 
-        if user.total_queries + user.chat_messages >= 1:
+        if int(row.total_queries) + int(row.chat_messages) >= 1:
             unlock("primeiro_contato")
-        if user.chat_messages >= 5:
+        if int(row.chat_messages) >= 5:
             unlock("amigo_yoda")
-        if user.total_queries >= 10:
+        if int(row.total_queries) >= 10:
             unlock("explorador")
 
-        return unlocked
+        return unlocked_now

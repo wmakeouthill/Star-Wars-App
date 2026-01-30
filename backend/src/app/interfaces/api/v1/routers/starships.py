@@ -1,12 +1,14 @@
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, HTTPException
+from sqlalchemy.orm import Session
 
 from app.application.services.starship_service import StarshipService
 from app.application.services.gamification_service import GamificationService
 from app.domain.exceptions.not_found import ResourceNotFoundError
 from app.domain.schemas.common import PaginatedResponse
 from app.domain.schemas.starship import StarshipFilter, StarshipResponse
+from app.infrastructure.db.session import get_db
 from app.interfaces.api.v1.dependencies.auth import get_current_user_id
 from app.interfaces.api.v1.dependencies.services import get_starship_service
 from app.interfaces.api.v1.dependencies.services import get_gamification_service
@@ -26,6 +28,7 @@ async def list_starships(
     service: StarshipService = Depends(get_starship_service),
     gamification: GamificationService = Depends(get_gamification_service),
     user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
 ):
     filters = StarshipFilter(
         name=name,
@@ -33,7 +36,7 @@ async def list_starships(
         starship_class=starship_class,
     )
     result = await service.list_starships(filters, sort_by, sort_order, page, page_size)
-    gamification.record_query(user_id, 5)
+    gamification.record_query(user_id, 5, db)
     return result
 
 
@@ -44,6 +47,7 @@ async def get_starship(
     service: StarshipService = Depends(get_starship_service),
     gamification: GamificationService = Depends(get_gamification_service),
     user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
 ):
     try:
         result = (
@@ -51,7 +55,7 @@ async def get_starship(
             if include_relations
             else await service.get_starship(starship_id)
         )
-        gamification.record_query(user_id, 2)
+        gamification.record_query(user_id, 2, db)
         return result
     except ResourceNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

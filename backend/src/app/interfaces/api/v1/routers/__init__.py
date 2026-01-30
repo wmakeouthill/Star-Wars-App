@@ -1,5 +1,6 @@
 
 from app.interfaces.api.v1.routers import (
+    auth,
     health,
     characters,
     planets,
@@ -7,11 +8,13 @@ from app.interfaces.api.v1.routers import (
     films,
     chat,
     gamification,
+    character_image_fallbacks,
     vehicles,
     species,
 )
 
 __all__ = [
+    "auth",
     "health",
     "characters",
     "planets",
@@ -19,6 +22,7 @@ __all__ = [
     "films",
     "chat",
     "gamification",
+    "character_image_fallbacks",
     "vehicles",
     "species",
 ]

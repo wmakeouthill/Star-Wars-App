@@ -1,4 +1,17 @@
 services:
+  db:
+    image: postgres:16-alpine
+    container_name: holocron-postgres-dev
+    ports:
+      - "5432:5432"
+    # IMPORTANT: mantenha credenciais fora do versionamento.
+    # Copie `backend/.env.example` -> `backend/.env` (ignorado pelo git) e preencha:
+    # - POSTGRES_DB / POSTGRES_USER / POSTGRES_PASSWORD
+    env_file:
+      - ./backend/.env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   backend:
     build:
       context: ./backend
@@ -6,11 +19,21 @@ services:
     container_name: holocron-backend-dev
     ports:
       - "8000:8000"
-    environment:
-      # CORS para o frontend (Vite)
-      CORS_ALLOW_ORIGINS: "http://localhost:5173,http://127.0.0.1:5173"
+    command: >
+      sh -c "poetry run alembic upgrade head
+      && poetry run uvicorn app.main:app --reload --reload-dir /app/src --host 0.0.0.0 --port 8000"
+    # IMPORTANT: não hardcode tokens/segredos aqui. Use `backend/.env` (ignorado).
+    # Para Docker, use:
+    # - DATABASE_HOST="db"
+    # - DATABASE_PORT="5432"
+    # - DATABASE_NAME / DATABASE_USERNAME / DATABASE_PASSWORD
+    # - GOOGLE_OAUTH_CLIENT_ID (se aplicável)
+    env_file:
+      - ./backend/.env
     volumes:
       - ./backend:/app
+    depends_on:
+      - db
 
   frontend:
     build:
@@ -22,6 +45,8 @@ services:
     environment:
       # Importante: isso é lido pelo browser, então precisa ser localhost
       VITE_API_BASE_URL: "http://localhost:8000"
+      # Preencha via `frontend/.env` (não versionado). Não sobrescreva aqui,
+      # senão o valor pode virar string vazia no container.
       # Ajuda hot-reload no Docker Desktop/Windows
       CHOKIDAR_USEPOLLING: "true"
       CHOKIDAR_INTERVAL: "200"
@@ -33,4 +58,5 @@ services:
 
 volumes:
   frontend_node_modules:
+  postgres_data:
 

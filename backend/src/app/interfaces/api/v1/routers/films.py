@@ -1,6 +1,7 @@
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, HTTPException
+from sqlalchemy.orm import Session
 
 from app.application.services.film_service import FilmService
 from app.application.services.character_service import CharacterService
@@ -9,6 +10,7 @@ from app.domain.exceptions.not_found import ResourceNotFoundError
 from app.domain.schemas.common import PaginatedResponse
 from app.domain.schemas.character import CharacterResponse
 from app.domain.schemas.film import FilmFilter, FilmResponse
+from app.infrastructure.db.session import get_db
 from app.interfaces.api.v1.dependencies.auth import get_current_user_id
 from app.interfaces.api.v1.dependencies.services import get_film_service, get_character_service
 from app.interfaces.api.v1.dependencies.services import get_gamification_service
@@ -28,10 +30,11 @@ async def list_films(
     service: FilmService = Depends(get_film_service),
     gamification: GamificationService = Depends(get_gamification_service),
     user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
 ):
     filters = FilmFilter(title=title, director=director, producer=producer)
     result = await service.list_films(filters, sort_by, sort_order, page, page_size)
-    gamification.record_query(user_id, 5)
+    gamification.record_query(user_id, 5, db)
     return result
 
 
@@ -42,6 +45,7 @@ async def get_film(
     service: FilmService = Depends(get_film_service),
     gamification: GamificationService = Depends(get_gamification_service),
     user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
 ):
     try:
         result = (
@@ -49,7 +53,7 @@ async def get_film(
             if include_relations
             else await service.get_film(film_id)
         )
-        gamification.record_query(user_id, 2)
+        gamification.record_query(user_id, 2, db)
         return result
     except ResourceNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -63,10 +67,11 @@ async def list_characters_by_film(
     service: CharacterService = Depends(get_character_service),
     gamification: GamificationService = Depends(get_gamification_service),
     user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
 ):
     try:
         result = await service.list_characters_by_film(film_id, page, page_size)
-        gamification.record_query(user_id, 10)
+        gamification.record_query(user_id, 10, db)
         return result
     except ResourceNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from cachetools import TTLCache
 from typing import Any, Optional
 
@@ -9,10 +10,22 @@ class MemoryCache:
         self._cache = TTLCache(maxsize=max_size, ttl=ttl_seconds)
 
     async def get(self, key: str) -> Optional[Any]:
-        return self._cache.get(key)
+        return await asyncio.to_thread(self._cache.get, key)
 
     async def set(self, key: str, value: Any) -> None:
-        self._cache[key] = value
+        def _set() -> None:
+            self._cache[key] = value
+
+        await asyncio.to_thread(_set)
+
+    async def delete(self, key: str) -> None:
+        def _delete() -> None:
+            try:
+                del self._cache[key]
+            except KeyError:
+                return
+
+        await asyncio.to_thread(_delete)
 
     async def clear(self) -> None:
-        self._cache.clear()
+        await asyncio.to_thread(self._cache.clear)

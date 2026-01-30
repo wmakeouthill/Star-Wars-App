@@ -1,12 +1,14 @@
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, HTTPException
+from sqlalchemy.orm import Session
 
 from app.application.services.planet_service import PlanetService
 from app.application.services.gamification_service import GamificationService
 from app.domain.exceptions.not_found import ResourceNotFoundError
 from app.domain.schemas.common import PaginatedResponse
 from app.domain.schemas.planet import PlanetFilter, PlanetResponse
+from app.infrastructure.db.session import get_db
 from app.interfaces.api.v1.dependencies.auth import get_current_user_id
 from app.interfaces.api.v1.dependencies.services import get_planet_service
 from app.interfaces.api.v1.dependencies.services import get_gamification_service
@@ -28,6 +30,7 @@ async def list_planets(
     service: PlanetService = Depends(get_planet_service),
     gamification: GamificationService = Depends(get_gamification_service),
     user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
 ):
     filters = PlanetFilter(
         name=name,
@@ -37,7 +40,7 @@ async def list_planets(
         max_population=max_population,
     )
     result = await service.list_planets(filters, sort_by, sort_order, page, page_size)
-    gamification.record_query(user_id, 5)
+    gamification.record_query(user_id, 5, db)
     return result
 
 
@@ -48,6 +51,7 @@ async def get_planet(
     service: PlanetService = Depends(get_planet_service),
     gamification: GamificationService = Depends(get_gamification_service),
     user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
 ):
     try:
         result = (
@@ -55,7 +59,7 @@ async def get_planet(
             if include_relations
             else await service.get_planet(planet_id)
         )
-        gamification.record_query(user_id, 2)
+        gamification.record_query(user_id, 2, db)
         return result
     except ResourceNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

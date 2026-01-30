@@ -27,6 +27,9 @@ export function useChat() {
     const [loadingByPersona, setLoadingByPersona] = useState<Record<ChatPersona, boolean>>(() =>
         emptyByPersona<boolean>(false)
     );
+    const [conversationIdByPersona, setConversationIdByPersona] = useState<Record<ChatPersona, string | null>>(() =>
+        emptyByPersona<string | null>(null)
+    );
 
     // "Cache" local: re-hidrata histórico (por persona) se existir.
     useEffect(() => {
@@ -42,6 +45,7 @@ export function useChat() {
             const data = parsed as Partial<{
                 messagesByPersona: Record<ChatPersona, ChatMessage[]>;
                 persona: ChatPersona;
+                conversationIdByPersona: Record<ChatPersona, string | null>;
             }>;
 
             if (data.messagesByPersona?.yoda && data.messagesByPersona?.vader) {
@@ -52,6 +56,12 @@ export function useChat() {
             }
             if (data.persona === 'yoda' || data.persona === 'vader') {
                 setPersona(data.persona);
+            }
+            if (data.conversationIdByPersona?.yoda !== undefined && data.conversationIdByPersona?.vader !== undefined) {
+                setConversationIdByPersona({
+                    yoda: data.conversationIdByPersona.yoda ?? null,
+                    vader: data.conversationIdByPersona.vader ?? null,
+                });
             }
         } catch {
             // Ignora cache inválido.
@@ -69,12 +79,13 @@ export function useChat() {
                         yoda: clampMessages(messagesByPersona.yoda),
                         vader: clampMessages(messagesByPersona.vader),
                     },
+                    conversationIdByPersona,
                 })
             );
         } catch {
             // Se storage estiver indisponível (ex: modo privado), segue sem cache.
         }
-    }, [messagesByPersona, persona]);
+    }, [messagesByPersona, persona, conversationIdByPersona]);
 
     const messages = useMemo(() => messagesByPersona[persona], [messagesByPersona, persona]);
     const input = useMemo(() => inputByPersona[persona], [inputByPersona, persona]);
@@ -88,6 +99,7 @@ export function useChat() {
         setMessagesByPersona((prev) => ({ ...prev, [targetPersona]: [] }));
         setInputByPersona((prev) => ({ ...prev, [targetPersona]: '' }));
         setLoadingByPersona((prev) => ({ ...prev, [targetPersona]: false }));
+        setConversationIdByPersona((prev) => ({ ...prev, [targetPersona]: null }));
     };
 
     const sendMessage = async () => {
@@ -99,7 +111,8 @@ export function useChat() {
         }
 
         const currentMessages = messagesByPersona[currentPersona];
-        const nextMessages = [...currentMessages, { role: 'user', content: trimmed }];
+        const userMessage: ChatMessage = { role: 'user', content: trimmed };
+        const nextMessages: ChatMessage[] = [...currentMessages, userMessage];
         setMessagesByPersona((prev) => ({ ...prev, [currentPersona]: nextMessages }));
         setInputByPersona((prev) => ({ ...prev, [currentPersona]: '' }));
         setLoadingByPersona((prev) => ({ ...prev, [currentPersona]: true }));
@@ -109,11 +122,15 @@ export function useChat() {
                 message: trimmed,
                 context: nextMessages,
                 persona: currentPersona,
+                conversation_id: conversationIdByPersona[currentPersona] ?? undefined,
             });
             setMessagesByPersona((prev) => ({
                 ...prev,
                 [currentPersona]: [...nextMessages, { role: 'assistant', content: response.message }],
             }));
+            if (response.conversation_id) {
+                setConversationIdByPersona((prev) => ({ ...prev, [currentPersona]: response.conversation_id ?? null }));
+            }
         } finally {
             setLoadingByPersona((prev) => ({ ...prev, [currentPersona]: false }));
         }

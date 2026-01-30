@@ -10,14 +10,23 @@ import { ReportsPage } from '@/features/reports/pages/ReportsPage/ReportsPage';
 import { StarshipsPage } from '@/features/starships/pages/StarshipsPage/StarshipsPage';
 import { VehiclesPage } from '@/features/vehicles/pages/VehiclesPage/VehiclesPage';
 import { SpeciesPage } from '@/features/species/pages/SpeciesPage/SpeciesPage';
+import { AuthProvider } from '@/features/auth/context/AuthProvider';
+import { useAuth } from '@/features/auth/context/AuthContext';
+import { LoginPage } from '@/features/auth/pages/LoginPage/LoginPage';
+import { UserMenu } from '@/features/auth/components/UserMenu/UserMenu';
 import { PageLayout } from '@/shared/components/PageLayout';
 import { StarfieldEvents } from '@/shared/components/StarfieldEvents';
 import { useAppNavigation } from './App.hooks';
 import styles from './App.module.css';
 
-export function App() {
+function AppShell() {
   const { activeSection, navigationItems, setActiveSection } = useAppNavigation();
   const [language, setLanguage] = useState<'en' | 'pt-BR'>('en');
+  const { status } = useAuth();
+
+  if (status !== 'authenticated') {
+    return <LoginPage />;
+  }
 
   return (
     <ChatProvider>
@@ -25,6 +34,7 @@ export function App() {
       <div className={styles.app}>
         <PageLayout
           title="Holocron Analytics"
+          right={<UserMenu />}
           subtitle={
             <div className={styles.subtitleBlock}>
               <div className={styles.punLine}>
@@ -79,5 +89,13 @@ export function App() {
         </PageLayout>
       </div>
     </ChatProvider>
+  );
+}
+
+export function App() {
+  return (
+    <AuthProvider>
+      <AppShell />
+    </AuthProvider>
   );
 }

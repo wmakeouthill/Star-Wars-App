@@ -1,12 +1,14 @@
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
 
 from app.application.services.gamification_service import GamificationService
 from app.application.services.species_service import SpeciesService
 from app.domain.exceptions.not_found import ResourceNotFoundError
 from app.domain.schemas.common import PaginatedResponse
 from app.domain.schemas.species import SpeciesFilter, SpeciesResponse
+from app.infrastructure.db.session import get_db
 from app.interfaces.api.v1.dependencies.auth import get_current_user_id
 from app.interfaces.api.v1.dependencies.services import get_gamification_service, get_species_service
 
@@ -25,10 +27,11 @@ async def list_species(
     service: SpeciesService = Depends(get_species_service),
     gamification: GamificationService = Depends(get_gamification_service),
     user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
 ):
     filters = SpeciesFilter(name=name, classification=classification, language=language)
     result = await service.list_species(filters, sort_by, sort_order, page, page_size)
-    gamification.record_query(user_id, 5)
+    gamification.record_query(user_id, 5, db)
     return result
 
 
@@ -38,10 +41,11 @@ async def get_species(
     service: SpeciesService = Depends(get_species_service),
     gamification: GamificationService = Depends(get_gamification_service),
     user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
 ):
     try:
         result = await service.get_species(species_id)
-        gamification.record_query(user_id, 2)
+        gamification.record_query(user_id, 2, db)
         return result
     except ResourceNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

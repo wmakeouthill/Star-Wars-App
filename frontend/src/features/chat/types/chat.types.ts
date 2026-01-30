@@ -9,6 +9,7 @@ export interface ChatRequest {
     message: string;
     context: ChatMessage[];
     persona?: ChatPersona;
+    conversation_id?: string;
 }
 
 export interface ChatResponse {
@@ -16,4 +17,5 @@ export interface ChatResponse {
     data?: Record<string, unknown>;
     suggested_actions?: string[];
     xp_earned?: number;
+    conversation_id?: string;
 }

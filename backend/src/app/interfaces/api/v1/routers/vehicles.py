@@ -1,12 +1,14 @@
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
 
 from app.application.services.gamification_service import GamificationService
 from app.application.services.vehicle_service import VehicleService
 from app.domain.exceptions.not_found import ResourceNotFoundError
 from app.domain.schemas.common import PaginatedResponse
 from app.domain.schemas.vehicle import VehicleFilter, VehicleResponse
+from app.infrastructure.db.session import get_db
 from app.interfaces.api.v1.dependencies.auth import get_current_user_id
 from app.interfaces.api.v1.dependencies.services import get_gamification_service, get_vehicle_service
 
@@ -25,10 +27,11 @@ async def list_vehicles(
     service: VehicleService = Depends(get_vehicle_service),
     gamification: GamificationService = Depends(get_gamification_service),
     user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
 ):
     filters = VehicleFilter(name=name, manufacturer=manufacturer, vehicle_class=vehicle_class)
     result = await service.list_vehicles(filters, sort_by, sort_order, page, page_size)
-    gamification.record_query(user_id, 5)
+    gamification.record_query(user_id, 5, db)
     return result
 
 
@@ -38,10 +41,11 @@ async def get_vehicle(
     service: VehicleService = Depends(get_vehicle_service),
     gamification: GamificationService = Depends(get_gamification_service),
     user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
 ):
     try:
         result = await service.get_vehicle(vehicle_id)
-        gamification.record_query(user_id, 2)
+        gamification.record_query(user_id, 2, db)
         return result
     except ResourceNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

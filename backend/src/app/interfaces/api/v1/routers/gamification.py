@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends
 
+from sqlalchemy.orm import Session
+
 from app.application.services.gamification_service import GamificationService
 from app.domain.schemas.gamification import (
     AchievementSchema,
@@ -10,6 +12,7 @@ from app.domain.schemas.gamification import (
 )
 from app.interfaces.api.v1.dependencies.auth import get_current_user_id
 from app.interfaces.api.v1.dependencies.services import get_gamification_service
+from app.infrastructure.db.session import get_db
 
 router = APIRouter(prefix="/gamification", tags=["Gamificação"])
 
@@ -18,8 +21,9 @@ router = APIRouter(prefix="/gamification", tags=["Gamificação"])
 def get_profile(
     service: GamificationService = Depends(get_gamification_service),
     user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
 ):
-    user = service.get_user_profile(user_id)
+    user = service.get_user_profile(user_id, db)
     return UserGamificationSchema(
         user_id=user.user_id,
         total_xp=user.total_xp,
@@ -34,8 +38,9 @@ def get_profile(
 def get_leaderboard(
     limit: int = 10,
     service: GamificationService = Depends(get_gamification_service),
+    db: Session = Depends(get_db),
 ):
-    users = service.get_leaderboard(limit=limit)
+    users = service.get_leaderboard(db=db, limit=limit)
     return [
         LeaderboardEntrySchema(user_id=u.user_id, total_xp=u.total_xp, jedi_rank=u.jedi_rank) for u in users
     ]
@@ -45,8 +50,9 @@ def get_leaderboard(
 def list_achievements(
     service: GamificationService = Depends(get_gamification_service),
     user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
 ):
-    return [AchievementStatusSchema(**a) for a in service.get_achievements_for_user(user_id)]
+    return [AchievementStatusSchema(**a) for a in service.get_achievements_for_user(user_id, db)]
 
 
 @router.get("/daily-challenge", response_model=DailyChallengeSchema)
