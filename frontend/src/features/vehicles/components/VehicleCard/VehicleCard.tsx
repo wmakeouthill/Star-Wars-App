@@ -12,19 +12,16 @@ export function VehicleCard({
   const imageUrl = vehicle.image_url ?? placeholderImage;
   const isCompact = variant === 'compact';
 
-  const details = [
-    <>Modelo: {vehicle.model}</>,
-    <>Fabricante: {vehicle.manufacturer}</>,
-    <>Classe: {vehicle.vehicle_class}</>,
-    <>Tripulação: {crewLabel}</>,
-    <>Passageiros: {passengersLabel}</>,
-  ];
-
-  // Sempre no máximo 5 atributos no card.
-  const detailsToRender = (isCompact ? details : details).slice(0, 5);
+  const detailsToRender: Array<{ key: string; node: React.ReactNode }> = [
+    { key: 'model', node: <>Modelo: {vehicle.model}</> },
+    { key: 'manufacturer', node: <>Fabricante: {vehicle.manufacturer}</> },
+    { key: 'class', node: <>Classe: {vehicle.vehicle_class}</> },
+    { key: 'crew', node: <>Tripulação: {crewLabel}</> },
+    { key: 'passengers', node: <>Passageiros: {passengersLabel}</> },
+  ].slice(0, 5);
 
   return (
-    <article className={styles.card}>
+    <article className={`${styles.card} ${isCompact ? styles.cardCompact : ''}`}>
       <div className={styles.media} aria-hidden="true">
         <img
           className={styles.image}
@@ -41,9 +38,9 @@ export function VehicleCard({
 
       <div className={styles.content}>
         <h3 className={styles.name}>{vehicle.name}</h3>
-        {detailsToRender.map((detail, index) => (
-          <p key={index} className={styles.detail}>
-            {detail}
+        {detailsToRender.map((detail) => (
+          <p key={detail.key} className={styles.detail}>
+            {detail.node}
           </p>
         ))}
 

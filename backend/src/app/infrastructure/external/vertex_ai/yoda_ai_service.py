@@ -91,10 +91,13 @@ class YodaAIService:
                     "content": (
                         "DADOS SWAPI (referência factual):\n"
                         f"{data_snippet}\n\n"
-                        "Regras: use estes dados para os fatos. Não contradiga os dados. "
-                        "Você pode adicionar cor/encenação na voz do personagem (tom, comentários, onomatopeias), "
-                        "mas não invente fatos concretos (nomes, números, eventos) que não estejam nos dados ou na pergunta. "
-                        "Se precisar extrapolar para dramatização, deixe isso claro."
+                        "Regras:\n"
+                        "- Para atributos que estejam nos dados (ex.: nome, gênero, ano de nascimento, diretor), "
+                        "use os valores acima como fonte de verdade e NÃO os contradiga.\n"
+                        "- Para opiniões, emoções, julgamentos, humor, provocações e lore geral de Star Wars, "
+                        "você pode ser livre e usar seu conhecimento do universo, sem ficar preso ao SWAPI.\n"
+                        "- Evite inventar números/estatísticas específicas quando não houver base.\n"
+                        "- Se algo for incerto, admita a incerteza sem sair do personagem e faça uma pergunta de continuidade."
                     ),
                 }
             )

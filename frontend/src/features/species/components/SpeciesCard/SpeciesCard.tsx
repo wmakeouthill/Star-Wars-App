@@ -12,19 +12,16 @@ export function SpeciesCard({
   const imageUrl = species.image_url ?? placeholderImage;
   const isCompact = variant === 'compact';
 
-  const details = [
-    <>Classificação: {species.classification}</>,
-    <>Designação: {species.designation}</>,
-    <>Idioma: {species.language}</>,
-    <>Altura média: {heightLabel}</>,
-    <>Longevidade média: {lifespanLabel}</>,
-  ];
-
-  // Sempre no máximo 5 atributos no card.
-  const detailsToRender = (isCompact ? details : details).slice(0, 5);
+  const detailsToRender: Array<{ key: string; node: React.ReactNode }> = [
+    { key: 'classification', node: <>Classificação: {species.classification}</> },
+    { key: 'designation', node: <>Designação: {species.designation}</> },
+    { key: 'language', node: <>Idioma: {species.language}</> },
+    { key: 'height', node: <>Altura média: {heightLabel}</> },
+    { key: 'lifespan', node: <>Longevidade média: {lifespanLabel}</> },
+  ].slice(0, 5);
 
   return (
-    <article className={styles.card}>
+    <article className={`${styles.card} ${isCompact ? styles.cardCompact : ''}`}>
       <div className={styles.media} aria-hidden="true">
         <img
           className={styles.image}
@@ -41,9 +38,9 @@ export function SpeciesCard({
 
       <div className={styles.content}>
         <h3 className={styles.name}>{species.name}</h3>
-        {detailsToRender.map((detail, index) => (
-          <p key={index} className={styles.detail}>
-            {detail}
+        {detailsToRender.map((detail) => (
+          <p key={detail.key} className={styles.detail}>
+            {detail.node}
           </p>
         ))}
 

@@ -14,22 +14,24 @@ export function FilmCard({
   const imageUrl = (film as { image_url?: string | null }).image_url ?? placeholderImage;
   const isCompact = variant === 'compact';
 
-  const details = [
-    <>Episódio: {film.episode_id}</>,
-    <>Diretor: {film.director}</>,
-    <>Produtor: {film.producer}</>,
-    <>Lançamento: {releaseDate}</>,
-    <>
-      Personagens: {film.characters_count ?? 0} · Planetas: {film.planets_count ?? 0} · Naves:{' '}
-      {film.starships_count ?? 0}
-    </>,
-  ];
-
-  // Sempre no máximo 5 atributos no card (detalhes completos ficam no modal).
-  const detailsToRender = (isCompact ? details : details).slice(0, 5);
+  const detailsToRender: Array<{ key: string; node: React.ReactNode }> = [
+    { key: 'episode', node: <>Episódio: {film.episode_id}</> },
+    { key: 'director', node: <>Diretor: {film.director}</> },
+    { key: 'producer', node: <>Produtor: {film.producer}</> },
+    { key: 'releaseDate', node: <>Lançamento: {releaseDate}</> },
+    {
+      key: 'counts',
+      node: (
+        <>
+          Personagens: {film.characters_count ?? 0} · Planetas: {film.planets_count ?? 0} ·
+          Naves: {film.starships_count ?? 0}
+        </>
+      ),
+    },
+  ].slice(0, 5);
 
   return (
-    <article className={styles.card}>
+    <article className={`${styles.card} ${isCompact ? styles.cardCompact : ''}`}>
       <div className={styles.media} aria-hidden="true">
         <img
           className={styles.image}
@@ -46,9 +48,9 @@ export function FilmCard({
 
       <div className={styles.content}>
         <h3 className={styles.title}>{film.title}</h3>
-        {detailsToRender.map((detail, index) => (
-          <p key={index} className={styles.detail}>
-            {detail}
+        {detailsToRender.map((detail) => (
+          <p key={detail.key} className={styles.detail}>
+            {detail.node}
           </p>
         ))}
 

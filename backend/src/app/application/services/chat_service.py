@@ -49,6 +49,9 @@ class ChatService:
     async def _route_structured_intent(self, persona: str, message: str, context: List) -> ChatResponse | None:
         # Intenções "naturais" (ex.: "quero falar sobre o Luke") sem exigir palavra-chave.
         inferred = self._infer_entity_request(message)
+        if inferred and self._looks_like_pronoun(inferred.get("name")):
+            resolved = self._resolve_pronoun_from_context(inferred, context)
+            inferred = resolved or inferred
         if inferred:
             inferred_type = inferred.get("type")
             name = inferred.get("name")
@@ -66,6 +69,18 @@ class ChatService:
             return await self._respond_planet(persona, message, context)
         if "filme" in lower or "episódio" in lower or "episodio" in lower:
             return await self._respond_film(persona, message, context)
+
+        # Perguntas de opinião usando nome explícito (ex.: "o que você acha do Luke?").
+        opinion_target = self._infer_opinion_target(message)
+        if opinion_target:
+            inferred_type = opinion_target.get("type")
+            name = opinion_target.get("name")
+            if inferred_type == "character":
+                return await self._respond_character(persona, message, context, name_override=name)
+            if inferred_type == "planet":
+                return await self._respond_planet(persona, message, context, name_override=name)
+            if inferred_type == "film":
+                return await self._respond_film(persona, message, context, name_override=name)
         return None
 
     async def _respond_character(
@@ -93,6 +108,17 @@ class ChatService:
             "birth_year": match.get("birth_year"),
         }
         data_snippet = json.dumps({"type": "character", "swapi": data}, ensure_ascii=False, indent=2)
+
+        if self._is_opinion_question(message):
+            ai_message = await self._ai_response(persona, message, context, data_snippet)
+            response = ai_message or self._persona_opinion_about_character(persona, data)
+            return ChatResponse(
+                message=response,
+                data=data,
+                suggested_actions=["Ver detalhes do personagem", "Comparar personagens"],
+                xp_earned=10,
+            )
+
         response = (
             f"{match.get('name')} é. Gênero: {match.get('gender')}. "
             f"Ano de nascimento: {match.get('birth_year')}."
@@ -308,6 +334,40 @@ class ChatService:
         # Default: personagem (a intenção mais comum em "falar sobre X").
         return {"type": "character", "name": tail}
 
+    def _infer_opinion_target(self, message: str) -> dict[str, str] | None:
+        """
+        Captura alvo explícito em perguntas de opinião:
+        - "o que você acha do Luke Skywalker?"
+        - "você gosta do Tatooine?"
+        - "qual sua opinião sobre o episódio 4?"
+        """
+        raw = (message or "").strip()
+        if not raw:
+            return None
+
+        lowered = raw.lower()
+        if not self._is_opinion_question(lowered):
+            return None
+
+        # "acha/gosta/odeia do/da/de X"
+        m = re.search(r"\b(?:acha|gosta|odeia)\s+(?:do|da|de)\s+(?:o|a|os|as)?\s*(.+)$", lowered)
+        if not m:
+            return None
+
+        tail = raw[m.start(1) :].strip(" .!?;:")
+        if not tail:
+            return None
+
+        if re.search(r"\b(epis[oó]dio|episode)\b", tail, flags=re.IGNORECASE):
+            tail = re.sub(r"\b(epis[oó]dio|episode)\b", "", tail, flags=re.IGNORECASE).strip(" -:#")
+            return {"type": "film", "name": tail or raw}
+
+        if re.search(r"\b(planeta|mundo)\b", lowered):
+            tail = re.sub(r"\b(planeta|mundo)\b", "", tail, flags=re.IGNORECASE).strip(" -:#")
+            return {"type": "planet", "name": tail or raw}
+
+        return {"type": "character", "name": tail}
+
     def _normalize_text(self, text: str) -> str:
         raw = (text or "").strip()
         if not raw:
@@ -318,6 +378,97 @@ class ChatService:
         raw = re.sub(r"[^a-z0-9\s]", " ", raw)
         raw = re.sub(r"\s+", " ", raw).strip()
         return raw
+
+    def _looks_like_pronoun(self, text: str | None) -> bool:
+        if not text:
+            return False
+        t = self._normalize_text(text)
+        if not t:
+            return False
+        return bool(re.fullmatch(r"(ele|ela|dele|dela|deles|delas|isso|disso|nisso|nele|nela)", t))
+
+    def _resolve_pronoun_from_context(self, inferred: dict[str, str], context: List) -> dict[str, str] | None:
+        """
+        Resolve "ele/ela/dele/dela" para a última entidade explícita mencionada no contexto.
+
+        Ex.: usuário: "quero saber sobre o luke skywalker" -> depois "o que você acha sobre ele?"
+        """
+        inferred_type = inferred.get("type") or "character"
+
+        # Procura primeiro em mensagens do usuário, pois normalmente é onde o alvo foi definido.
+        for item in reversed(context or []):
+            if getattr(item, "role", "") != "user":
+                continue
+            prev = self._infer_entity_request(getattr(item, "content", ""))
+            if prev and prev.get("type") == inferred_type and not self._looks_like_pronoun(prev.get("name")):
+                return {"type": inferred_type, "name": prev.get("name") or ""}
+
+            # Como fallback: tenta extrair um nome "solto" da frase anterior.
+            prev_name = self._extract_entity_name(getattr(item, "content", ""))
+            if prev_name and not self._looks_like_pronoun(prev_name):
+                return {"type": inferred_type, "name": prev_name}
+
+        return None
+
+    def _is_opinion_question(self, message: str) -> bool:
+        text = self._normalize_text(message or "")
+        if not text:
+            return False
+        return bool(
+            re.search(
+                r"\b(o que voce acha|oq voce acha|qual sua opiniao|sua opiniao|voce gosta|voce odeia|voce sente)\b",
+                text,
+            )
+        )
+
+    def _persona_opinion_about_character(self, persona: str, data: Dict[str, Any]) -> str:
+        name = str(data.get("name") or "esse alguém")
+        norm = self._normalize_text(name)
+
+        if persona == "vader":
+            if "luke skywalker" in norm:
+                return self._persona_reply(
+                    persona,
+                    "Luke Skywalker... forte na Força. Impulsivo. "
+                    "Uma ameaça quando indisciplinado — e um aliado inestimável quando quebrado e forjado. "
+                    "Não subestime a teimosia dele. Eu não subestimo.",
+                )
+            if "obi wan" in norm or "obiwan" in norm or "kenobi" in norm:
+                return self._persona_reply(
+                    persona,
+                    "Kenobi. Um fantasma que insiste em assombrar o que já foi decidido. "
+                    "Honra, ele chama. Fraqueza, eu chamo.",
+                )
+            if "palpatine" in norm or "sidious" in norm or "imperador" in norm:
+                return self._persona_reply(
+                    persona,
+                    "O Imperador não é um homem. É uma intenção. "
+                    "E intenções como a dele devoram tudo — inclusive você, se vacilar.",
+                )
+            return self._persona_reply(
+                persona,
+                f"{name}. Se for forte, será útil. Se for fraco... será esquecido. "
+                "Fatos não mudam. Sentimentos, sim.",
+            )
+
+        # Yoda
+        if "luke skywalker" in norm:
+            return self._persona_reply(
+                persona,
+                "Hmm... grande potencial, nele eu vi. Impaciente, ele era — e ainda assim, esperança trouxe. "
+                "Aprender a ouvir a Força, ele precisou. E escolher, sempre precisa.",
+            )
+        if "anakin" in norm or "vader" in norm:
+            return self._persona_reply(
+                persona,
+                "Tristeza grande, esse nome carrega. Medo alimentado, destino torcido foi. "
+                "Mas perdido para sempre, ninguém está... se o querer verdadeiro existir.",
+            )
+        return self._persona_reply(
+            persona,
+            f"Sobre {name}, hmm... julgar rápido, perigoso é. "
+            "Pelas escolhas, a sombra e a luz se mostram — e atentos, devemos estar.",
+        )
 
     def _vader_breath(self, message: str) -> str:
         breaths = [
