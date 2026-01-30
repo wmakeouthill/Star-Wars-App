@@ -60,8 +60,44 @@
   flex-wrap: wrap;
   padding: 1.05rem 2rem;
   border-bottom: 1px solid var(--border);
-  background: rgba(5, 7, 13, 0.38);
-  backdrop-filter: blur(12px);
+  background: rgba(5, 7, 13, 0.26);
+  backdrop-filter: blur(6px);
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.navigation::before {
+  content: '';
+  position: absolute;
+  inset: -22%;
+  pointer-events: none;
+  opacity: 0.34;
+  background-image:
+    radial-gradient(circle at 14px 18px, rgba(255, 255, 255, 0.72) 1px, transparent 2px),
+    radial-gradient(circle at 58px 62px, rgba(255, 255, 255, 0.4) 1px, transparent 2px),
+    radial-gradient(circle at 126px 98px, rgba(255, 255, 255, 0.52) 1px, transparent 2px),
+    radial-gradient(circle at 178px 24px, rgba(255, 255, 255, 0.28) 1px, transparent 2px),
+    radial-gradient(circle at 210px 150px, rgba(255, 255, 255, 0.24) 1px, transparent 2px),
+    radial-gradient(circle at 210px 40px, rgba(53, 230, 255, 0.16) 1px, transparent 2px),
+    radial-gradient(circle at 260px 140px, rgba(255, 61, 242, 0.1) 1px, transparent 2px);
+  background-size:
+    170px 150px,
+    210px 190px,
+    260px 240px,
+    300px 280px,
+    380px 340px,
+    560px 520px,
+    820px 760px;
+  mix-blend-mode: screen;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.05))
+    drop-shadow(0 0 12px rgba(53, 230, 255, 0.04));
+  animation: navStarsFlicker 9s steps(6, end) infinite;
+}
+
+.navigation > * {
+  position: relative;
+  z-index: 1;
 }
 
 .navigationButton {
@@ -92,4 +128,20 @@
 
 .content {
   padding: 1.5rem 2rem 3rem;
+}
+
+@keyframes navStarsFlicker {
+  0%,
+  100% {
+    opacity: 0.18;
+  }
+  20% {
+    opacity: 0.24;
+  }
+  52% {
+    opacity: 0.2;
+  }
+  76% {
+    opacity: 0.26;
+  }
 }

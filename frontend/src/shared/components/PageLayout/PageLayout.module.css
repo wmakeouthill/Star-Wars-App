@@ -7,11 +7,47 @@
 .header {
   padding: 2.25rem 2rem 1.15rem;
   border-bottom: 1px solid var(--border);
-  background: linear-gradient(180deg, rgba(5, 7, 13, 0.72), rgba(5, 7, 13, 0.35));
-  backdrop-filter: blur(12px);
+  background: linear-gradient(180deg, rgba(5, 7, 13, 0.55), rgba(5, 7, 13, 0.24));
+  backdrop-filter: blur(6px);
   position: sticky;
   top: 0;
   z-index: 3;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.header::before {
+  content: '';
+  position: absolute;
+  inset: -18%;
+  pointer-events: none;
+  opacity: 0.38;
+  background-image:
+    radial-gradient(circle at 16px 22px, rgba(255, 255, 255, 0.75) 1px, transparent 2px),
+    radial-gradient(circle at 62px 84px, rgba(255, 255, 255, 0.42) 1px, transparent 2px),
+    radial-gradient(circle at 124px 48px, rgba(255, 255, 255, 0.56) 1px, transparent 2px),
+    radial-gradient(circle at 172px 112px, rgba(255, 255, 255, 0.34) 1px, transparent 2px),
+    radial-gradient(circle at 220px 30px, rgba(255, 255, 255, 0.28) 1px, transparent 2px),
+    radial-gradient(circle at 210px 140px, rgba(53, 230, 255, 0.18) 1px, transparent 2px),
+    radial-gradient(circle at 280px 90px, rgba(255, 61, 242, 0.12) 1px, transparent 2px),
+    radial-gradient(circle at 420px 160px, rgba(151, 255, 61, 0.08) 1px, transparent 2px),
+    radial-gradient(circle at 520px 180px, rgba(255, 255, 255, 0.16) 2px, transparent 5px),
+    radial-gradient(circle at 820px 240px, rgba(255, 255, 255, 0.1) 3px, transparent 9px);
+  background-size:
+    170px 150px,
+    210px 190px,
+    260px 240px,
+    300px 280px,
+    360px 320px,
+    440px 400px,
+    560px 520px,
+    820px 760px,
+    1400px 1280px,
+    2200px 2000px;
+  mix-blend-mode: screen;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.05))
+    drop-shadow(0 0 12px rgba(53, 230, 255, 0.04));
+  animation: headerStarsTwinkle 10s ease-in-out infinite;
 }
 
 .title {
@@ -21,14 +57,31 @@
   text-transform: uppercase;
   color: var(--text);
   text-shadow: 0 0 22px rgba(53, 230, 255, 0.18), 0 0 10px rgba(255, 61, 242, 0.08);
+  position: relative;
+  z-index: 1;
 }
 
 .subtitle {
   margin-top: 0.35rem;
   color: var(--muted);
+  position: relative;
+  z-index: 1;
 }
 
 .body {
   flex: 1;
   padding-bottom: 5.5rem;
+}
+
+@keyframes headerStarsTwinkle {
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+  45% {
+    opacity: 0.32;
+  }
+  70% {
+    opacity: 0.24;
+  }
 }

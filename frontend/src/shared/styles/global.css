@@ -38,16 +38,12 @@
 html,
 body {
   height: 100%;
+  background-color: #000000;
 }
 
 body {
   min-height: 100vh;
-  background:
-    radial-gradient(circle at 15% 18%, rgba(53, 230, 255, 0.06), transparent 46%),
-    radial-gradient(circle at 88% 16%, rgba(255, 61, 242, 0.045), transparent 44%),
-    radial-gradient(circle at 28% 90%, rgba(151, 255, 61, 0.028), transparent 56%),
-    radial-gradient(circle at 55% 48%, rgba(255, 255, 255, 0.02), transparent 62%),
-    linear-gradient(180deg, #000000 0%, #01020a 35%, #030614 100%);
+  background: #000000;
   background-color: #000000;
   color: var(--text);
   font-family: var(--font-ui);
@@ -61,7 +57,7 @@ body::before {
   inset: -12%;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.78;
+  opacity: 0.86;
   background-image:
     /* many small stars */
     radial-gradient(circle at 12px 18px, rgba(255, 255, 255, 0.78) 1px, transparent 2px),
@@ -74,32 +70,39 @@ body::before {
     radial-gradient(circle at 170px 170px, rgba(255, 255, 255, 0.3) 1px, transparent 2px),
     radial-gradient(circle at 210px 210px, rgba(255, 255, 255, 0.22) 1px, transparent 2px),
     radial-gradient(circle at 260px 140px, rgba(255, 255, 255, 0.2) 1px, transparent 2px),
+    radial-gradient(circle at 310px 40px, rgba(255, 255, 255, 0.2) 1px, transparent 2px),
+    radial-gradient(circle at 22px 96px, rgba(255, 255, 255, 0.18) 1px, transparent 2px),
     /* a few tinted stars */
     radial-gradient(circle at 110px 70px, rgba(53, 230, 255, 0.26) 1px, transparent 2px),
     radial-gradient(circle at 30px 92px, rgba(255, 61, 242, 0.18) 1px, transparent 2px),
+    radial-gradient(circle at 180px 54px, rgba(151, 255, 61, 0.12) 1px, transparent 2px),
     /* medium stars */
     radial-gradient(circle at 240px 180px, rgba(255, 255, 255, 0.24) 2px, transparent 4px),
     radial-gradient(circle at 420px 260px, rgba(255, 255, 255, 0.18) 2px, transparent 4px),
+    radial-gradient(circle at 520px 120px, rgba(255, 255, 255, 0.16) 2px, transparent 5px),
     /* rare bright stars */
     radial-gradient(circle at 680px 420px, rgba(255, 255, 255, 0.14) 3px, transparent 7px),
-    radial-gradient(circle at 980px 140px, rgba(255, 255, 255, 0.1) 4px, transparent 10px);
+    radial-gradient(circle at 980px 140px, rgba(255, 255, 255, 0.1) 4px, transparent 10px),
+    radial-gradient(circle at 1480px 820px, rgba(255, 255, 255, 0.08) 5px, transparent 14px);
   background-size:
-    180px 160px,
+    150px 130px,
+    170px 150px,
     200px 180px,
-    240px 210px,
+    240px 200px,
     280px 240px,
     320px 280px,
-    380px 340px,
-    460px 420px,
+    360px 320px,
+    420px 380px,
+    480px 440px,
     560px 520px,
-    600px 560px,
-    740px 680px,
+    380px 340px,
     520px 480px,
-    640px 600px,
-    1000px 920px,
+    600px 560px,
+    720px 680px,
     1200px 1080px,
     2200px 2000px,
-    2600px 2400px;
+    2600px 2400px,
+    3400px 3000px;
   filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.06))
     drop-shadow(0 0 10px rgba(53, 230, 255, 0.05));
   animation: starfieldDrift 240s linear infinite, starfieldTwinkle 7s ease-in-out infinite;
@@ -136,8 +139,8 @@ body::after {
   position: fixed;
   inset: -16%;
   pointer-events: none;
-  z-index: -1;
-  opacity: 0.55;
+  z-index: -2;
+  opacity: 0.72;
   background-image:
     radial-gradient(circle at 22px 30px, rgba(255, 255, 255, 0.68) 1px, transparent 2px),
     radial-gradient(circle at 76px 118px, rgba(255, 255, 255, 0.34) 1px, transparent 2px),
@@ -145,15 +148,19 @@ body::after {
     radial-gradient(circle at 238px 186px, rgba(255, 255, 255, 0.28) 1px, transparent 2px),
     radial-gradient(circle at 312px 92px, rgba(53, 230, 255, 0.18) 1px, transparent 2px),
     radial-gradient(circle at 392px 246px, rgba(255, 61, 242, 0.12) 1px, transparent 2px),
-    radial-gradient(circle at 520px 340px, rgba(255, 255, 255, 0.14) 2px, transparent 5px);
+    radial-gradient(circle at 520px 340px, rgba(255, 255, 255, 0.14) 2px, transparent 5px),
+    radial-gradient(circle at 640px 140px, rgba(255, 255, 255, 0.12) 2px, transparent 5px),
+    radial-gradient(circle at 980px 520px, rgba(255, 255, 255, 0.08) 3px, transparent 9px);
   background-size:
-    260px 240px,
-    320px 280px,
-    420px 360px,
+    220px 200px,
+    280px 240px,
+    360px 320px,
+    440px 400px,
     520px 480px,
-    620px 560px,
-    820px 760px,
-    1600px 1400px;
+    700px 640px,
+    980px 900px,
+    1400px 1280px,
+    2200px 2000px;
   filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.05))
     drop-shadow(0 0 14px rgba(53, 230, 255, 0.04));
   animation: starfieldDrift2 320s linear infinite reverse, starfieldFlicker 9s steps(7, end) infinite;
