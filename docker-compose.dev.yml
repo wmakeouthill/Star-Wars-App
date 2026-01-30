@@ -1,0 +1,36 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: holocron-backend-dev
+    ports:
+      - "8000:8000"
+    environment:
+      # CORS para o frontend (Vite)
+      CORS_ALLOW_ORIGINS: "http://localhost:5173,http://127.0.0.1:5173"
+    volumes:
+      - ./backend:/app
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: holocron-frontend-dev
+    ports:
+      - "5173:5173"
+    environment:
+      # Importante: isso é lido pelo browser, então precisa ser localhost
+      VITE_API_BASE_URL: "http://localhost:8000"
+      # Ajuda hot-reload no Docker Desktop/Windows
+      CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: "200"
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  frontend_node_modules:
+

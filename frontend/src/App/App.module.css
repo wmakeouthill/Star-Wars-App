@@ -1,0 +1,95 @@
+.app {
+  min-height: 100vh;
+  background: transparent;
+  color: var(--text);
+}
+
+.subtitleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.punLine {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.tagline {
+  color: rgba(199, 226, 255, 0.78);
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+.tagline strong {
+  color: var(--neon-cyan);
+  font-weight: 700;
+}
+
+.subline {
+  color: var(--muted);
+  font-family: var(--font-pixel);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+}
+
+.languageToggle {
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(5, 7, 13, 0.25);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.languageToggle:hover {
+  border-color: var(--border-strong);
+  background: rgba(53, 230, 255, 0.08);
+  box-shadow: var(--shadow-neon);
+}
+
+.navigation {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 1.05rem 2rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(5, 7, 13, 0.38);
+  backdrop-filter: blur(12px);
+}
+
+.navigationButton {
+  padding: 0.6rem 1rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: linear-gradient(135deg, rgba(8, 16, 32, 0.65), rgba(8, 16, 32, 0.35));
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.95rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: all 0.2s ease;
+}
+
+.navigationButton:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-neon);
+  transform: translateY(-1px);
+}
+
+.navigationButtonActive {
+  border-color: rgba(53, 230, 255, 0.65);
+  background: linear-gradient(135deg, rgba(53, 230, 255, 0.14), rgba(255, 61, 242, 0.08));
+  color: var(--text);
+  box-shadow: var(--shadow-neon), var(--shadow-magenta);
+}
+
+.content {
+  padding: 1.5rem 2rem 3rem;
+}

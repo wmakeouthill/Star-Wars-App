@@ -1,0 +1,106 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Pathway+Gothic+One&family=Press+Start+2P&family=Share+Tech+Mono&display=swap');
+
+:root {
+  color-scheme: dark;
+
+  --font-ui: 'Orbitron', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  --font-star: 'Pathway Gothic One', 'Orbitron', system-ui, sans-serif;
+  --font-mono: 'Share Tech Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
+  --font-pixel: 'Press Start 2P', ui-monospace, monospace;
+
+  --bg-0: #05070d;
+  --bg-1: #060b14;
+  --panel: rgba(8, 16, 32, 0.68);
+  --panel-strong: rgba(10, 18, 38, 0.78);
+
+  --text: #e6f3ff;
+  --muted: rgba(199, 226, 255, 0.68);
+
+  --neon-cyan: #35e6ff;
+  --neon-magenta: #ff3df2;
+  --neon-lime: #97ff3d;
+  --neon-amber: #ffd44a;
+
+  --border: rgba(110, 231, 255, 0.18);
+  --border-strong: rgba(110, 231, 255, 0.35);
+
+  --shadow-neon: 0 0 24px rgba(53, 230, 255, 0.22);
+  --shadow-magenta: 0 0 24px rgba(255, 61, 242, 0.18);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 12% 12%, rgba(53, 230, 255, 0.08), transparent 40%),
+    radial-gradient(circle at 88% 18%, rgba(255, 61, 242, 0.06), transparent 38%),
+    radial-gradient(circle at 30% 88%, rgba(151, 255, 61, 0.04), transparent 45%),
+    linear-gradient(180deg, rgba(4, 7, 13, 0.9), rgba(4, 7, 13, 1));
+  background-color: var(--bg-0);
+  color: var(--text);
+  font-family: var(--font-ui);
+  overflow-x: hidden;
+}
+
+/* Starfield */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.55;
+  background-image:
+    radial-gradient(circle at 12px 18px, rgba(255, 255, 255, 0.55) 1px, transparent 2px),
+    radial-gradient(circle at 60px 42px, rgba(255, 255, 255, 0.35) 1px, transparent 2px),
+    radial-gradient(circle at 110px 70px, rgba(53, 230, 255, 0.22) 1px, transparent 2px),
+    radial-gradient(circle at 190px 120px, rgba(255, 61, 242, 0.16) 1px, transparent 2px);
+  background-size: 240px 220px;
+  filter: drop-shadow(0 0 6px rgba(53, 230, 255, 0.06));
+}
+
+/* Scanlines */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.12;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.06),
+    rgba(255, 255, 255, 0.06) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+  mix-blend-mode: overlay;
+}
+
+/* Keep app content above background layers */
+#root {
+  position: relative;
+  z-index: 1;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+::selection {
+  background: rgba(53, 230, 255, 0.22);
+}

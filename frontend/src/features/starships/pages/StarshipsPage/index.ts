@@ -1,0 +1,1 @@
+export { StarshipsPage } from './StarshipsPage';
