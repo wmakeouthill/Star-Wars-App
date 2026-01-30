@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useFilms } from '../../hooks/useFilms';
 import { useFilmCharacters } from '../../hooks/useFilmCharacters';
+import { useFilmDetails } from '../../hooks/useFilmDetails';
 
 export function useFilmsPage() {
     const [title, setTitle] = useState('');
@@ -27,6 +28,7 @@ export function useFilmsPage() {
 
     const query = useFilms(filters);
     const charactersQuery = useFilmCharacters(selectedFilmId, charactersPage, charactersPageSize);
+    const filmDetailsQuery = useFilmDetails(selectedFilmId);
 
     return {
         title,
@@ -45,5 +47,6 @@ export function useFilmsPage() {
         setCharactersPage,
         query,
         charactersQuery,
+        filmDetailsQuery,
     };
 }

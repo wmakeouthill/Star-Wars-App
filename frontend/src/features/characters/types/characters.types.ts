@@ -27,6 +27,9 @@ export interface Character {
     gender: string;
     homeworld?: PlanetSummary | null;
     films?: FilmSummary[];
+    species?: Array<{ id: string; name: string }>;
+    vehicles?: Array<{ id: string; name: string }>;
+    starships?: Array<{ id: string; name: string }>;
 }
 
 export interface CharacterFilters {

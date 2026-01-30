@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 from typing import List, Optional, Tuple
 
 from app.domain.exceptions.not_found import ResourceNotFoundError
 from app.domain.schemas.common import PaginatedResponse, PageMeta
 from app.domain.schemas.planet import PlanetFilter, PlanetResponse
+from app.domain.schemas.resource import NamedResourceSummary, TitledResourceSummary
 from app.domain.repositories.swapi_client import ISWAPIClient
 from app.infrastructure.external.swapi.client import extract_id, normalize_number
 from app.infrastructure.external.swapi.parsers import parse_swapi_number
@@ -63,6 +65,40 @@ class PlanetService:
         image_index = await self._images.get_locations_index() if self._images else None
         return self._map_planet(planet, image_index=image_index)
 
+    async def get_planet_with_relations(self, planet_id: str) -> PlanetResponse:
+        try:
+            planet = await self._swapi.get_planet(planet_id)
+        except Exception as exc:  # noqa: BLE001
+            raise ResourceNotFoundError("Planeta", planet_id) from exc
+
+        residents_urls = planet.get("residents", []) or []
+        films_urls = planet.get("films", []) or []
+
+        residents_task = (
+            self._swapi.get_resources_by_urls(residents_urls) if residents_urls else asyncio.sleep(0, result=[])
+        )
+        films_task = self._swapi.get_resources_by_urls(films_urls) if films_urls else asyncio.sleep(0, result=[])
+
+        residents_raw, films_raw = await asyncio.gather(residents_task, films_task)
+
+        residents: list[NamedResourceSummary] = []
+        for item in residents_raw:
+            url = item.get("url", "")
+            residents.append(NamedResourceSummary(id=extract_id(url), name=item.get("name", "")))
+
+        films_detail: list[TitledResourceSummary] = []
+        for item in films_raw:
+            url = item.get("url", "")
+            films_detail.append(TitledResourceSummary(id=extract_id(url), title=item.get("title", "")))
+
+        image_index = await self._images.get_locations_index() if self._images else None
+        return self._map_planet(
+            planet,
+            image_index=image_index,
+            residents=residents,
+            films_detail=films_detail,
+        )
+
     def _apply_filters(self, planets: List[dict], filters: PlanetFilter) -> List[dict]:
         def matches(planet: dict) -> bool:
             if filters.name and filters.name.lower() not in planet.get("name", "").lower():
@@ -107,13 +143,20 @@ class PlanetService:
         meta = PageMeta(page=page, page_size=page_size, total=total, total_pages=total_pages)
         return items[start:end], meta
 
-    def _map_planet(self, planet: dict, image_index: dict[str, str] | None = None) -> PlanetResponse:
+    def _map_planet(
+        self,
+        planet: dict,
+        image_index: dict[str, str] | None = None,
+        *,
+        residents: Optional[list[NamedResourceSummary]] = None,
+        films_detail: Optional[list[TitledResourceSummary]] = None,
+    ) -> PlanetResponse:
         population_parsed = parse_swapi_number(planet.get("population"))
         surface_water_parsed = parse_swapi_number(planet.get("surface_water"))
         diameter_parsed = parse_swapi_number(planet.get("diameter"))
         rotation_parsed = parse_swapi_number(planet.get("rotation_period"))
         orbital_parsed = parse_swapi_number(planet.get("orbital_period"))
-        residents = planet.get("residents", []) or []
+        resident_urls = planet.get("residents", []) or []
         image_url = None
         if image_index is not None:
             image_url = image_index.get(_norm_name(planet.get("name", "")))
@@ -134,8 +177,10 @@ class PlanetService:
             orbital_period_raw=None if orbital_parsed.is_unknown else orbital_parsed.raw,
             population=self._to_int(planet.get("population")),
             population_raw=None if population_parsed.is_unknown else population_parsed.raw,
-            residents_count=len(residents),
+            residents_count=len(resident_urls),
+            residents=residents or [],
             films=[extract_id(url) for url in planet.get("films", [])],
+            films_detail=films_detail or [],
         )
 
     def _to_int(self, value: Optional[str]) -> Optional[int]:

@@ -1,3 +1,8 @@
+export interface NamedResourceSummary {
+    id: string;
+    name: string;
+}
+
 export interface Film {
     id: string;
     title: string;
@@ -12,6 +17,10 @@ export interface Film {
     starships_count?: number;
     vehicles_count?: number;
     species_count?: number;
+    planets?: NamedResourceSummary[];
+    starships?: NamedResourceSummary[];
+    vehicles?: NamedResourceSummary[];
+    species?: NamedResourceSummary[];
 }
 
 export interface FilmFilters {

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, ConfigDict
+
+from app.domain.schemas.resource import NamedResourceSummary, TitledResourceSummary
 
 
 class StarshipResponse(BaseModel):
@@ -32,6 +34,8 @@ class StarshipResponse(BaseModel):
     passengers_raw: Optional[str] = None
     passengers_min: Optional[int] = None
     passengers_max: Optional[int] = None
+    pilots: List[NamedResourceSummary] = []
+    films: List[TitledResourceSummary] = []
     films_count: int = 0
     pilots_count: int = 0
 

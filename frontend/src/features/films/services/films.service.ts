@@ -12,3 +12,9 @@ export async function fetchFilms(filters: FilmFilters) {
         page_size: filters.pageSize,
     });
 }
+
+export async function fetchFilmById(filmId: string, includeRelations: boolean) {
+    return apiGet<Film>(`/api/v1/films/${filmId}`, {
+        include_relations: includeRelations,
+    });
+}

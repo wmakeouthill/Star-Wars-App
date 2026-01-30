@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 from typing import List, Optional, Tuple
 
 from app.domain.exceptions.not_found import ResourceNotFoundError
 from app.domain.schemas.common import PaginatedResponse, PageMeta
 from app.domain.schemas.film import FilmFilter, FilmResponse
+from app.domain.schemas.resource import NamedResourceSummary
 from app.domain.repositories.swapi_client import ISWAPIClient
 from app.infrastructure.external.swapi.client import extract_id
 from app.application.services.swapi_pagination import fetch_swapi_slice
@@ -58,6 +60,43 @@ class FilmService:
             raise ResourceNotFoundError("Filme", film_id) from exc
         return self._map_film(film)
 
+    async def get_film_with_relations(self, film_id: str) -> FilmResponse:
+        try:
+            film = await self._swapi.get_film(film_id)
+        except Exception as exc:  # noqa: BLE001
+            raise ResourceNotFoundError("Filme", film_id) from exc
+
+        planets_urls = film.get("planets", []) or []
+        starships_urls = film.get("starships", []) or []
+        vehicles_urls = film.get("vehicles", []) or []
+        species_urls = film.get("species", []) or []
+
+        planets_task = self._swapi.get_resources_by_urls(planets_urls) if planets_urls else asyncio.sleep(0, result=[])
+        starships_task = (
+            self._swapi.get_resources_by_urls(starships_urls) if starships_urls else asyncio.sleep(0, result=[])
+        )
+        vehicles_task = self._swapi.get_resources_by_urls(vehicles_urls) if vehicles_urls else asyncio.sleep(0, result=[])
+        species_task = self._swapi.get_resources_by_urls(species_urls) if species_urls else asyncio.sleep(0, result=[])
+
+        planets_raw, starships_raw, vehicles_raw, species_raw = await asyncio.gather(
+            planets_task, starships_task, vehicles_task, species_task
+        )
+
+        def map_named(items: list[dict]) -> list[NamedResourceSummary]:
+            mapped: list[NamedResourceSummary] = []
+            for item in items:
+                url = item.get("url", "")
+                mapped.append(NamedResourceSummary(id=extract_id(url), name=item.get("name", "")))
+            return mapped
+
+        return self._map_film(
+            film,
+            planets_rel=map_named(planets_raw),
+            starships_rel=map_named(starships_raw),
+            vehicles_rel=map_named(vehicles_raw),
+            species_rel=map_named(species_raw),
+        )
+
     def _apply_filters(self, films: List[dict], filters: FilmFilter) -> List[dict]:
         def matches(film: dict) -> bool:
             if filters.title and filters.title.lower() not in film.get("title", "").lower():
@@ -92,12 +131,20 @@ class FilmService:
         meta = PageMeta(page=page, page_size=page_size, total=total, total_pages=total_pages)
         return items[start:end], meta
 
-    def _map_film(self, film: dict) -> FilmResponse:
-        characters = film.get("characters", []) or []
-        planets = film.get("planets", []) or []
-        starships = film.get("starships", []) or []
-        vehicles = film.get("vehicles", []) or []
-        species = film.get("species", []) or []
+    def _map_film(
+        self,
+        film: dict,
+        *,
+        planets_rel: Optional[list[NamedResourceSummary]] = None,
+        starships_rel: Optional[list[NamedResourceSummary]] = None,
+        vehicles_rel: Optional[list[NamedResourceSummary]] = None,
+        species_rel: Optional[list[NamedResourceSummary]] = None,
+    ) -> FilmResponse:
+        characters_urls = film.get("characters", []) or []
+        planets_urls = film.get("planets", []) or []
+        starships_urls = film.get("starships", []) or []
+        vehicles_urls = film.get("vehicles", []) or []
+        species_urls = film.get("species", []) or []
         episode_id = int(film.get("episode_id", 0))
         return FilmResponse(
             id=extract_id(film.get("url", "")),
@@ -108,9 +155,13 @@ class FilmService:
             director=film.get("director", ""),
             producer=film.get("producer", ""),
             release_date=film.get("release_date", ""),
-            characters_count=len(characters),
-            planets_count=len(planets),
-            starships_count=len(starships),
-            vehicles_count=len(vehicles),
-            species_count=len(species),
+            characters_count=len(characters_urls),
+            planets_count=len(planets_urls),
+            starships_count=len(starships_urls),
+            vehicles_count=len(vehicles_urls),
+            species_count=len(species_urls),
+            planets=planets_rel or [],
+            starships=starships_rel or [],
+            vehicles=vehicles_rel or [],
+            species=species_rel or [],
         )

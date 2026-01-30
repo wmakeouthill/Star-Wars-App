@@ -22,6 +22,7 @@ export function FilmsPage() {
     setCharactersPage,
     query,
     charactersQuery,
+    filmDetailsQuery,
   } = useFilmsPage();
 
   return (
@@ -85,6 +86,35 @@ export function FilmsPage() {
       {selectedFilmId && (
         <section className={styles.charactersSection}>
           <h3 className={styles.sectionTitle}>Personagens do filme selecionado</h3>
+          {filmDetailsQuery.isLoading && (
+            <p className={styles.status}>Carregando detalhes do filme...</p>
+          )}
+          {filmDetailsQuery.isError && (
+            <p className={styles.status}>Erro ao carregar detalhes do filme.</p>
+          )}
+          {filmDetailsQuery.data && (
+            <>
+              <p className={styles.status}>
+                <strong>Opening crawl:</strong> {filmDetailsQuery.data.opening_crawl}
+              </p>
+              <p className={styles.status}>
+                <strong>Planetas:</strong>{' '}
+                {(filmDetailsQuery.data.planets ?? []).map((p) => p.name).join(', ') || '—'}
+              </p>
+              <p className={styles.status}>
+                <strong>Naves:</strong>{' '}
+                {(filmDetailsQuery.data.starships ?? []).map((s) => s.name).join(', ') || '—'}
+              </p>
+              <p className={styles.status}>
+                <strong>Veículos:</strong>{' '}
+                {(filmDetailsQuery.data.vehicles ?? []).map((v) => v.name).join(', ') || '—'}
+              </p>
+              <p className={styles.status}>
+                <strong>Espécies:</strong>{' '}
+                {(filmDetailsQuery.data.species ?? []).map((sp) => sp.name).join(', ') || '—'}
+              </p>
+            </>
+          )}
           {charactersQuery.isLoading && (
             <p className={styles.status}>Carregando personagens...</p>
           )}

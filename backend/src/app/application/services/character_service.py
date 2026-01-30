@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import asyncio
 from typing import List, Optional, Tuple
 
 from app.domain.exceptions.not_found import ResourceNotFoundError
 from app.domain.schemas.character import CharacterFilter, CharacterResponse, FilmSummary, PlanetSummary
+from app.domain.schemas.resource import NamedResourceSummary
 from app.domain.schemas.common import PaginatedResponse, PageMeta
 from app.domain.repositories.swapi_client import ISWAPIClient
 from app.infrastructure.external.swapi.client import extract_id, normalize_number
@@ -65,10 +67,27 @@ class CharacterService:
             raise ResourceNotFoundError("Personagem", character_id) from exc
 
         if include_relations:
-            homeworld = await self._fetch_homeworld(person)
-            films = await self._fetch_films(person)
             image_index = await self._images.get_characters_index() if self._images else None
-            return self._map_character(person, homeworld=homeworld, films=films, image_index=image_index)
+
+            homeworld_task = self._fetch_homeworld(person)
+            films_task = self._fetch_films(person)
+            species_task = self._fetch_named_resources(person, "species")
+            vehicles_task = self._fetch_named_resources(person, "vehicles")
+            starships_task = self._fetch_named_resources(person, "starships")
+
+            homeworld, films, species, vehicles, starships = await asyncio.gather(
+                homeworld_task, films_task, species_task, vehicles_task, starships_task
+            )
+
+            return self._map_character(
+                person,
+                homeworld=homeworld,
+                films=films,
+                species=species,
+                vehicles=vehicles,
+                starships=starships,
+                image_index=image_index,
+            )
 
         image_index = await self._images.get_characters_index() if self._images else None
         return self._map_character(person, image_index=image_index)
@@ -163,11 +182,25 @@ class CharacterService:
         films = await self._swapi.get_resources_by_urls(urls)
         return [FilmSummary(id=extract_id(film.get("url", "")), title=film.get("title", "")) for film in films]
 
+    async def _fetch_named_resources(self, person: dict, key: str) -> List[NamedResourceSummary]:
+        urls = person.get(key, [])
+        if not urls:
+            return []
+        resources = await self._swapi.get_resources_by_urls(urls)
+        mapped: list[NamedResourceSummary] = []
+        for item in resources:
+            url = item.get("url", "")
+            mapped.append(NamedResourceSummary(id=extract_id(url), name=item.get("name", "")))
+        return mapped
+
     def _map_character(
         self,
         person: dict,
         homeworld: Optional[PlanetSummary] = None,
         films: Optional[List[FilmSummary]] = None,
+        species: Optional[List[NamedResourceSummary]] = None,
+        vehicles: Optional[List[NamedResourceSummary]] = None,
+        starships: Optional[List[NamedResourceSummary]] = None,
         image_index: dict[str, str] | None = None,
     ) -> CharacterResponse:
         height_parsed = parse_swapi_number(person.get("height"))
@@ -194,6 +227,9 @@ class CharacterService:
             gender=person.get("gender", ""),
             homeworld=homeworld,
             films=films or [],
+            species=species or [],
+            vehicles=vehicles or [],
+            starships=starships or [],
         )
 
     def _to_int(self, value: Optional[str]) -> Optional[int]:

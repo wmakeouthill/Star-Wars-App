@@ -38,12 +38,17 @@ async def list_films(
 @router.get("/{film_id}", response_model=FilmResponse)
 async def get_film(
     film_id: str,
+    include_relations: bool = Query(False, description="Incluir relações resolvidas (planetas/naves/veículos/espécies)"),
     service: FilmService = Depends(get_film_service),
     gamification: GamificationService = Depends(get_gamification_service),
     user_id: str = Depends(get_current_user_id),
 ):
     try:
-        result = await service.get_film(film_id)
+        result = (
+            await service.get_film_with_relations(film_id)
+            if include_relations
+            else await service.get_film(film_id)
+        )
         gamification.record_query(user_id, 2)
         return result
     except ResourceNotFoundError as exc:

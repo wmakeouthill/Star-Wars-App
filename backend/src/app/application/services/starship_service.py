@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 from typing import List, Optional, Tuple
 
 from app.domain.exceptions.not_found import ResourceNotFoundError
 from app.domain.schemas.common import PaginatedResponse, PageMeta
 from app.domain.schemas.starship import StarshipFilter, StarshipResponse
+from app.domain.schemas.resource import NamedResourceSummary, TitledResourceSummary
 from app.domain.repositories.swapi_client import ISWAPIClient
 from app.infrastructure.external.swapi.client import extract_id, normalize_number
 from app.infrastructure.external.swapi.parsers import parse_swapi_number
@@ -59,6 +61,38 @@ class StarshipService:
         image_index = await self._images.get_vehicles_index() if self._images else None
         return self._map_starship(starship, image_index=image_index)
 
+    async def get_starship_with_relations(self, starship_id: str) -> StarshipResponse:
+        try:
+            starship = await self._swapi.get_starship(starship_id)
+        except Exception as exc:  # noqa: BLE001
+            raise ResourceNotFoundError("Nave", starship_id) from exc
+
+        film_urls = starship.get("films", []) or []
+        pilot_urls = starship.get("pilots", []) or []
+
+        films_task = self._swapi.get_resources_by_urls(film_urls) if film_urls else asyncio.sleep(0, result=[])
+        pilots_task = self._swapi.get_resources_by_urls(pilot_urls) if pilot_urls else asyncio.sleep(0, result=[])
+
+        films_raw, pilots_raw = await asyncio.gather(films_task, pilots_task)
+
+        films: list[TitledResourceSummary] = []
+        for item in films_raw:
+            url = item.get("url", "")
+            films.append(TitledResourceSummary(id=extract_id(url), title=item.get("title", "")))
+
+        pilots: list[NamedResourceSummary] = []
+        for item in pilots_raw:
+            url = item.get("url", "")
+            pilots.append(NamedResourceSummary(id=extract_id(url), name=item.get("name", "")))
+
+        image_index = await self._images.get_vehicles_index() if self._images else None
+        return self._map_starship(
+            starship,
+            image_index=image_index,
+            pilots=pilots,
+            films=films,
+        )
+
     def _apply_filters(self, starships: List[dict], filters: StarshipFilter) -> List[dict]:
         def matches(starship: dict) -> bool:
             if filters.name and filters.name.lower() not in starship.get("name", "").lower():
@@ -94,7 +128,14 @@ class StarshipService:
         meta = PageMeta(page=page, page_size=page_size, total=total, total_pages=total_pages)
         return items[start:end], meta
 
-    def _map_starship(self, starship: dict, image_index: dict[str, str] | None = None) -> StarshipResponse:
+    def _map_starship(
+        self,
+        starship: dict,
+        image_index: dict[str, str] | None = None,
+        *,
+        pilots: Optional[list[NamedResourceSummary]] = None,
+        films: Optional[list[TitledResourceSummary]] = None,
+    ) -> StarshipResponse:
         crew_parsed = parse_swapi_number(starship.get("crew"))
         passengers_parsed = parse_swapi_number(starship.get("passengers"))
         hyperdrive_parsed = parse_swapi_number(starship.get("hyperdrive_rating"))
@@ -104,8 +145,8 @@ class StarshipService:
         speed_parsed = parse_swapi_number(starship.get("max_atmosphering_speed"))
         cargo_parsed = parse_swapi_number(starship.get("cargo_capacity"))
 
-        films = starship.get("films", []) or []
-        pilots = starship.get("pilots", []) or []
+        film_urls = starship.get("films", []) or []
+        pilot_urls = starship.get("pilots", []) or []
         image_url = None
         if image_index is not None:
             image_url = image_index.get(_norm_name(starship.get("name", "")))
@@ -137,8 +178,10 @@ class StarshipService:
             passengers_raw=None if passengers_parsed.is_unknown else passengers_parsed.raw,
             passengers_min=int(passengers_parsed.min) if passengers_parsed.min is not None else None,
             passengers_max=int(passengers_parsed.max) if passengers_parsed.max is not None else None,
-            films_count=len(films),
-            pilots_count=len(pilots),
+            pilots=pilots or [],
+            films=films or [],
+            films_count=len(film_urls),
+            pilots_count=len(pilot_urls),
         )
 
     def _to_int(self, value: Optional[str]) -> Optional[int]:

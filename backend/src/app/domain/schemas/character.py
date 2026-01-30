@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import List, Optional
 from pydantic import BaseModel, Field, ConfigDict
 
+from app.domain.schemas.resource import NamedResourceSummary
+
 
 class PlanetSummary(BaseModel):
     id: str
@@ -33,6 +35,9 @@ class CharacterResponse(BaseModel):
     gender: str
     homeworld: Optional[PlanetSummary] = None
     films: List[FilmSummary] = []
+    species: List[NamedResourceSummary] = []
+    vehicles: List[NamedResourceSummary] = []
+    starships: List[NamedResourceSummary] = []
 
     model_config = ConfigDict(from_attributes=True)
 
