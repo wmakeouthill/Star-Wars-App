@@ -3,7 +3,13 @@ import { StarshipCardProps } from './StarshipCard.types';
 import styles from './StarshipCard.module.css';
 import placeholderImage from '@/shared/images/placeholder.svg';
 
-export function StarshipCard({ starship, onSelect, isSelected }: Readonly<StarshipCardProps>) {
+export function StarshipCard({
+  starship,
+  onSelect,
+  isSelected,
+  variant = 'full',
+  onViewDetails,
+}: Readonly<StarshipCardProps>) {
   const {
     crewLabel,
     passengersLabel,
@@ -16,6 +22,27 @@ export function StarshipCard({ starship, onSelect, isSelected }: Readonly<Starsh
     consumablesLabel,
   } = useStarshipCard(starship);
   const imageUrl = starship.image_url ?? placeholderImage;
+  const isCompact = variant === 'compact';
+
+  const details = [
+    <>Modelo: {starship.model}</>,
+    <>Fabricante: {starship.manufacturer}</>,
+    <>Classe: {starship.starship_class}</>,
+    <>Tripulação: {crewLabel}</>,
+    <>Passageiros: {passengersLabel}</>,
+    <>Hyperdrive: {hyperdriveLabel}</>,
+    <>MGLT: {mgltLabel}</>,
+    <>Velocidade: {speedLabel}</>,
+    <>Comprimento: {lengthLabel}</>,
+    <>Carga: {cargoLabel}</>,
+    <>Consumíveis: {consumablesLabel}</>,
+    <>Custo: {costLabel}</>,
+    <>
+      Filmes: {starship.films_count ?? 0} · Pilotos: {starship.pilots_count ?? 0}
+    </>,
+  ];
+
+  const detailsToRender = isCompact ? details.slice(0, 5) : details;
 
   return (
     <article className={styles.card}>
@@ -35,27 +62,29 @@ export function StarshipCard({ starship, onSelect, isSelected }: Readonly<Starsh
 
       <div className={styles.content}>
         <h3 className={styles.name}>{starship.name}</h3>
-        <p className={styles.detail}>Modelo: {starship.model}</p>
-        <p className={styles.detail}>Fabricante: {starship.manufacturer}</p>
-        <p className={styles.detail}>Classe: {starship.starship_class}</p>
-        <p className={styles.detail}>Tripulação: {crewLabel}</p>
-        <p className={styles.detail}>Passageiros: {passengersLabel}</p>
-        <p className={styles.detail}>Hyperdrive: {hyperdriveLabel}</p>
-        <p className={styles.detail}>MGLT: {mgltLabel}</p>
-        <p className={styles.detail}>Velocidade: {speedLabel}</p>
-        <p className={styles.detail}>Comprimento: {lengthLabel}</p>
-        <p className={styles.detail}>Carga: {cargoLabel}</p>
-        <p className={styles.detail}>Consumíveis: {consumablesLabel}</p>
-        <p className={styles.detail}>Custo: {costLabel}</p>
-        <p className={styles.detail}>Filmes: {starship.films_count ?? 0} · Pilotos: {starship.pilots_count ?? 0}</p>
-        {onSelect && (
-          <button
-            type="button"
-            className={`${styles.button} ${isSelected ? styles.buttonActive : ''}`}
-            onClick={() => onSelect(starship.id)}
-          >
-            {isSelected ? 'Detalhes carregados' : 'Ver detalhes'}
-          </button>
+        {detailsToRender.map((detail, index) => (
+          <p key={index} className={styles.detail}>
+            {detail}
+          </p>
+        ))}
+
+        {(onViewDetails || onSelect) && (
+          <div className={styles.buttonRow}>
+            {onViewDetails && (
+              <button type="button" className={styles.button} onClick={onViewDetails}>
+                Ver detalhes
+              </button>
+            )}
+            {onSelect && (
+              <button
+                type="button"
+                className={`${styles.button} ${isSelected ? styles.buttonActive : ''}`}
+                onClick={() => onSelect(starship.id)}
+              >
+                {isSelected ? 'Detalhes carregados' : 'Ver detalhes'}
+              </button>
+            )}
+          </div>
         )}
       </div>
     </article>

@@ -59,6 +59,17 @@
   transition: all 0.2s ease;
 }
 
+.buttonRow {
+  margin-top: 0.4rem;
+  display: flex;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.buttonRow .button {
+  margin-top: 0;
+}
+
 .card:hover {
   transform: translateY(-2px);
   border-color: var(--border-strong);

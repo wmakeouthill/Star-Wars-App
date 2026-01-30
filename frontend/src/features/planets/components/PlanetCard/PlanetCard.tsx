@@ -3,9 +3,27 @@ import { PlanetCardProps } from './PlanetCard.types';
 import styles from './PlanetCard.module.css';
 import placeholderImage from '@/shared/images/placeholder.svg';
 
-export function PlanetCard({ planet, onSelect, isSelected }: Readonly<PlanetCardProps>) {
+export function PlanetCard({
+  planet,
+  onSelect,
+  isSelected,
+  variant = 'full',
+  onViewDetails,
+}: Readonly<PlanetCardProps>) {
   const { populationLabel, surfaceWaterLabel } = usePlanetCard(planet);
   const imageUrl = planet.image_url ?? placeholderImage;
+  const isCompact = variant === 'compact';
+
+  const details = [
+    <>Clima: {planet.climate}</>,
+    <>Terreno: {planet.terrain}</>,
+    planet.gravity ? <>Gravidade: {planet.gravity}</> : null,
+    <>Água (superfície): {surfaceWaterLabel}</>,
+    <>População: {populationLabel}</>,
+    <>Residentes conhecidos: {planet.residents_count ?? 0}</>,
+  ].filter(Boolean);
+
+  const detailsToRender = isCompact ? details.slice(0, 5) : details;
 
   return (
     <article className={styles.card}>
@@ -25,20 +43,29 @@ export function PlanetCard({ planet, onSelect, isSelected }: Readonly<PlanetCard
 
       <div className={styles.content}>
         <h3 className={styles.name}>{planet.name}</h3>
-        <p className={styles.detail}>Clima: {planet.climate}</p>
-        <p className={styles.detail}>Terreno: {planet.terrain}</p>
-        {planet.gravity && <p className={styles.detail}>Gravidade: {planet.gravity}</p>}
-        <p className={styles.detail}>Água (superfície): {surfaceWaterLabel}</p>
-        <p className={styles.detail}>População: {populationLabel}</p>
-        <p className={styles.detail}>Residentes conhecidos: {planet.residents_count ?? 0}</p>
-        {onSelect && (
-          <button
-            type="button"
-            className={`${styles.button} ${isSelected ? styles.buttonActive : ''}`}
-            onClick={() => onSelect(planet.id)}
-          >
-            {isSelected ? 'Detalhes carregados' : 'Ver detalhes'}
-          </button>
+        {detailsToRender.map((detail, index) => (
+          <p key={index} className={styles.detail}>
+            {detail}
+          </p>
+        ))}
+
+        {(onViewDetails || onSelect) && (
+          <div className={styles.buttonRow}>
+            {onViewDetails && (
+              <button type="button" className={styles.button} onClick={onViewDetails}>
+                Ver detalhes
+              </button>
+            )}
+            {onSelect && (
+              <button
+                type="button"
+                className={`${styles.button} ${isSelected ? styles.buttonActive : ''}`}
+                onClick={() => onSelect(planet.id)}
+              >
+                {isSelected ? 'Detalhes carregados' : 'Ver detalhes'}
+              </button>
+            )}
+          </div>
         )}
       </div>
     </article>

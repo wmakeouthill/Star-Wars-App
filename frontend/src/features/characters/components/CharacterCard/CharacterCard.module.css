@@ -65,6 +65,17 @@
   transition: all 0.2s ease;
 }
 
+.buttonRow {
+  margin-top: 0.4rem;
+  display: flex;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.buttonRow .button {
+  margin-top: 0;
+}
+
 .buttonActive {
   border-color: rgba(255, 61, 242, 0.55);
   background: linear-gradient(135deg, rgba(255, 61, 242, 0.14), rgba(53, 230, 255, 0.08));

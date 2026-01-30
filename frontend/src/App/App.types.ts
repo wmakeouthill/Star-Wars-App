@@ -7,7 +7,6 @@ export type AppSection =
   | 'vehicles'
   | 'species'
   | 'films'
-  | 'chat'
   | 'gamification';
 
 export interface AppNavigationItem {

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { CharactersPage } from '@/features/characters/pages/CharactersPage/CharactersPage';
 import { ChatProvider } from '@/features/chat/context';
-import { ChatPage } from '@/features/chat/pages/ChatPage/ChatPage';
 import { YodaChatBubble } from '@/features/chat/components/YodaChatBubble/YodaChatBubble';
 import { DashboardPage } from '@/features/dashboard/pages/DashboardPage/DashboardPage';
 import { FilmsPage } from '@/features/films/pages/FilmsPage/FilmsPage';
@@ -72,7 +71,6 @@ export function App() {
             {activeSection === 'vehicles' && <VehiclesPage />}
             {activeSection === 'species' && <SpeciesPage />}
             {activeSection === 'films' && <FilmsPage />}
-            {activeSection === 'chat' && <ChatPage />}
             {activeSection === 'gamification' && <GamificationPage />}
           </section>
           <YodaChatBubble />

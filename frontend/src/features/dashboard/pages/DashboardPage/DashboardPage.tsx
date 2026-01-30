@@ -1,20 +1,35 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { CharacterCard } from '@/features/characters/components/CharacterCard';
 import { useCharacters } from '@/features/characters/hooks/useCharacters';
+import { useCharacterDetails } from '@/features/characters/hooks/useCharacterDetails';
+import type { Character } from '@/features/characters/types/characters.types';
 import { FilmCard } from '@/features/films/components/FilmCard';
 import { useFilmCharacters } from '@/features/films/hooks/useFilmCharacters';
 import { useFilms } from '@/features/films/hooks/useFilms';
+import { useFilmDetails } from '@/features/films/hooks/useFilmDetails';
+import type { Film } from '@/features/films/types/films.types';
 import { PlanetCard } from '@/features/planets/components/PlanetCard';
+import { usePlanetDetails } from '@/features/planets/hooks/usePlanetDetails';
 import { usePlanets } from '@/features/planets/hooks/usePlanets';
+import type { Planet } from '@/features/planets/types/planets.types';
 import { StarshipCard } from '@/features/starships/components/StarshipCard';
+import { useStarshipDetails } from '@/features/starships/hooks/useStarshipDetails';
 import { useStarships } from '@/features/starships/hooks/useStarships';
+import type { Starship } from '@/features/starships/types/starships.types';
 import { Pagination } from '@/shared/components';
 import styles from './DashboardPage.module.css';
 
-const PANEL_PAGE_SIZE = 6;
+const PANEL_PAGE_SIZE = 5;
+
+type DetailsState =
+  | { kind: 'character'; id: string; title: string; data: Character }
+  | { kind: 'planet'; id: string; title: string; data: Planet }
+  | { kind: 'starship'; id: string; title: string; data: Starship }
+  | { kind: 'film'; id: string; title: string; data: Film };
 
 export function DashboardPage() {
   const [globalQuery, setGlobalQuery] = useState('');
+  const [details, setDetails] = useState<DetailsState | null>(null);
 
   const [charactersGender, setCharactersGender] = useState('');
   const [charactersFilmId, setCharactersFilmId] = useState('');
@@ -85,6 +100,27 @@ export function DashboardPage() {
   const starshipsQuery = useStarships(starshipsFilters);
   const filmsQuery = useFilms(filmsFilters);
   const filmCharactersQuery = useFilmCharacters(selectedFilmId, filmCharactersPage, PANEL_PAGE_SIZE);
+
+  const characterDetailsQuery = useCharacterDetails(
+    details?.kind === 'character' ? details.id : null
+  );
+  const planetDetailsQuery = usePlanetDetails(details?.kind === 'planet' ? details.id : null);
+  const starshipDetailsQuery = useStarshipDetails(details?.kind === 'starship' ? details.id : null);
+  const filmDetailsQuery = useFilmDetails(details?.kind === 'film' ? details.id : null);
+
+  useEffect(() => {
+    if (!details) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setDetails(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [details]);
 
   return (
     <section className={styles.container}>
@@ -180,8 +216,20 @@ export function DashboardPage() {
             {charactersQuery.isError && <p className={styles.status}>Erro ao carregar personagens.</p>}
 
             <div className={styles.cardsGrid}>
-              {charactersQuery.data?.items.map((character) => (
-                <CharacterCard key={character.id} character={character} />
+              {(charactersQuery.data?.items ?? []).slice(0, 5).map((character) => (
+                <CharacterCard
+                  key={character.id}
+                  character={character}
+                  variant="compact"
+                  onViewDetails={() =>
+                    setDetails({
+                      kind: 'character',
+                      id: character.id,
+                      title: character.name,
+                      data: character,
+                    })
+                  }
+                />
               ))}
             </div>
           </div>
@@ -218,8 +266,20 @@ export function DashboardPage() {
             {planetsQuery.isError && <p className={styles.status}>Erro ao carregar planetas.</p>}
 
             <div className={styles.cardsGrid}>
-              {planetsQuery.data?.items.map((planet) => (
-                <PlanetCard key={planet.id} planet={planet} />
+              {(planetsQuery.data?.items ?? []).slice(0, 5).map((planet) => (
+                <PlanetCard
+                  key={planet.id}
+                  planet={planet}
+                  variant="compact"
+                  onViewDetails={() =>
+                    setDetails({
+                      kind: 'planet',
+                      id: planet.id,
+                      title: planet.name,
+                      data: planet,
+                    })
+                  }
+                />
               ))}
             </div>
           </div>
@@ -256,8 +316,20 @@ export function DashboardPage() {
             {starshipsQuery.isError && <p className={styles.status}>Erro ao carregar naves.</p>}
 
             <div className={styles.cardsGrid}>
-              {starshipsQuery.data?.items.map((starship) => (
-                <StarshipCard key={starship.id} starship={starship} />
+              {(starshipsQuery.data?.items ?? []).slice(0, 5).map((starship) => (
+                <StarshipCard
+                  key={starship.id}
+                  starship={starship}
+                  variant="compact"
+                  onViewDetails={() =>
+                    setDetails({
+                      kind: 'starship',
+                      id: starship.id,
+                      title: starship.name,
+                      data: starship,
+                    })
+                  }
+                />
               ))}
             </div>
           </div>
@@ -294,15 +366,24 @@ export function DashboardPage() {
             {filmsQuery.isError && <p className={styles.status}>Erro ao carregar filmes.</p>}
 
             <div className={styles.cardsGrid}>
-              {filmsQuery.data?.items.map((film) => (
+              {(filmsQuery.data?.items ?? []).slice(0, 5).map((film) => (
                 <FilmCard
                   key={film.id}
                   film={film}
+                  variant="compact"
                   isSelected={selectedFilmId === film.id}
                   onSelect={(filmId) => {
                     setSelectedFilmId(filmId);
                     setFilmCharactersPage(1);
                   }}
+                  onViewDetails={() =>
+                    setDetails({
+                      kind: 'film',
+                      id: film.id,
+                      title: film.title,
+                      data: film,
+                    })
+                  }
                 />
               ))}
             </div>
@@ -339,8 +420,20 @@ export function DashboardPage() {
               )}
 
               <div className={styles.cardsGrid}>
-                {filmCharactersQuery.data?.items.map((character) => (
-                  <CharacterCard key={character.id} character={character} />
+                {(filmCharactersQuery.data?.items ?? []).slice(0, 5).map((character) => (
+                  <CharacterCard
+                    key={character.id}
+                    character={character}
+                    variant="compact"
+                    onViewDetails={() =>
+                      setDetails({
+                        kind: 'character',
+                        id: character.id,
+                        title: character.name,
+                        data: character,
+                      })
+                    }
+                  />
                 ))}
               </div>
 
@@ -357,6 +450,187 @@ export function DashboardPage() {
           )}
         </section>
       </div>
+
+      {details && (
+        <div
+          className={styles.detailsOverlay}
+          role="presentation"
+          onClick={() => setDetails(null)}
+        >
+          <div
+            className={styles.detailsDialog}
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Detalhes: ${details.title}`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className={styles.detailsHeader}>
+              <h3 className={styles.detailsTitle}>{details.title}</h3>
+              <button
+                type="button"
+                className={styles.detailsClose}
+                onClick={() => setDetails(null)}
+              >
+                Fechar
+              </button>
+            </div>
+
+            <div className={styles.detailsContent}>
+              {details.kind === 'character' && (
+                <>
+                  <CharacterCard character={characterDetailsQuery.data ?? details.data} />
+
+                  <div className={styles.detailsSection}>
+                    <h4 className={styles.detailsSectionTitle}>Dados completos</h4>
+                    {characterDetailsQuery.isLoading && (
+                      <p className={styles.detailsLine}>Carregando detalhes do personagem...</p>
+                    )}
+                    {characterDetailsQuery.isError && (
+                      <p className={styles.detailsLine}>Erro ao carregar detalhes do personagem.</p>
+                    )}
+                    {characterDetailsQuery.data && (
+                      <>
+                        {characterDetailsQuery.data.homeworld?.name && (
+                          <p className={styles.detailsLine}>
+                            <strong>Planeta natal:</strong> {characterDetailsQuery.data.homeworld.name}
+                          </p>
+                        )}
+                        <p className={styles.detailsLine}>
+                          <strong>Filmes:</strong>{' '}
+                          {(characterDetailsQuery.data.films ?? []).map((f) => f.title).join(', ') ||
+                            '—'}
+                        </p>
+                        <p className={styles.detailsLine}>
+                          <strong>Espécies:</strong>{' '}
+                          {(characterDetailsQuery.data.species ?? []).map((s) => s.name).join(', ') ||
+                            '—'}
+                        </p>
+                        <p className={styles.detailsLine}>
+                          <strong>Veículos:</strong>{' '}
+                          {(characterDetailsQuery.data.vehicles ?? [])
+                            .map((v) => v.name)
+                            .join(', ') || '—'}
+                        </p>
+                        <p className={styles.detailsLine}>
+                          <strong>Naves:</strong>{' '}
+                          {(characterDetailsQuery.data.starships ?? [])
+                            .map((s) => s.name)
+                            .join(', ') || '—'}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {details.kind === 'planet' && (
+                <>
+                  <PlanetCard planet={planetDetailsQuery.data ?? details.data} />
+
+                  <div className={styles.detailsSection}>
+                    <h4 className={styles.detailsSectionTitle}>Dados completos</h4>
+                    {planetDetailsQuery.isLoading && (
+                      <p className={styles.detailsLine}>Carregando detalhes do planeta...</p>
+                    )}
+                    {planetDetailsQuery.isError && (
+                      <p className={styles.detailsLine}>Erro ao carregar detalhes do planeta.</p>
+                    )}
+                    {planetDetailsQuery.data && (
+                      <>
+                        <p className={styles.detailsLine}>
+                          <strong>Residentes:</strong>{' '}
+                          {(planetDetailsQuery.data.residents ?? []).map((r) => r.name).join(', ') ||
+                            '—'}
+                        </p>
+                        <p className={styles.detailsLine}>
+                          <strong>Filmes:</strong>{' '}
+                          {(planetDetailsQuery.data.films_detail ?? [])
+                            .map((f) => f.title)
+                            .join(', ') || '—'}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {details.kind === 'starship' && (
+                <>
+                  <StarshipCard starship={starshipDetailsQuery.data ?? details.data} />
+
+                  <div className={styles.detailsSection}>
+                    <h4 className={styles.detailsSectionTitle}>Dados completos</h4>
+                    {starshipDetailsQuery.isLoading && (
+                      <p className={styles.detailsLine}>Carregando detalhes da nave...</p>
+                    )}
+                    {starshipDetailsQuery.isError && (
+                      <p className={styles.detailsLine}>Erro ao carregar detalhes da nave.</p>
+                    )}
+                    {starshipDetailsQuery.data && (
+                      <>
+                        <p className={styles.detailsLine}>
+                          <strong>Pilotos:</strong>{' '}
+                          {(starshipDetailsQuery.data.pilots ?? [])
+                            .map((p) => p.name)
+                            .join(', ') || '—'}
+                        </p>
+                        <p className={styles.detailsLine}>
+                          <strong>Filmes:</strong>{' '}
+                          {(starshipDetailsQuery.data.films ?? [])
+                            .map((f) => f.title)
+                            .join(', ') || '—'}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {details.kind === 'film' && (
+                <>
+                  <FilmCard film={filmDetailsQuery.data ?? details.data} />
+
+                  <div className={styles.detailsSection}>
+                    <h4 className={styles.detailsSectionTitle}>Dados completos</h4>
+                    {filmDetailsQuery.isLoading && (
+                      <p className={styles.detailsLine}>Carregando detalhes do filme...</p>
+                    )}
+                    {filmDetailsQuery.isError && (
+                      <p className={styles.detailsLine}>Erro ao carregar detalhes do filme.</p>
+                    )}
+                    {filmDetailsQuery.data && (
+                      <>
+                        <p className={styles.detailsLine}>
+                          <strong>Opening crawl:</strong> {filmDetailsQuery.data.opening_crawl}
+                        </p>
+                        <p className={styles.detailsLine}>
+                          <strong>Planetas:</strong>{' '}
+                          {(filmDetailsQuery.data.planets ?? []).map((p) => p.name).join(', ') || '—'}
+                        </p>
+                        <p className={styles.detailsLine}>
+                          <strong>Naves:</strong>{' '}
+                          {(filmDetailsQuery.data.starships ?? []).map((s) => s.name).join(', ') ||
+                            '—'}
+                        </p>
+                        <p className={styles.detailsLine}>
+                          <strong>Veículos:</strong>{' '}
+                          {(filmDetailsQuery.data.vehicles ?? []).map((v) => v.name).join(', ') ||
+                            '—'}
+                        </p>
+                        <p className={styles.detailsLine}>
+                          <strong>Espécies:</strong>{' '}
+                          {(filmDetailsQuery.data.species ?? []).map((sp) => sp.name).join(', ') ||
+                            '—'}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

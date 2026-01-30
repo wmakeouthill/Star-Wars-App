@@ -1,7 +1,7 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1.5rem;
 }
 
 .commandBar {
@@ -106,13 +106,7 @@
 .grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 1rem;
-}
-
-@media (min-width: 980px) {
-  .grid {
-    grid-template-columns: 1fr 1fr;
-  }
+  gap: 1.25rem;
 }
 
 .panel {
@@ -175,7 +169,7 @@
 
 .panelBody {
   position: relative;
-  padding: 1rem;
+  padding: 1.1rem;
 }
 
 .status {
@@ -185,7 +179,7 @@
 
 .cardsGrid {
   display: grid;
-  gap: 0.9rem;
+  gap: 1rem;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
 
@@ -236,5 +230,92 @@
 
 .subPanelFooter {
   margin-top: 0.85rem;
+}
+
+.detailsOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(0, 0, 0, 0.68);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+}
+
+.detailsDialog {
+  width: min(980px, 100%);
+  max-height: 88vh;
+  overflow: auto;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(8, 16, 32, 0.92), rgba(5, 7, 13, 0.88));
+  box-shadow: var(--shadow-neon), var(--shadow-magenta);
+}
+
+.detailsHeader {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid rgba(110, 231, 255, 0.16);
+  background: linear-gradient(135deg, rgba(8, 16, 32, 0.96), rgba(8, 16, 32, 0.75));
+}
+
+.detailsTitle {
+  font-family: var(--font-star);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 1rem;
+  margin: 0;
+}
+
+.detailsClose {
+  padding: 0.55rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 61, 242, 0.3);
+  background: rgba(255, 61, 242, 0.06);
+  color: var(--text);
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+}
+
+.detailsClose:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-magenta);
+  border-color: rgba(255, 61, 242, 0.55);
+}
+
+.detailsContent {
+  padding: 1rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.detailsSection {
+  border: 1px solid rgba(110, 231, 255, 0.16);
+  border-radius: 16px;
+  background: rgba(5, 7, 13, 0.18);
+  padding: 0.9rem 1rem;
+}
+
+.detailsSectionTitle {
+  font-family: var(--font-pixel);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0 0 0.75rem;
+}
+
+.detailsLine {
+  color: rgba(199, 226, 255, 0.8);
+  margin: 0.35rem 0;
+  line-height: 1.35;
 }
 
