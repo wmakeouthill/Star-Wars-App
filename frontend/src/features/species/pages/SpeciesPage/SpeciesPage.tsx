@@ -1,9 +1,13 @@
+import { useMemo, useState } from 'react';
 import { SpeciesCard } from '../../components/SpeciesCard/SpeciesCard';
-import { Pagination } from '@/shared/components';
+import { DetailsModal, Pagination } from '@/shared/components';
+import { useSpeciesDetails } from '../../hooks/useSpeciesDetails';
+import type { Species } from '../../types/species.types';
 import { useSpeciesPage } from './SpeciesPage.hooks';
 import styles from './SpeciesPage.module.css';
 
 export function SpeciesPage() {
+  const [details, setDetails] = useState<{ id: string; title: string; data: Species } | null>(null);
   const {
     name,
     classification,
@@ -19,6 +23,13 @@ export function SpeciesPage() {
     setPage,
     query,
   } = useSpeciesPage();
+
+  const speciesDetailsQuery = useSpeciesDetails(details?.id ?? null);
+
+  const modalSpecies = useMemo(() => {
+    if (!details) return null;
+    return speciesDetailsQuery.data ?? details.data;
+  }, [details, speciesDetailsQuery.data]);
 
   return (
     <section>
@@ -64,7 +75,12 @@ export function SpeciesPage() {
 
       <div className={styles.grid}>
         {query.data?.items.map((species) => (
-          <SpeciesCard key={species.id} species={species} />
+          <SpeciesCard
+            key={species.id}
+            species={species}
+            variant="compact"
+            onViewDetails={() => setDetails({ id: species.id, title: species.name, data: species })}
+          />
         ))}
       </div>
 
@@ -75,6 +91,18 @@ export function SpeciesPage() {
           onPageChange={setPage}
         />
       )}
+
+      <DetailsModal
+        open={!!details}
+        title={details?.title ?? ''}
+        onClose={() => setDetails(null)}
+      >
+        {speciesDetailsQuery.isLoading && <p className={styles.status}>Carregando detalhes...</p>}
+        {speciesDetailsQuery.isError && (
+          <p className={styles.status}>Erro ao carregar detalhes da espécie.</p>
+        )}
+        {modalSpecies && <SpeciesCard species={modalSpecies} />}
+      </DetailsModal>
     </section>
   );
 }

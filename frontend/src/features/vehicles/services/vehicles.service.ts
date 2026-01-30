@@ -14,3 +14,7 @@ export async function fetchVehicles(filters: VehicleFilters) {
     });
 }
 
+export async function fetchVehicleById(vehicleId: string) {
+    return apiGet<Vehicle>(`/api/v1/vehicles/${vehicleId}`);
+}
+

@@ -23,7 +23,8 @@ export function PlanetCard({
     <>Residentes conhecidos: {planet.residents_count ?? 0}</>,
   ].filter(Boolean);
 
-  const detailsToRender = isCompact ? details.slice(0, 5) : details;
+  // Sempre no máximo 5 atributos no card (detalhes completos ficam no modal).
+  const detailsToRender = (isCompact ? details : details).slice(0, 5);
 
   return (
     <article className={styles.card}>

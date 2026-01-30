@@ -10,7 +10,7 @@ export function FilmCard({
   variant = 'full',
   onViewDetails,
 }: Readonly<FilmCardProps>) {
-  const { releaseDate, openingCrawlPreview } = useFilmCard(film);
+  const { releaseDate } = useFilmCard(film);
   const imageUrl = (film as { image_url?: string | null }).image_url ?? placeholderImage;
   const isCompact = variant === 'compact';
 
@@ -23,10 +23,10 @@ export function FilmCard({
       Personagens: {film.characters_count ?? 0} · Planetas: {film.planets_count ?? 0} · Naves:{' '}
       {film.starships_count ?? 0}
     </>,
-    !!openingCrawlPreview ? <>{openingCrawlPreview}</> : null,
-  ].filter(Boolean);
+  ];
 
-  const detailsToRender = isCompact ? details.slice(0, 5) : details;
+  // Sempre no máximo 5 atributos no card (detalhes completos ficam no modal).
+  const detailsToRender = (isCompact ? details : details).slice(0, 5);
 
   return (
     <article className={styles.card}>

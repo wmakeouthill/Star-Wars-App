@@ -1,10 +1,14 @@
+import { useMemo, useState } from 'react';
 import { FilmCard } from '../../components/FilmCard';
 import { CharacterCard } from '@/features/characters/components/CharacterCard';
-import { Pagination } from '@/shared/components';
+import { DetailsModal, Pagination } from '@/shared/components';
+import { useFilmDetails } from '../../hooks/useFilmDetails';
+import type { Film } from '../../types/films.types';
 import { useFilmsPage } from './FilmsPage.hooks';
 import styles from './FilmsPage.module.css';
 
 export function FilmsPage() {
+  const [details, setDetails] = useState<{ id: string; title: string; data: Film } | null>(null);
   const {
     title,
     director,
@@ -24,6 +28,13 @@ export function FilmsPage() {
     charactersQuery,
     filmDetailsQuery,
   } = useFilmsPage();
+
+  const filmDetailsModalQuery = useFilmDetails(details?.id ?? null);
+
+  const modalFilm = useMemo(() => {
+    if (!details) return null;
+    return filmDetailsModalQuery.data ?? details.data;
+  }, [details, filmDetailsModalQuery.data]);
 
   return (
     <section>
@@ -66,11 +77,13 @@ export function FilmsPage() {
           <FilmCard
             key={film.id}
             film={film}
+            variant="compact"
             isSelected={selectedFilmId === film.id}
             onSelect={(filmId) => {
               setSelectedFilmId(filmId);
               setCharactersPage(1);
             }}
+            onViewDetails={() => setDetails({ id: film.id, title: film.title, data: film })}
           />
         ))}
       </div>
@@ -135,6 +148,35 @@ export function FilmsPage() {
           )}
         </section>
       )}
+
+      <DetailsModal open={!!details} title={details?.title ?? ''} onClose={() => setDetails(null)}>
+        {filmDetailsModalQuery.isLoading && <p className={styles.status}>Carregando detalhes do filme...</p>}
+        {filmDetailsModalQuery.isError && <p className={styles.status}>Erro ao carregar detalhes do filme.</p>}
+        {modalFilm && <FilmCard film={modalFilm} />}
+        {filmDetailsModalQuery.data && (
+          <>
+            <p className={styles.status}>
+              <strong>Opening crawl:</strong> {filmDetailsModalQuery.data.opening_crawl}
+            </p>
+            <p className={styles.status}>
+              <strong>Planetas:</strong>{' '}
+              {(filmDetailsModalQuery.data.planets ?? []).map((p) => p.name).join(', ') || '—'}
+            </p>
+            <p className={styles.status}>
+              <strong>Naves:</strong>{' '}
+              {(filmDetailsModalQuery.data.starships ?? []).map((s) => s.name).join(', ') || '—'}
+            </p>
+            <p className={styles.status}>
+              <strong>Veículos:</strong>{' '}
+              {(filmDetailsModalQuery.data.vehicles ?? []).map((v) => v.name).join(', ') || '—'}
+            </p>
+            <p className={styles.status}>
+              <strong>Espécies:</strong>{' '}
+              {(filmDetailsModalQuery.data.species ?? []).map((sp) => sp.name).join(', ') || '—'}
+            </p>
+          </>
+        )}
+      </DetailsModal>
     </section>
   );
 }

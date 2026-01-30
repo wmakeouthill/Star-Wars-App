@@ -1,5 +1,6 @@
+import { useMemo, useState } from 'react';
 import { PlanetCard } from '../../components/PlanetCard';
-import { Pagination } from '@/shared/components';
+import { DetailsModal, Pagination } from '@/shared/components';
 import { usePlanetsPage } from './PlanetsPage.hooks';
 import styles from './PlanetsPage.module.css';
 
@@ -20,6 +21,13 @@ export function PlanetsPage() {
     query,
     planetDetailsQuery,
   } = usePlanetsPage();
+
+  const [detailsTitle, setDetailsTitle] = useState('');
+
+  const summaryPlanet = useMemo(() => {
+    if (!selectedPlanetId) return null;
+    return query.data?.items.find((p) => p.id === selectedPlanetId) ?? null;
+  }, [query.data?.items, selectedPlanetId]);
 
   return (
     <section>
@@ -62,8 +70,11 @@ export function PlanetsPage() {
           <PlanetCard
             key={planet.id}
             planet={planet}
-            isSelected={selectedPlanetId === planet.id}
-            onSelect={(planetId) => setSelectedPlanetId(planetId)}
+            variant="compact"
+            onViewDetails={() => {
+              setSelectedPlanetId(planet.id);
+              setDetailsTitle(planet.name);
+            }}
           />
         ))}
       </div>
@@ -76,29 +87,37 @@ export function PlanetsPage() {
         />
       )}
 
-      {selectedPlanetId && (
-        <section className={styles.charactersSection}>
-          <h3 className={styles.sectionTitle}>Detalhes do planeta selecionado</h3>
-          {planetDetailsQuery.isLoading && (
-            <p className={styles.status}>Carregando detalhes do planeta...</p>
-          )}
-          {planetDetailsQuery.isError && (
-            <p className={styles.status}>Erro ao carregar detalhes do planeta.</p>
-          )}
-          {planetDetailsQuery.data && (
-            <>
-              <p className={styles.status}>
-                <strong>Residentes:</strong>{' '}
-                {(planetDetailsQuery.data.residents ?? []).map((r) => r.name).join(', ') || '—'}
-              </p>
-              <p className={styles.status}>
-                <strong>Filmes:</strong>{' '}
-                {(planetDetailsQuery.data.films_detail ?? []).map((f) => f.title).join(', ') || '—'}
-              </p>
-            </>
-          )}
-        </section>
-      )}
+      <DetailsModal
+        open={!!selectedPlanetId}
+        title={detailsTitle || summaryPlanet?.name || 'Planeta'}
+        onClose={() => {
+          setSelectedPlanetId(null);
+          setDetailsTitle('');
+        }}
+      >
+        {planetDetailsQuery.isLoading && <p className={styles.status}>Carregando detalhes do planeta...</p>}
+        {planetDetailsQuery.isError && (
+          <p className={styles.status}>Erro ao carregar detalhes do planeta.</p>
+        )}
+
+        {(planetDetailsQuery.data || summaryPlanet) && (
+          <>
+            <PlanetCard planet={planetDetailsQuery.data ?? summaryPlanet!} />
+            {planetDetailsQuery.data && (
+              <>
+                <p className={styles.status}>
+                  <strong>Residentes:</strong>{' '}
+                  {(planetDetailsQuery.data.residents ?? []).map((r) => r.name).join(', ') || '—'}
+                </p>
+                <p className={styles.status}>
+                  <strong>Filmes:</strong>{' '}
+                  {(planetDetailsQuery.data.films_detail ?? []).map((f) => f.title).join(', ') || '—'}
+                </p>
+              </>
+            )}
+          </>
+        )}
+      </DetailsModal>
     </section>
   );
 }

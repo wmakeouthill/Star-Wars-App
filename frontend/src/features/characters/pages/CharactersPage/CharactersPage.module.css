@@ -16,20 +16,11 @@
 .grid {
   display: grid;
   gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
 }
 
 .status {
   color: #94a3b8;
 }
 
-.charactersSection {
-  margin-top: 2rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid rgba(148, 163, 184, 0.2);
-}
-
-.sectionTitle {
-  font-size: 1.2rem;
-  margin-bottom: 1rem;
-}
+/* Detalhes abrem em modal */

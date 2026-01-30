@@ -1,5 +1,6 @@
+import { useMemo, useState } from 'react';
 import { StarshipCard } from '../../components/StarshipCard';
-import { Pagination } from '@/shared/components';
+import { DetailsModal, Pagination } from '@/shared/components';
 import { useStarshipsPage } from './StarshipsPage.hooks';
 import styles from './StarshipsPage.module.css';
 
@@ -20,6 +21,13 @@ export function StarshipsPage() {
     query,
     starshipDetailsQuery,
   } = useStarshipsPage();
+
+  const [detailsTitle, setDetailsTitle] = useState('');
+
+  const summaryStarship = useMemo(() => {
+    if (!selectedStarshipId) return null;
+    return query.data?.items.find((s) => s.id === selectedStarshipId) ?? null;
+  }, [query.data?.items, selectedStarshipId]);
 
   return (
     <section>
@@ -62,8 +70,11 @@ export function StarshipsPage() {
           <StarshipCard
             key={starship.id}
             starship={starship}
-            isSelected={selectedStarshipId === starship.id}
-            onSelect={(starshipId) => setSelectedStarshipId(starshipId)}
+            variant="compact"
+            onViewDetails={() => {
+              setSelectedStarshipId(starship.id);
+              setDetailsTitle(starship.name);
+            }}
           />
         ))}
       </div>
@@ -76,29 +87,39 @@ export function StarshipsPage() {
         />
       )}
 
-      {selectedStarshipId && (
-        <section className={styles.charactersSection}>
-          <h3 className={styles.sectionTitle}>Detalhes da nave selecionada</h3>
-          {starshipDetailsQuery.isLoading && (
-            <p className={styles.status}>Carregando detalhes da nave...</p>
-          )}
-          {starshipDetailsQuery.isError && (
-            <p className={styles.status}>Erro ao carregar detalhes da nave.</p>
-          )}
-          {starshipDetailsQuery.data && (
-            <>
-              <p className={styles.status}>
-                <strong>Pilotos:</strong>{' '}
-                {(starshipDetailsQuery.data.pilots ?? []).map((p) => p.name).join(', ') || '—'}
-              </p>
-              <p className={styles.status}>
-                <strong>Filmes:</strong>{' '}
-                {(starshipDetailsQuery.data.films ?? []).map((f) => f.title).join(', ') || '—'}
-              </p>
-            </>
-          )}
-        </section>
-      )}
+      <DetailsModal
+        open={!!selectedStarshipId}
+        title={detailsTitle || summaryStarship?.name || 'Nave'}
+        onClose={() => {
+          setSelectedStarshipId(null);
+          setDetailsTitle('');
+        }}
+      >
+        {starshipDetailsQuery.isLoading && (
+          <p className={styles.status}>Carregando detalhes da nave...</p>
+        )}
+        {starshipDetailsQuery.isError && (
+          <p className={styles.status}>Erro ao carregar detalhes da nave.</p>
+        )}
+
+        {(starshipDetailsQuery.data || summaryStarship) && (
+          <>
+            <StarshipCard starship={starshipDetailsQuery.data ?? summaryStarship!} />
+            {starshipDetailsQuery.data && (
+              <>
+                <p className={styles.status}>
+                  <strong>Pilotos:</strong>{' '}
+                  {(starshipDetailsQuery.data.pilots ?? []).map((p) => p.name).join(', ') || '—'}
+                </p>
+                <p className={styles.status}>
+                  <strong>Filmes:</strong>{' '}
+                  {(starshipDetailsQuery.data.films ?? []).map((f) => f.title).join(', ') || '—'}
+                </p>
+              </>
+            )}
+          </>
+        )}
+      </DetailsModal>
     </section>
   );
 }

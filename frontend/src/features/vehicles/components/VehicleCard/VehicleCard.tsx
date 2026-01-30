@@ -3,9 +3,25 @@ import { VehicleCardProps } from './VehicleCard.types';
 import styles from './VehicleCard.module.css';
 import placeholderImage from '@/shared/images/placeholder.svg';
 
-export function VehicleCard({ vehicle }: Readonly<VehicleCardProps>) {
+export function VehicleCard({
+  vehicle,
+  variant = 'full',
+  onViewDetails,
+}: Readonly<VehicleCardProps>) {
   const { crewLabel, passengersLabel } = useVehicleCard(vehicle);
   const imageUrl = vehicle.image_url ?? placeholderImage;
+  const isCompact = variant === 'compact';
+
+  const details = [
+    <>Modelo: {vehicle.model}</>,
+    <>Fabricante: {vehicle.manufacturer}</>,
+    <>Classe: {vehicle.vehicle_class}</>,
+    <>Tripulação: {crewLabel}</>,
+    <>Passageiros: {passengersLabel}</>,
+  ];
+
+  // Sempre no máximo 5 atributos no card.
+  const detailsToRender = (isCompact ? details : details).slice(0, 5);
 
   return (
     <article className={styles.card}>
@@ -25,11 +41,19 @@ export function VehicleCard({ vehicle }: Readonly<VehicleCardProps>) {
 
       <div className={styles.content}>
         <h3 className={styles.name}>{vehicle.name}</h3>
-        <p className={styles.detail}>Modelo: {vehicle.model}</p>
-        <p className={styles.detail}>Fabricante: {vehicle.manufacturer}</p>
-        <p className={styles.detail}>Classe: {vehicle.vehicle_class}</p>
-        <p className={styles.detail}>Tripulação: {crewLabel}</p>
-        <p className={styles.detail}>Passageiros: {passengersLabel}</p>
+        {detailsToRender.map((detail, index) => (
+          <p key={index} className={styles.detail}>
+            {detail}
+          </p>
+        ))}
+
+        {onViewDetails && (
+          <div className={styles.buttonRow}>
+            <button type="button" className={styles.button} onClick={onViewDetails}>
+              Ver detalhes
+            </button>
+          </div>
+        )}
       </div>
     </article>
   );

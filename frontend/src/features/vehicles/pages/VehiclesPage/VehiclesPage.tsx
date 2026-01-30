@@ -1,9 +1,13 @@
+import { useMemo, useState } from 'react';
 import { VehicleCard } from '../../components/VehicleCard/VehicleCard';
-import { Pagination } from '@/shared/components';
+import { DetailsModal, Pagination } from '@/shared/components';
+import { useVehicleDetails } from '../../hooks/useVehicleDetails';
+import type { Vehicle } from '../../types/vehicles.types';
 import { useVehiclesPage } from './VehiclesPage.hooks';
 import styles from './VehiclesPage.module.css';
 
 export function VehiclesPage() {
+  const [details, setDetails] = useState<{ id: string; title: string; data: Vehicle } | null>(null);
   const {
     name,
     manufacturer,
@@ -19,6 +23,13 @@ export function VehiclesPage() {
     setPage,
     query,
   } = useVehiclesPage();
+
+  const vehicleDetailsQuery = useVehicleDetails(details?.id ?? null);
+
+  const modalVehicle = useMemo(() => {
+    if (!details) return null;
+    return vehicleDetailsQuery.data ?? details.data;
+  }, [details, vehicleDetailsQuery.data]);
 
   return (
     <section>
@@ -64,7 +75,12 @@ export function VehiclesPage() {
 
       <div className={styles.grid}>
         {query.data?.items.map((vehicle) => (
-          <VehicleCard key={vehicle.id} vehicle={vehicle} />
+          <VehicleCard
+            key={vehicle.id}
+            vehicle={vehicle}
+            variant="compact"
+            onViewDetails={() => setDetails({ id: vehicle.id, title: vehicle.name, data: vehicle })}
+          />
         ))}
       </div>
 
@@ -75,6 +91,18 @@ export function VehiclesPage() {
           onPageChange={setPage}
         />
       )}
+
+      <DetailsModal
+        open={!!details}
+        title={details?.title ?? ''}
+        onClose={() => setDetails(null)}
+      >
+        {vehicleDetailsQuery.isLoading && <p className={styles.status}>Carregando detalhes...</p>}
+        {vehicleDetailsQuery.isError && (
+          <p className={styles.status}>Erro ao carregar detalhes do veículo.</p>
+        )}
+        {modalVehicle && <VehicleCard vehicle={modalVehicle} />}
+      </DetailsModal>
     </section>
   );
 }

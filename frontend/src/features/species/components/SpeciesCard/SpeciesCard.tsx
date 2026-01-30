@@ -3,9 +3,25 @@ import { SpeciesCardProps } from './SpeciesCard.types';
 import styles from './SpeciesCard.module.css';
 import placeholderImage from '@/shared/images/placeholder.svg';
 
-export function SpeciesCard({ species }: Readonly<SpeciesCardProps>) {
+export function SpeciesCard({
+  species,
+  variant = 'full',
+  onViewDetails,
+}: Readonly<SpeciesCardProps>) {
   const { heightLabel, lifespanLabel } = useSpeciesCard(species);
   const imageUrl = species.image_url ?? placeholderImage;
+  const isCompact = variant === 'compact';
+
+  const details = [
+    <>Classificação: {species.classification}</>,
+    <>Designação: {species.designation}</>,
+    <>Idioma: {species.language}</>,
+    <>Altura média: {heightLabel}</>,
+    <>Longevidade média: {lifespanLabel}</>,
+  ];
+
+  // Sempre no máximo 5 atributos no card.
+  const detailsToRender = (isCompact ? details : details).slice(0, 5);
 
   return (
     <article className={styles.card}>
@@ -25,11 +41,19 @@ export function SpeciesCard({ species }: Readonly<SpeciesCardProps>) {
 
       <div className={styles.content}>
         <h3 className={styles.name}>{species.name}</h3>
-        <p className={styles.detail}>Classificação: {species.classification}</p>
-        <p className={styles.detail}>Designação: {species.designation}</p>
-        <p className={styles.detail}>Idioma: {species.language}</p>
-        <p className={styles.detail}>Altura média: {heightLabel}</p>
-        <p className={styles.detail}>Longevidade média: {lifespanLabel}</p>
+        {detailsToRender.map((detail, index) => (
+          <p key={index} className={styles.detail}>
+            {detail}
+          </p>
+        ))}
+
+        {onViewDetails && (
+          <div className={styles.buttonRow}>
+            <button type="button" className={styles.button} onClick={onViewDetails}>
+              Ver detalhes
+            </button>
+          </div>
+        )}
       </div>
     </article>
   );

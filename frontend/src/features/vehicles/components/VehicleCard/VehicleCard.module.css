@@ -47,10 +47,37 @@
   font-family: var(--font-star);
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .detail {
   font-size: 0.9rem;
   color: rgba(199, 226, 255, 0.75);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
+.button {
+  margin-top: 0.4rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(5, 7, 13, 0.18);
+  color: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.buttonRow {
+  margin-top: 0.4rem;
+  display: flex;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.buttonRow .button {
+  margin-top: 0;
+}

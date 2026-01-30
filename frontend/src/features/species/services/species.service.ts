@@ -14,3 +14,7 @@ export async function fetchSpecies(filters: SpeciesFilters) {
     });
 }
 
+export async function fetchSpeciesById(speciesId: string) {
+    return apiGet<Species>(`/api/v1/species/${speciesId}`);
+}
+

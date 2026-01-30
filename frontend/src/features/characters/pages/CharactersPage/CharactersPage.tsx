@@ -1,5 +1,6 @@
+import { useMemo, useState } from 'react';
 import { CharacterCard } from '../../components/CharacterCard';
-import { Pagination } from '@/shared/components';
+import { DetailsModal, Pagination } from '@/shared/components';
 import { useCharactersPage } from './CharactersPage.hooks';
 import styles from './CharactersPage.module.css';
 
@@ -22,6 +23,13 @@ export function CharactersPage() {
     query,
     characterDetailsQuery,
   } = useCharactersPage();
+
+  const [detailsTitle, setDetailsTitle] = useState('');
+
+  const summaryCharacter = useMemo(() => {
+    if (!selectedCharacterId) return null;
+    return query.data?.items.find((c) => c.id === selectedCharacterId) ?? null;
+  }, [query.data?.items, selectedCharacterId]);
 
   return (
     <section>
@@ -71,8 +79,11 @@ export function CharactersPage() {
           <CharacterCard
             key={character.id}
             character={character}
-            isSelected={selectedCharacterId === character.id}
-            onSelect={(characterId) => setSelectedCharacterId(characterId)}
+            variant="compact"
+            onViewDetails={() => {
+              setSelectedCharacterId(character.id);
+              setDetailsTitle(character.name);
+            }}
           />
         ))}
       </div>
@@ -85,42 +96,52 @@ export function CharactersPage() {
         />
       )}
 
-      {selectedCharacterId && (
-        <section className={styles.charactersSection}>
-          <h3 className={styles.sectionTitle}>Detalhes do personagem selecionado</h3>
-          {characterDetailsQuery.isLoading && (
-            <p className={styles.status}>Carregando detalhes do personagem...</p>
-          )}
-          {characterDetailsQuery.isError && (
-            <p className={styles.status}>Erro ao carregar detalhes do personagem.</p>
-          )}
-          {characterDetailsQuery.data && (
-            <>
-              {characterDetailsQuery.data.homeworld?.name && (
+      <DetailsModal
+        open={!!selectedCharacterId}
+        title={detailsTitle || summaryCharacter?.name || 'Personagem'}
+        onClose={() => {
+          setSelectedCharacterId(null);
+          setDetailsTitle('');
+        }}
+      >
+        {characterDetailsQuery.isLoading && (
+          <p className={styles.status}>Carregando detalhes do personagem...</p>
+        )}
+        {characterDetailsQuery.isError && (
+          <p className={styles.status}>Erro ao carregar detalhes do personagem.</p>
+        )}
+
+        {(characterDetailsQuery.data || summaryCharacter) && (
+          <>
+            <CharacterCard character={characterDetailsQuery.data ?? summaryCharacter!} />
+            {characterDetailsQuery.data && (
+              <>
+                {characterDetailsQuery.data.homeworld?.name && (
+                  <p className={styles.status}>
+                    <strong>Planeta natal:</strong> {characterDetailsQuery.data.homeworld.name}
+                  </p>
+                )}
                 <p className={styles.status}>
-                  <strong>Planeta natal:</strong> {characterDetailsQuery.data.homeworld.name}
+                  <strong>Filmes:</strong>{' '}
+                  {(characterDetailsQuery.data.films ?? []).map((f) => f.title).join(', ') || '—'}
                 </p>
-              )}
-              <p className={styles.status}>
-                <strong>Filmes:</strong>{' '}
-                {(characterDetailsQuery.data.films ?? []).map((f) => f.title).join(', ') || '—'}
-              </p>
-              <p className={styles.status}>
-                <strong>Espécies:</strong>{' '}
-                {(characterDetailsQuery.data.species ?? []).map((s) => s.name).join(', ') || '—'}
-              </p>
-              <p className={styles.status}>
-                <strong>Veículos:</strong>{' '}
-                {(characterDetailsQuery.data.vehicles ?? []).map((v) => v.name).join(', ') || '—'}
-              </p>
-              <p className={styles.status}>
-                <strong>Naves:</strong>{' '}
-                {(characterDetailsQuery.data.starships ?? []).map((s) => s.name).join(', ') || '—'}
-              </p>
-            </>
-          )}
-        </section>
-      )}
+                <p className={styles.status}>
+                  <strong>Espécies:</strong>{' '}
+                  {(characterDetailsQuery.data.species ?? []).map((s) => s.name).join(', ') || '—'}
+                </p>
+                <p className={styles.status}>
+                  <strong>Veículos:</strong>{' '}
+                  {(characterDetailsQuery.data.vehicles ?? []).map((v) => v.name).join(', ') || '—'}
+                </p>
+                <p className={styles.status}>
+                  <strong>Naves:</strong>{' '}
+                  {(characterDetailsQuery.data.starships ?? []).map((s) => s.name).join(', ') || '—'}
+                </p>
+              </>
+            )}
+          </>
+        )}
+      </DetailsModal>
     </section>
   );
 }
