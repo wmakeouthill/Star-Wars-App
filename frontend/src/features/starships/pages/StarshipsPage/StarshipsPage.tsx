@@ -10,12 +10,15 @@ export function StarshipsPage() {
     sortBy,
     sortOrder,
     page,
+    selectedStarshipId,
     setName,
     setManufacturer,
     setSortBy,
     setSortOrder,
     setPage,
+    setSelectedStarshipId,
     query,
+    starshipDetailsQuery,
   } = useStarshipsPage();
 
   return (
@@ -56,7 +59,12 @@ export function StarshipsPage() {
 
       <div className={styles.grid}>
         {query.data?.items.map((starship) => (
-          <StarshipCard key={starship.id} starship={starship} />
+          <StarshipCard
+            key={starship.id}
+            starship={starship}
+            isSelected={selectedStarshipId === starship.id}
+            onSelect={(starshipId) => setSelectedStarshipId(starshipId)}
+          />
         ))}
       </div>
 
@@ -66,6 +74,30 @@ export function StarshipsPage() {
           totalPages={query.data.meta.total_pages}
           onPageChange={setPage}
         />
+      )}
+
+      {selectedStarshipId && (
+        <section className={styles.charactersSection}>
+          <h3 className={styles.sectionTitle}>Detalhes da nave selecionada</h3>
+          {starshipDetailsQuery.isLoading && (
+            <p className={styles.status}>Carregando detalhes da nave...</p>
+          )}
+          {starshipDetailsQuery.isError && (
+            <p className={styles.status}>Erro ao carregar detalhes da nave.</p>
+          )}
+          {starshipDetailsQuery.data && (
+            <>
+              <p className={styles.status}>
+                <strong>Pilotos:</strong>{' '}
+                {(starshipDetailsQuery.data.pilots ?? []).map((p) => p.name).join(', ') || '—'}
+              </p>
+              <p className={styles.status}>
+                <strong>Filmes:</strong>{' '}
+                {(starshipDetailsQuery.data.films ?? []).map((f) => f.title).join(', ') || '—'}
+              </p>
+            </>
+          )}
+        </section>
       )}
     </section>
   );

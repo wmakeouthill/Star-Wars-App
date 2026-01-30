@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useStarships } from '../../hooks/useStarships';
+import { useStarshipDetails } from '../../hooks/useStarshipDetails';
 
 export function useStarshipsPage() {
     const [name, setName] = useState('');
@@ -8,6 +9,7 @@ export function useStarshipsPage() {
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
     const [page, setPage] = useState(1);
     const [pageSize] = useState(12);
+    const [selectedStarshipId, setSelectedStarshipId] = useState<string | null>(null);
 
     const filters = useMemo(
         () => ({
@@ -22,6 +24,7 @@ export function useStarshipsPage() {
     );
 
     const query = useStarships(filters);
+    const starshipDetailsQuery = useStarshipDetails(selectedStarshipId);
 
     return {
         name,
@@ -29,11 +32,14 @@ export function useStarshipsPage() {
         sortBy,
         sortOrder,
         page,
+        selectedStarshipId,
         setName,
         setManufacturer,
         setSortBy,
         setSortOrder,
         setPage,
+        setSelectedStarshipId,
         query,
+        starshipDetailsQuery,
     };
 }

@@ -16,6 +16,8 @@ export interface Planet {
     population: number | null;
     population_raw?: string | null;
     residents_count?: number;
+    residents?: Array<{ id: string; name: string }>;
+    films_detail?: Array<{ id: string; title: string }>;
 }
 
 export interface PlanetFilters {

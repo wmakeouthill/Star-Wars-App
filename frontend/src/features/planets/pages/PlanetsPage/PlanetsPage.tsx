@@ -10,12 +10,15 @@ export function PlanetsPage() {
     sortBy,
     sortOrder,
     page,
+    selectedPlanetId,
     setName,
     setClimate,
     setSortBy,
     setSortOrder,
     setPage,
+    setSelectedPlanetId,
     query,
+    planetDetailsQuery,
   } = usePlanetsPage();
 
   return (
@@ -56,7 +59,12 @@ export function PlanetsPage() {
 
       <div className={styles.grid}>
         {query.data?.items.map((planet) => (
-          <PlanetCard key={planet.id} planet={planet} />
+          <PlanetCard
+            key={planet.id}
+            planet={planet}
+            isSelected={selectedPlanetId === planet.id}
+            onSelect={(planetId) => setSelectedPlanetId(planetId)}
+          />
         ))}
       </div>
 
@@ -66,6 +74,30 @@ export function PlanetsPage() {
           totalPages={query.data.meta.total_pages}
           onPageChange={setPage}
         />
+      )}
+
+      {selectedPlanetId && (
+        <section className={styles.charactersSection}>
+          <h3 className={styles.sectionTitle}>Detalhes do planeta selecionado</h3>
+          {planetDetailsQuery.isLoading && (
+            <p className={styles.status}>Carregando detalhes do planeta...</p>
+          )}
+          {planetDetailsQuery.isError && (
+            <p className={styles.status}>Erro ao carregar detalhes do planeta.</p>
+          )}
+          {planetDetailsQuery.data && (
+            <>
+              <p className={styles.status}>
+                <strong>Residentes:</strong>{' '}
+                {(planetDetailsQuery.data.residents ?? []).map((r) => r.name).join(', ') || '—'}
+              </p>
+              <p className={styles.status}>
+                <strong>Filmes:</strong>{' '}
+                {(planetDetailsQuery.data.films_detail ?? []).map((f) => f.title).join(', ') || '—'}
+              </p>
+            </>
+          )}
+        </section>
       )}
     </section>
   );

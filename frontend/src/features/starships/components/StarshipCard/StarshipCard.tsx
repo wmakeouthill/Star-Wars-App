@@ -3,7 +3,7 @@ import { StarshipCardProps } from './StarshipCard.types';
 import styles from './StarshipCard.module.css';
 import placeholderImage from '@/shared/images/placeholder.svg';
 
-export function StarshipCard({ starship }: Readonly<StarshipCardProps>) {
+export function StarshipCard({ starship, onSelect, isSelected }: Readonly<StarshipCardProps>) {
   const {
     crewLabel,
     passengersLabel,
@@ -48,6 +48,15 @@ export function StarshipCard({ starship }: Readonly<StarshipCardProps>) {
         <p className={styles.detail}>Consumíveis: {consumablesLabel}</p>
         <p className={styles.detail}>Custo: {costLabel}</p>
         <p className={styles.detail}>Filmes: {starship.films_count ?? 0} · Pilotos: {starship.pilots_count ?? 0}</p>
+        {onSelect && (
+          <button
+            type="button"
+            className={`${styles.button} ${isSelected ? styles.buttonActive : ''}`}
+            onClick={() => onSelect(starship.id)}
+          >
+            {isSelected ? 'Detalhes carregados' : 'Ver detalhes'}
+          </button>
+        )}
       </div>
     </article>
   );

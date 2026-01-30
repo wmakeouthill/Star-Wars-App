@@ -40,12 +40,17 @@ async def list_starships(
 @router.get("/{starship_id}", response_model=StarshipResponse)
 async def get_starship(
     starship_id: str,
+    include_relations: bool = Query(False, description="Incluir relações resolvidas (pilotos/filmes)"),
     service: StarshipService = Depends(get_starship_service),
     gamification: GamificationService = Depends(get_gamification_service),
     user_id: str = Depends(get_current_user_id),
 ):
     try:
-        result = await service.get_starship(starship_id)
+        result = (
+            await service.get_starship_with_relations(starship_id)
+            if include_relations
+            else await service.get_starship(starship_id)
+        )
         gamification.record_query(user_id, 2)
         return result
     except ResourceNotFoundError as exc:

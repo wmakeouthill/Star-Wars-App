@@ -26,6 +26,8 @@ export interface Starship {
     passengers_raw?: string | null;
     passengers_min?: number | null;
     passengers_max?: number | null;
+    pilots?: Array<{ id: string; name: string }>;
+    films?: Array<{ id: string; title: string }>;
     films_count?: number;
     pilots_count?: number;
 }

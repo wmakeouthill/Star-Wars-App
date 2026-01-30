@@ -53,3 +53,20 @@
   font-size: 0.9rem;
   color: rgba(199, 226, 255, 0.75);
 }
+
+.button {
+  margin-top: 0.4rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(5, 7, 13, 0.18);
+  color: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.buttonActive {
+  border-color: rgba(255, 61, 242, 0.55);
+  background: linear-gradient(135deg, rgba(255, 61, 242, 0.14), rgba(53, 230, 255, 0.08));
+  box-shadow: var(--shadow-magenta);
+}

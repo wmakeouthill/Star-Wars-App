@@ -12,3 +12,9 @@ export async function fetchPlanets(filters: PlanetFilters) {
         page_size: filters.pageSize,
     });
 }
+
+export async function fetchPlanetById(planetId: string, includeRelations: boolean) {
+    return apiGet<Planet>(`/api/v1/planets/${planetId}`, {
+        include_relations: includeRelations,
+    });
+}

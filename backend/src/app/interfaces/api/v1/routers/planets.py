@@ -44,12 +44,17 @@ async def list_planets(
 @router.get("/{planet_id}", response_model=PlanetResponse)
 async def get_planet(
     planet_id: str,
+    include_relations: bool = Query(False, description="Incluir relações resolvidas (residentes/filmes)"),
     service: PlanetService = Depends(get_planet_service),
     gamification: GamificationService = Depends(get_gamification_service),
     user_id: str = Depends(get_current_user_id),
 ):
     try:
-        result = await service.get_planet(planet_id)
+        result = (
+            await service.get_planet_with_relations(planet_id)
+            if include_relations
+            else await service.get_planet(planet_id)
+        )
         gamification.record_query(user_id, 2)
         return result
     except ResourceNotFoundError as exc:

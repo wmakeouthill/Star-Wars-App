@@ -3,7 +3,7 @@ import { PlanetCardProps } from './PlanetCard.types';
 import styles from './PlanetCard.module.css';
 import placeholderImage from '@/shared/images/placeholder.svg';
 
-export function PlanetCard({ planet }: Readonly<PlanetCardProps>) {
+export function PlanetCard({ planet, onSelect, isSelected }: Readonly<PlanetCardProps>) {
   const { populationLabel, surfaceWaterLabel } = usePlanetCard(planet);
   const imageUrl = planet.image_url ?? placeholderImage;
 
@@ -31,6 +31,15 @@ export function PlanetCard({ planet }: Readonly<PlanetCardProps>) {
         <p className={styles.detail}>Água (superfície): {surfaceWaterLabel}</p>
         <p className={styles.detail}>População: {populationLabel}</p>
         <p className={styles.detail}>Residentes conhecidos: {planet.residents_count ?? 0}</p>
+        {onSelect && (
+          <button
+            type="button"
+            className={`${styles.button} ${isSelected ? styles.buttonActive : ''}`}
+            onClick={() => onSelect(planet.id)}
+          >
+            {isSelected ? 'Detalhes carregados' : 'Ver detalhes'}
+          </button>
+        )}
       </div>
     </article>
   );

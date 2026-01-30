@@ -12,3 +12,9 @@ export async function fetchStarships(filters: StarshipFilters) {
         page_size: filters.pageSize,
     });
 }
+
+export async function fetchStarshipById(starshipId: string, includeRelations: boolean) {
+    return apiGet<Starship>(`/api/v1/starships/${starshipId}`, {
+        include_relations: includeRelations,
+    });
+}
