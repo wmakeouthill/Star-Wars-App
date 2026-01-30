@@ -7,12 +7,19 @@ from app.domain.schemas.common import PaginatedResponse, PageMeta
 from app.domain.schemas.planet import PlanetFilter, PlanetResponse
 from app.domain.repositories.swapi_client import ISWAPIClient
 from app.infrastructure.external.swapi.client import extract_id, normalize_number
+from app.infrastructure.external.swapi.parsers import parse_swapi_number
 from app.application.services.swapi_pagination import fetch_swapi_slice
+from app.application.services.image_lookup_service import ImageLookupService
+
+
+def _norm_name(value: str) -> str:
+    return " ".join(str(value).strip().split()).casefold()
 
 
 class PlanetService:
-    def __init__(self, swapi_client: ISWAPIClient) -> None:
+    def __init__(self, swapi_client: ISWAPIClient, images: ImageLookupService | None = None) -> None:
         self._swapi = swapi_client
+        self._images = images
 
     async def list_planets(
         self,
@@ -31,19 +38,21 @@ class PlanetService:
         )
 
         if can_use_swapi_paging:
+            image_index = await self._images.get_locations_index() if self._images else None
             raw_items, total = await fetch_swapi_slice(
                 self._swapi.get_planets_page, page=page, page_size=page_size, search=filters.name
             )
             total_pages = max(1, (total + page_size - 1) // page_size)
             meta = PageMeta(page=page, page_size=page_size, total=total, total_pages=total_pages)
-            response_items = [self._map_planet(item) for item in raw_items]
+            response_items = [self._map_planet(item, image_index=image_index) for item in raw_items]
             return PaginatedResponse(items=response_items, meta=meta)
 
+        image_index = await self._images.get_locations_index() if self._images else None
         planets = await self._swapi.get_all_planets()
         filtered = self._apply_filters(planets, filters)
         sorted_items = self._apply_sort(filtered, sort_by, sort_order)
         page_items, meta = self._apply_pagination(sorted_items, page, page_size)
-        response_items = [self._map_planet(item) for item in page_items]
+        response_items = [self._map_planet(item, image_index=image_index) for item in page_items]
         return PaginatedResponse(items=response_items, meta=meta)
 
     async def get_planet(self, planet_id: str) -> PlanetResponse:
@@ -51,7 +60,8 @@ class PlanetService:
             planet = await self._swapi.get_planet(planet_id)
         except Exception as exc:  # noqa: BLE001
             raise ResourceNotFoundError("Planeta", planet_id) from exc
-        return self._map_planet(planet)
+        image_index = await self._images.get_locations_index() if self._images else None
+        return self._map_planet(planet, image_index=image_index)
 
     def _apply_filters(self, planets: List[dict], filters: PlanetFilter) -> List[dict]:
         def matches(planet: dict) -> bool:
@@ -97,13 +107,34 @@ class PlanetService:
         meta = PageMeta(page=page, page_size=page_size, total=total, total_pages=total_pages)
         return items[start:end], meta
 
-    def _map_planet(self, planet: dict) -> PlanetResponse:
+    def _map_planet(self, planet: dict, image_index: dict[str, str] | None = None) -> PlanetResponse:
+        population_parsed = parse_swapi_number(planet.get("population"))
+        surface_water_parsed = parse_swapi_number(planet.get("surface_water"))
+        diameter_parsed = parse_swapi_number(planet.get("diameter"))
+        rotation_parsed = parse_swapi_number(planet.get("rotation_period"))
+        orbital_parsed = parse_swapi_number(planet.get("orbital_period"))
+        residents = planet.get("residents", []) or []
+        image_url = None
+        if image_index is not None:
+            image_url = image_index.get(_norm_name(planet.get("name", "")))
         return PlanetResponse(
             id=extract_id(planet.get("url", "")),
             name=planet.get("name", ""),
+            image_url=image_url,
             climate=planet.get("climate", ""),
+            gravity=planet.get("gravity", "") or "",
             terrain=planet.get("terrain", ""),
+            surface_water=self._to_int(planet.get("surface_water")),
+            surface_water_raw=None if surface_water_parsed.is_unknown else surface_water_parsed.raw,
+            diameter=self._to_int(planet.get("diameter")),
+            diameter_raw=None if diameter_parsed.is_unknown else diameter_parsed.raw,
+            rotation_period=self._to_int(planet.get("rotation_period")),
+            rotation_period_raw=None if rotation_parsed.is_unknown else rotation_parsed.raw,
+            orbital_period=self._to_int(planet.get("orbital_period")),
+            orbital_period_raw=None if orbital_parsed.is_unknown else orbital_parsed.raw,
             population=self._to_int(planet.get("population")),
+            population_raw=None if population_parsed.is_unknown else population_parsed.raw,
+            residents_count=len(residents),
             films=[extract_id(url) for url in planet.get("films", [])],
         )
 

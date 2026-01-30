@@ -8,6 +8,7 @@ import httpx
 
 from app.infrastructure.cache.memory_cache import MemoryCache
 from app.infrastructure.config.settings import get_settings
+from app.infrastructure.external.swapi.parsers import parse_swapi_number
 
 
 class SWAPIClient:
@@ -77,6 +78,30 @@ class SWAPIClient:
     async def get_starships_page(self, page: int, search: Optional[str] = None) -> Dict[str, Any]:
         return await self._get_collection_page("/starships", page=page, search=search)
 
+    async def get_all_vehicles(self) -> List[Dict[str, Any]]:
+        cache_key = "swapi:vehicles:all"
+        cached = await self._cache.get(cache_key)
+        if cached:
+            return cached
+        vehicles = await self._paginate_all("/vehicles")
+        await self._cache.set(cache_key, vehicles)
+        return vehicles
+
+    async def get_vehicles_page(self, page: int, search: Optional[str] = None) -> Dict[str, Any]:
+        return await self._get_collection_page("/vehicles", page=page, search=search)
+
+    async def get_all_species(self) -> List[Dict[str, Any]]:
+        cache_key = "swapi:species:all"
+        cached = await self._cache.get(cache_key)
+        if cached:
+            return cached
+        species = await self._paginate_all("/species")
+        await self._cache.set(cache_key, species)
+        return species
+
+    async def get_species_page(self, page: int, search: Optional[str] = None) -> Dict[str, Any]:
+        return await self._get_collection_page("/species", page=page, search=search)
+
     async def get_all_films(self) -> List[Dict[str, Any]]:
         cache_key = "swapi:films:all"
         cached = await self._cache.get(cache_key)
@@ -100,6 +125,12 @@ class SWAPIClient:
 
     async def get_film(self, film_id: str) -> Dict[str, Any]:
         return await self._get_resource(f"/films/{film_id}/")
+
+    async def get_vehicle(self, vehicle_id: str) -> Dict[str, Any]:
+        return await self._get_resource(f"/vehicles/{vehicle_id}/")
+
+    async def get_species(self, species_id: str) -> Dict[str, Any]:
+        return await self._get_resource(f"/species/{species_id}/")
 
     async def get_resources_by_urls(self, urls: List[str]) -> List[Dict[str, Any]]:
         tasks = [self.get_resource_by_url(url) for url in urls]
@@ -140,9 +171,11 @@ def extract_id(resource_url: str) -> str:
 
 
 def normalize_number(value: Any) -> Optional[float]:
-    if value in (None, "unknown", "n/a"):
-        return None
-    try:
-        return float(str(value).replace(",", ""))
-    except ValueError:
-        return None
+    """
+    Compatibilidade: retorna um único número ou None.
+    - Para faixas ("30-165"), retorna o mínimo (30).
+    - Para strings com unidade ("1000km"), extrai o primeiro número (1000).
+    - Para unknown/n/a/none, retorna None.
+    """
+    parsed = parse_swapi_number(value)
+    return parsed.value

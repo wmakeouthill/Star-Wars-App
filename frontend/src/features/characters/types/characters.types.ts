@@ -11,8 +11,15 @@ export interface PlanetSummary {
 export interface Character {
     id: string;
     name: string;
+    image_url?: string | null;
     height: number | null;
+    height_raw?: string | null;
+    height_min?: number | null;
+    height_max?: number | null;
     mass: number | null;
+    mass_raw?: string | null;
+    mass_min?: number | null;
+    mass_max?: number | null;
     hair_color: string;
     skin_color: string;
     eye_color: string;

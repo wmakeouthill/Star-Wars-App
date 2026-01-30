@@ -12,6 +12,12 @@
   flex-wrap: wrap;
 }
 
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
 .subtitle {
   color: #94a3b8;
 }
@@ -32,4 +38,27 @@
 .personaToggle:hover {
   border-color: var(--border-strong);
   box-shadow: var(--shadow-neon);
+}
+
+.clear {
+  padding: 0.5rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(5, 7, 13, 0.2);
+  color: var(--text);
+  cursor: pointer;
+  font-family: var(--font-pixel);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.clear:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-neon);
+}
+
+.clear:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }

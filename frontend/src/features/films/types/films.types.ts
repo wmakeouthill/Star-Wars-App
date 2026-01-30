@@ -1,10 +1,17 @@
 export interface Film {
     id: string;
     title: string;
+    image_url?: string | null;
     episode_id: number;
+    opening_crawl?: string;
     director: string;
     producer: string;
     release_date: string;
+    characters_count?: number;
+    planets_count?: number;
+    starships_count?: number;
+    vehicles_count?: number;
+    species_count?: number;
 }
 
 export interface FilmFilters {

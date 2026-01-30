@@ -10,6 +10,17 @@ from app.infrastructure.external.swapi.client import extract_id
 from app.application.services.swapi_pagination import fetch_swapi_slice
 
 
+_FILM_POSTER_BY_EPISODE: dict[int, str] = {
+    # Fontes: Wikimedia Commons/Wikipedia (thumbnails/posters públicos).
+    1: "https://upload.wikimedia.org/wikipedia/en/4/40/Star_Wars_Phantom_Menace_poster.jpg",
+    2: "https://upload.wikimedia.org/wikipedia/en/3/32/Star_Wars_-_Episode_II_Attack_of_the_Clones_%28movie_poster%29.jpg",
+    3: "https://upload.wikimedia.org/wikipedia/en/9/93/Star_Wars_Episode_III_Revenge_of_the_Sith_poster.jpg",
+    4: "https://upload.wikimedia.org/wikipedia/en/8/87/StarWarsMoviePoster1977.jpg",
+    5: "https://upload.wikimedia.org/wikipedia/en/3/3c/SW_-_Empire_Strikes_Back.jpg",
+    6: "https://upload.wikimedia.org/wikipedia/en/b/b2/ReturnOfTheJediPoster1983.jpg",
+}
+
+
 class FilmService:
     def __init__(self, swapi_client: ISWAPIClient) -> None:
         self._swapi = swapi_client
@@ -82,11 +93,24 @@ class FilmService:
         return items[start:end], meta
 
     def _map_film(self, film: dict) -> FilmResponse:
+        characters = film.get("characters", []) or []
+        planets = film.get("planets", []) or []
+        starships = film.get("starships", []) or []
+        vehicles = film.get("vehicles", []) or []
+        species = film.get("species", []) or []
+        episode_id = int(film.get("episode_id", 0))
         return FilmResponse(
             id=extract_id(film.get("url", "")),
             title=film.get("title", ""),
-            episode_id=int(film.get("episode_id", 0)),
+            image_url=_FILM_POSTER_BY_EPISODE.get(episode_id),
+            episode_id=episode_id,
+            opening_crawl=film.get("opening_crawl", "") or "",
             director=film.get("director", ""),
             producer=film.get("producer", ""),
             release_date=film.get("release_date", ""),
+            characters_count=len(characters),
+            planets_count=len(planets),
+            starships_count=len(starships),
+            vehicles_count=len(vehicles),
+            species_count=len(species),
         )

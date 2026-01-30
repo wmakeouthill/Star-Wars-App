@@ -7,6 +7,7 @@ import { DashboardPage } from '@/features/dashboard/pages/DashboardPage/Dashboar
 import { FilmsPage } from '@/features/films/pages/FilmsPage/FilmsPage';
 import { GamificationPage } from '@/features/gamification/pages/GamificationPage/GamificationPage';
 import { PlanetsPage } from '@/features/planets/pages/PlanetsPage/PlanetsPage';
+import { ReportsPage } from '@/features/reports/pages/ReportsPage/ReportsPage';
 import { StarshipsPage } from '@/features/starships/pages/StarshipsPage/StarshipsPage';
 import { PageLayout } from '@/shared/components/PageLayout';
 import { useAppNavigation } from './App.hooks';
@@ -62,6 +63,7 @@ export function App() {
           </nav>
           <section className={styles.content}>
             {activeSection === 'dashboard' && <DashboardPage />}
+            {activeSection === 'reports' && <ReportsPage />}
             {activeSection === 'characters' && <CharactersPage />}
             {activeSection === 'planets' && <PlanetsPage />}
             {activeSection === 'starships' && <StarshipsPage />}

@@ -1,0 +1,37 @@
+.chart {
+  width: 100%;
+  height: 260px;
+}
+
+.chartTall {
+  height: 320px;
+}
+
+.tooltip {
+  border: 1px solid rgba(110, 231, 255, 0.22);
+  background: rgba(5, 7, 13, 0.92);
+  border-radius: 12px;
+  color: var(--text);
+  box-shadow: var(--shadow-neon);
+  padding: 0.6rem 0.7rem;
+  max-width: min(320px, 72vw);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.tooltipLabel {
+  font-family: var(--font-pixel);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(199, 226, 255, 0.9);
+  margin-bottom: 0.25rem;
+  line-height: 1.25;
+}
+
+.tooltipValue {
+  font-family: var(--font-mono);
+  color: var(--neon-cyan);
+  line-height: 1.25;
+}
+

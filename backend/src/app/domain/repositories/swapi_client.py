@@ -28,6 +28,22 @@ class ISWAPIClient(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    async def get_all_vehicles(self) -> List[Dict[str, Any]]:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def get_vehicles_page(self, page: int, search: Optional[str] = None) -> Dict[str, Any]:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def get_all_species(self) -> List[Dict[str, Any]]:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def get_species_page(self, page: int, search: Optional[str] = None) -> Dict[str, Any]:
+        raise NotImplementedError
+
+    @abstractmethod
     async def get_all_films(self) -> List[Dict[str, Any]]:
         raise NotImplementedError
 
@@ -49,6 +65,14 @@ class ISWAPIClient(ABC):
 
     @abstractmethod
     async def get_film(self, film_id: str) -> Dict[str, Any]:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def get_vehicle(self, vehicle_id: str) -> Dict[str, Any]:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def get_species(self, species_id: str) -> Dict[str, Any]:
         raise NotImplementedError
 
     @abstractmethod

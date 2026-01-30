@@ -7,12 +7,19 @@ from app.domain.schemas.common import PaginatedResponse, PageMeta
 from app.domain.schemas.starship import StarshipFilter, StarshipResponse
 from app.domain.repositories.swapi_client import ISWAPIClient
 from app.infrastructure.external.swapi.client import extract_id, normalize_number
+from app.infrastructure.external.swapi.parsers import parse_swapi_number
 from app.application.services.swapi_pagination import fetch_swapi_slice
+from app.application.services.image_lookup_service import ImageLookupService
+
+
+def _norm_name(value: str) -> str:
+    return " ".join(str(value).strip().split()).casefold()
 
 
 class StarshipService:
-    def __init__(self, swapi_client: ISWAPIClient) -> None:
+    def __init__(self, swapi_client: ISWAPIClient, images: ImageLookupService | None = None) -> None:
         self._swapi = swapi_client
+        self._images = images
 
     async def list_starships(
         self,
@@ -27,19 +34,21 @@ class StarshipService:
         )
 
         if can_use_swapi_paging:
+            image_index = await self._images.get_vehicles_index() if self._images else None
             raw_items, total = await fetch_swapi_slice(
                 self._swapi.get_starships_page, page=page, page_size=page_size, search=filters.name
             )
             total_pages = max(1, (total + page_size - 1) // page_size)
             meta = PageMeta(page=page, page_size=page_size, total=total, total_pages=total_pages)
-            response_items = [self._map_starship(item) for item in raw_items]
+            response_items = [self._map_starship(item, image_index=image_index) for item in raw_items]
             return PaginatedResponse(items=response_items, meta=meta)
 
+        image_index = await self._images.get_vehicles_index() if self._images else None
         starships = await self._swapi.get_all_starships()
         filtered = self._apply_filters(starships, filters)
         sorted_items = self._apply_sort(filtered, sort_by, sort_order)
         page_items, meta = self._apply_pagination(sorted_items, page, page_size)
-        response_items = [self._map_starship(item) for item in page_items]
+        response_items = [self._map_starship(item, image_index=image_index) for item in page_items]
         return PaginatedResponse(items=response_items, meta=meta)
 
     async def get_starship(self, starship_id: str) -> StarshipResponse:
@@ -47,7 +56,8 @@ class StarshipService:
             starship = await self._swapi.get_starship(starship_id)
         except Exception as exc:  # noqa: BLE001
             raise ResourceNotFoundError("Nave", starship_id) from exc
-        return self._map_starship(starship)
+        image_index = await self._images.get_vehicles_index() if self._images else None
+        return self._map_starship(starship, image_index=image_index)
 
     def _apply_filters(self, starships: List[dict], filters: StarshipFilter) -> List[dict]:
         def matches(starship: dict) -> bool:
@@ -84,15 +94,51 @@ class StarshipService:
         meta = PageMeta(page=page, page_size=page_size, total=total, total_pages=total_pages)
         return items[start:end], meta
 
-    def _map_starship(self, starship: dict) -> StarshipResponse:
+    def _map_starship(self, starship: dict, image_index: dict[str, str] | None = None) -> StarshipResponse:
+        crew_parsed = parse_swapi_number(starship.get("crew"))
+        passengers_parsed = parse_swapi_number(starship.get("passengers"))
+        hyperdrive_parsed = parse_swapi_number(starship.get("hyperdrive_rating"))
+        mglt_parsed = parse_swapi_number(starship.get("MGLT"))
+        cost_parsed = parse_swapi_number(starship.get("cost_in_credits"))
+        length_parsed = parse_swapi_number(starship.get("length"))
+        speed_parsed = parse_swapi_number(starship.get("max_atmosphering_speed"))
+        cargo_parsed = parse_swapi_number(starship.get("cargo_capacity"))
+
+        films = starship.get("films", []) or []
+        pilots = starship.get("pilots", []) or []
+        image_url = None
+        if image_index is not None:
+            image_url = image_index.get(_norm_name(starship.get("name", "")))
         return StarshipResponse(
             id=extract_id(starship.get("url", "")),
             name=starship.get("name", ""),
+            image_url=image_url,
             model=starship.get("model", ""),
             manufacturer=starship.get("manufacturer", ""),
             starship_class=starship.get("starship_class", ""),
+            hyperdrive_rating=hyperdrive_parsed.value,
+            hyperdrive_rating_raw=None if hyperdrive_parsed.is_unknown else hyperdrive_parsed.raw,
+            mglt=self._to_int(starship.get("MGLT")),
+            mglt_raw=None if mglt_parsed.is_unknown else mglt_parsed.raw,
+            cost_in_credits=self._to_int(starship.get("cost_in_credits")),
+            cost_in_credits_raw=None if cost_parsed.is_unknown else cost_parsed.raw,
+            length=length_parsed.value,
+            length_raw=None if length_parsed.is_unknown else length_parsed.raw,
+            max_atmosphering_speed=self._to_int(starship.get("max_atmosphering_speed")),
+            max_atmosphering_speed_raw=None if speed_parsed.is_unknown else speed_parsed.raw,
+            cargo_capacity=self._to_int(starship.get("cargo_capacity")),
+            cargo_capacity_raw=None if cargo_parsed.is_unknown else cargo_parsed.raw,
+            consumables=starship.get("consumables", "") or "",
             crew=self._to_int(starship.get("crew")),
+            crew_raw=None if crew_parsed.is_unknown else crew_parsed.raw,
+            crew_min=int(crew_parsed.min) if crew_parsed.min is not None else None,
+            crew_max=int(crew_parsed.max) if crew_parsed.max is not None else None,
             passengers=self._to_int(starship.get("passengers")),
+            passengers_raw=None if passengers_parsed.is_unknown else passengers_parsed.raw,
+            passengers_min=int(passengers_parsed.min) if passengers_parsed.min is not None else None,
+            passengers_max=int(passengers_parsed.max) if passengers_parsed.max is not None else None,
+            films_count=len(films),
+            pilots_count=len(pilots),
         )
 
     def _to_int(self, value: Optional[str]) -> Optional[int]:

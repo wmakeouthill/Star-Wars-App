@@ -1,9 +1,21 @@
 export interface Planet {
     id: string;
     name: string;
+    image_url?: string | null;
     climate: string;
+    gravity?: string;
     terrain: string;
+    surface_water?: number | null;
+    surface_water_raw?: string | null;
+    diameter?: number | null;
+    diameter_raw?: string | null;
+    rotation_period?: number | null;
+    rotation_period_raw?: string | null;
+    orbital_period?: number | null;
+    orbital_period_raw?: string | null;
     population: number | null;
+    population_raw?: string | null;
+    residents_count?: number;
 }
 
 export interface PlanetFilters {

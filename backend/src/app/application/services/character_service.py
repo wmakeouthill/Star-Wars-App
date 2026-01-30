@@ -7,12 +7,19 @@ from app.domain.schemas.character import CharacterFilter, CharacterResponse, Fil
 from app.domain.schemas.common import PaginatedResponse, PageMeta
 from app.domain.repositories.swapi_client import ISWAPIClient
 from app.infrastructure.external.swapi.client import extract_id, normalize_number
+from app.infrastructure.external.swapi.parsers import parse_swapi_number
 from app.application.services.swapi_pagination import fetch_swapi_slice
+from app.application.services.image_lookup_service import ImageLookupService
+
+
+def _norm_name(value: str) -> str:
+    return " ".join(str(value).strip().split()).casefold()
 
 
 class CharacterService:
-    def __init__(self, swapi_client: ISWAPIClient) -> None:
+    def __init__(self, swapi_client: ISWAPIClient, images: ImageLookupService | None = None) -> None:
         self._swapi = swapi_client
+        self._images = images
 
     async def list_characters(
         self,
@@ -34,19 +41,21 @@ class CharacterService:
         )
 
         if can_use_swapi_paging:
+            image_index = await self._images.get_characters_index() if self._images else None
             raw_items, total = await fetch_swapi_slice(
                 self._swapi.get_people_page, page=page, page_size=page_size, search=filters.name
             )
             total_pages = max(1, (total + page_size - 1) // page_size)
             meta = PageMeta(page=page, page_size=page_size, total=total, total_pages=total_pages)
-            response_items = [self._map_character(item) for item in raw_items]
+            response_items = [self._map_character(item, image_index=image_index) for item in raw_items]
             return PaginatedResponse(items=response_items, meta=meta)
 
+        image_index = await self._images.get_characters_index() if self._images else None
         people = await self._swapi.get_all_people()
         filtered = self._apply_filters(people, filters)
         sorted_items = self._apply_sort(filtered, sort_by, sort_order)
         page_items, meta = self._apply_pagination(sorted_items, page, page_size)
-        response_items = [self._map_character(item) for item in page_items]
+        response_items = [self._map_character(item, image_index=image_index) for item in page_items]
         return PaginatedResponse(items=response_items, meta=meta)
 
     async def get_character(self, character_id: str, include_relations: bool) -> CharacterResponse:
@@ -58,9 +67,11 @@ class CharacterService:
         if include_relations:
             homeworld = await self._fetch_homeworld(person)
             films = await self._fetch_films(person)
-            return self._map_character(person, homeworld=homeworld, films=films)
+            image_index = await self._images.get_characters_index() if self._images else None
+            return self._map_character(person, homeworld=homeworld, films=films, image_index=image_index)
 
-        return self._map_character(person)
+        image_index = await self._images.get_characters_index() if self._images else None
+        return self._map_character(person, image_index=image_index)
 
     async def list_characters_by_film(
         self, film_id: str, page: int, page_size: int
@@ -88,7 +99,8 @@ class CharacterService:
         characters = await self._swapi.get_resources_by_urls(page_urls)
         # Proteção extra (principalmente para mocks em testes): não deixar vir mais do que o pedido.
         characters = characters[: len(page_urls)]
-        response_items = [self._map_character(item) for item in characters]
+        image_index = await self._images.get_characters_index() if self._images else None
+        response_items = [self._map_character(item, image_index=image_index) for item in characters]
         meta = PageMeta(page=page, page_size=page_size, total=total, total_pages=total_pages)
         return PaginatedResponse(items=response_items, meta=meta)
 
@@ -156,12 +168,25 @@ class CharacterService:
         person: dict,
         homeworld: Optional[PlanetSummary] = None,
         films: Optional[List[FilmSummary]] = None,
+        image_index: dict[str, str] | None = None,
     ) -> CharacterResponse:
+        height_parsed = parse_swapi_number(person.get("height"))
+        mass_parsed = parse_swapi_number(person.get("mass"))
+        image_url = None
+        if image_index is not None:
+            image_url = image_index.get(_norm_name(person.get("name", "")))
         return CharacterResponse(
             id=extract_id(person.get("url", "")),
             name=person.get("name", ""),
+            image_url=image_url,
             height=self._to_int(person.get("height")),
+            height_raw=None if height_parsed.is_unknown else height_parsed.raw,
+            height_min=int(height_parsed.min) if height_parsed.min is not None else None,
+            height_max=int(height_parsed.max) if height_parsed.max is not None else None,
             mass=normalize_number(person.get("mass")),
+            mass_raw=None if mass_parsed.is_unknown else mass_parsed.raw,
+            mass_min=mass_parsed.min,
+            mass_max=mass_parsed.max,
             hair_color=person.get("hair_color", ""),
             skin_color=person.get("skin_color", ""),
             eye_color=person.get("eye_color", ""),

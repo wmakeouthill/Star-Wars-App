@@ -143,6 +143,30 @@
   box-shadow: var(--shadow-magenta);
 }
 
+.clear {
+  height: 40px;
+  padding: 0 0.85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(110, 231, 255, 0.25);
+  background: rgba(5, 7, 13, 0.18);
+  color: var(--text);
+  cursor: pointer;
+  font-family: var(--font-pixel);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.clear:hover {
+  border-color: rgba(255, 61, 242, 0.4);
+  box-shadow: var(--shadow-magenta);
+}
+
+.clear:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .headerLeft {
   display: flex;
   align-items: center;

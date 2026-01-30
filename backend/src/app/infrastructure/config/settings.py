@@ -34,7 +34,8 @@ class _CorsLenientJsonSource(PydanticBaseSettingsSource):
         value: Any,
         value_is_complex: bool,
     ) -> Any:
-        if field_name == "cors_allow_origins" and isinstance(value, str):
+        # Evita json.loads automático em campos list[str] vindos como CSV.
+        if field_name in {"cors_allow_origins", "openai_fallback_models"} and isinstance(value, str):
             return value
         return self._inner.prepare_field_value(field_name, field, value, value_is_complex)
 
@@ -61,10 +62,20 @@ class Settings(BaseSettings):
     app_version: str = "0.1.0"
     swapi_base_url: str = "https://swapi.dev/api"
     cache_ttl_seconds: int = 3600
-    vertex_ai_enabled: bool = False
-    vertex_ai_project_id: str | None = None
-    vertex_ai_location: str = "us-central1"
-    vertex_ai_model: str = "gemini-1.5-pro"
+    # IA (chat temático Star Wars)
+    ai_enabled: bool = False
+    ai_provider: str = "openai"  # openai | gemini (gemini não é usado no backend atualmente)
+    ai_system_prompt: str = "Você é um assistente especialista no universo de Star Wars. Responda em português."
+
+    # OpenAI
+    openai_api_key: str | None = None
+    openai_model: str = "gpt-4o-mini"
+    openai_base_url: str | None = None
+    openai_fallback_models: list[str] = Field(default_factory=lambda: ["gpt-4o", "gpt-4.1-mini", "gpt-4.1"])
+
+    # Gemini (mantido apenas para compatibilidade de env; não usado pelo serviço atual)
+    gemini_api_key: str | None = None
+    gemini_model: str = "gemini-1.5-flash"
     cors_allow_origins: list[str] = Field(
         default_factory=lambda: [
             "http://localhost:5173",
@@ -124,6 +135,41 @@ class Settings(BaseSettings):
             return [str(x).strip() for x in v if str(x).strip()]
 
         raise TypeError("cors_allow_origins deve ser uma lista ou string (JSON/CSV).")
+
+    @field_validator("openai_fallback_models", mode="before")
+    @classmethod
+    def _parse_openai_fallback_models(cls, v: Any) -> list[str]:
+        """
+        Aceita:
+        - lista real (ex.: ["gpt-4o", "gpt-4.1-mini"])
+        - string JSON (ex.: '["gpt-4o","gpt-4.1-mini"]')
+        - string CSV (ex.: "gpt-4o,gpt-4.1-mini")
+        """
+        if v is None:
+            return []
+        if isinstance(v, list):
+            return [str(x).strip() for x in v if str(x).strip()]
+        if isinstance(v, str):
+            raw = v.strip()
+            if not raw:
+                return []
+            try:
+                parsed = json.loads(raw)
+            except json.JSONDecodeError:
+                parsed = None
+
+            if isinstance(parsed, list):
+                return [str(x).strip() for x in parsed if str(x).strip()]
+            if isinstance(parsed, str):
+                raw = parsed.strip()
+                if not raw:
+                    return []
+            return [item.strip() for item in raw.split(",") if item.strip()]
+
+        if isinstance(v, (tuple, set)):
+            return [str(x).strip() for x in v if str(x).strip()]
+
+        raise TypeError("openai_fallback_models deve ser uma lista ou string (JSON/CSV).")
 
 
 @lru_cache

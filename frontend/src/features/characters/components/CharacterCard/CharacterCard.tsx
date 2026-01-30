@@ -1,19 +1,37 @@
 import { useCharacterCard } from './CharacterCard.hooks';
 import { CharacterCardProps } from './CharacterCard.types';
 import styles from './CharacterCard.module.css';
+import placeholderImage from '@/shared/images/placeholder.svg';
 
-export function CharacterCard({ character }: CharacterCardProps) {
+export function CharacterCard({ character }: Readonly<CharacterCardProps>) {
   const { heightLabel, massLabel } = useCharacterCard(character);
+  const imageUrl = character.image_url ?? placeholderImage;
 
   return (
     <article className={styles.card}>
-      <h3 className={styles.name}>{character.name}</h3>
-      <p className={styles.detail}>Altura: {heightLabel} cm</p>
-      <p className={styles.detail}>Massa: {massLabel} kg</p>
-      <p className={styles.detail}>Gênero: {character.gender}</p>
-      {character.homeworld && (
-        <p className={styles.detail}>Planeta natal: {character.homeworld.name}</p>
-      )}
+      <div className={styles.media} aria-hidden="true">
+        <img
+          className={styles.image}
+          src={imageUrl}
+          alt={character.name}
+          loading="lazy"
+          decoding="async"
+          onError={(e) => {
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = placeholderImage;
+          }}
+        />
+      </div>
+
+      <div className={styles.content}>
+        <h3 className={styles.name}>{character.name}</h3>
+        <p className={styles.detail}>Altura: {heightLabel}</p>
+        <p className={styles.detail}>Massa: {massLabel}</p>
+        <p className={styles.detail}>Gênero: {character.gender}</p>
+        {character.homeworld && (
+          <p className={styles.detail}>Planeta natal: {character.homeworld.name}</p>
+        )}
+      </div>
     </article>
   );
 }

@@ -1,25 +1,38 @@
 from __future__ import annotations
 
-from typing import List, Optional
-import asyncio
+from typing import List, Optional, Tuple
 
 from app.infrastructure.config.settings import get_settings
 
 try:
-    import vertexai
-    from vertexai.generative_models import GenerativeModel
+    from openai import AsyncOpenAI
 except Exception:  # pragma: no cover - optional dependency at runtime
-    vertexai = None
-    GenerativeModel = None
+    AsyncOpenAI = None
 
 
 class YodaAIService:
     def __init__(self) -> None:
         settings = get_settings()
-        self._enabled = settings.vertex_ai_enabled
-        self._project_id = settings.vertex_ai_project_id
-        self._location = settings.vertex_ai_location
-        self._model_name = settings.vertex_ai_model
+        self._enabled = settings.ai_enabled
+        self._provider = (settings.ai_provider or "").strip().lower()
+        self._system_prompt = settings.ai_system_prompt
+
+        self._api_key = settings.openai_api_key
+        self._base_url = settings.openai_base_url
+        self._model_name = settings.openai_model
+        self._fallback_models = settings.openai_fallback_models
+
+        self._client: AsyncOpenAI | None = None
+        if (
+            self._enabled
+            and self._provider == "openai"
+            and AsyncOpenAI is not None
+            and self._api_key
+        ):
+            self._client = AsyncOpenAI(
+                api_key=self._api_key,
+                base_url=self._base_url or None,
+            )
 
     async def generate_response(
         self,
@@ -29,38 +42,101 @@ class YodaAIService:
         *,
         persona: str = "yoda",
     ) -> Optional[str]:
-        if not self._enabled or not self._project_id or vertexai is None or GenerativeModel is None:
+        if not self._enabled or self._provider != "openai" or not self._client:
             return None
 
-        prompt = self._build_prompt(message, context, data_snippet, persona=persona)
-        return await asyncio.to_thread(self._invoke_model, prompt)
+        models = self._model_chain()
+        last_error: Exception | None = None
+        for model in models:
+            try:
+                return await self._invoke_openai(model, message, context, data_snippet, persona=persona)
+            except Exception as exc:  # pragma: no cover - rede/limites/credenciais/modelo indisponível
+                last_error = exc
+                continue
 
-    def _invoke_model(self, prompt: str) -> str:
-        vertexai.init(project=self._project_id, location=self._location)
-        model = GenerativeModel(self._model_name)
-        response = model.generate_content(prompt)
-        return response.text
+        _ = last_error
+        return None
 
-    def _build_prompt(
+    def _model_chain(self) -> List[str]:
+        # Ordem pensada para: custo/velocidade -> mais contexto/capacidade -> alternativas.
+        chain: List[str] = []
+        if self._model_name:
+            chain.append(self._model_name)
+        for m in self._fallback_models or []:
+            m = (m or "").strip()
+            if m and m not in chain:
+                chain.append(m)
+        return chain
+
+    async def _invoke_openai(
         self,
+        model: str,
         message: str,
         context: List[str],
         data_snippet: Optional[str],
         *,
         persona: str,
-    ) -> str:
+    ) -> Optional[str]:
+        assert self._client is not None
+        system_prompt, allow_emojis = self._persona_system(persona)
+
+        messages: List[dict[str, str]] = []
+        if self._system_prompt:
+            messages.append({"role": "system", "content": self._system_prompt.strip()})
+        messages.append({"role": "system", "content": system_prompt})
+        if data_snippet:
+            messages.append(
+                {
+                    "role": "system",
+                    "content": f"DADOS SWAPI (use apenas como referência; não invente além disso):\n{data_snippet}",
+                }
+            )
+
+        # Converte o histórico simples ("user: ...", "assistant: ...") em mensagens.
+        for role, content in self._normalize_history(context)[-12:]:
+            messages.append({"role": role, "content": content})
+
+        messages.append({"role": "user", "content": message})
+
+        # Vader: sem emojis; Yoda: emojis liberados (já no prompt). Não forçamos nada aqui.
+        _ = allow_emojis
+        resp = await self._client.chat.completions.create(
+            model=model,
+            messages=messages,
+            temperature=0.7,
+        )
+        content = (resp.choices[0].message.content or "").strip() if resp and resp.choices else ""
+        return content or None
+
+    def _normalize_history(self, context: List[str]) -> List[Tuple[str, str]]:
+        normalized: List[Tuple[str, str]] = []
+        for item in context or []:
+            raw = (item or "").strip()
+            if not raw:
+                continue
+            role, sep, content = raw.partition(":")
+            role = role.strip().lower()
+            content = content.strip() if sep else raw
+            if role not in {"user", "assistant", "system"}:
+                role = "user"
+            if content:
+                normalized.append((role, content))
+        return normalized
+
+    def _persona_system(self, persona: str) -> Tuple[str, bool]:
         if persona == "vader":
-            base = (
+            return (
                 "Você é Darth Vader (Star Wars). Responda em português do Brasil com uma voz fria, "
                 "autoritária e intimidadora. Use frases curtas e diretas. "
-                "Não use o estilo do Yoda e não use emojis.\n"
+                "Não use o estilo do Yoda. Não use emojis. "
+                "Se faltar informação, diga que não sabe e sugira uma pergunta mais específica.",
+                False,
             )
-        else:
-            base = (
-                "Você é o Mestre Yoda. Responda sempre com estilo Yoda, "
-                "invertendo a ordem das frases quando possível. "
-                "Use emojis temáticos: 🌟 ⚔️ 🚀 🌍 👤.\n"
-            )
-        history = "\n".join(context[-6:]) if context else ""
-        data_block = f"\nDADOS SWAPI:\n{data_snippet}\n" if data_snippet else ""
-        return f"{base}{data_block}\nHISTÓRICO:\n{history}\n\nPERGUNTA:\n{message}\n\nRESPOSTA:"
+
+        return (
+            "Você é o Mestre Yoda (Star Wars). Responda em português do Brasil no estilo do Yoda, "
+            "invertendo a ordem das frases quando possível. "
+            "Use alguns emojis temáticos quando fizer sentido: 🌟 ⚔️ 🚀 🌍 👤. "
+            "Se faltar informação, diga que não sabe e sugira uma pergunta mais específica.",
+            True,
+        )

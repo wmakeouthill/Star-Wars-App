@@ -1,0 +1,136 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.commandBar {
+  border: 1px solid var(--border);
+  background: linear-gradient(135deg, rgba(8, 16, 32, 0.72), rgba(8, 16, 32, 0.35));
+  box-shadow: var(--shadow-neon);
+  border-radius: 18px;
+  padding: 1rem;
+  display: grid;
+  gap: 0.9rem;
+}
+
+.kicker {
+  font-family: var(--font-pixel);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.92);
+  text-transform: uppercase;
+}
+
+.hint {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.kpis {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.kpi {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(110, 231, 255, 0.22);
+  background: rgba(5, 7, 13, 0.22);
+}
+
+.kpiLabel {
+  font-family: var(--font-pixel);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  color: rgba(199, 226, 255, 0.9);
+  text-transform: uppercase;
+}
+
+.kpiValue {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  color: var(--neon-cyan);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 980px) {
+  .grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.panelGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 680px) {
+  .panelGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.panelStack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.status {
+  color: var(--muted);
+}
+
+.challenge {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.challengeTitleRow {
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.challengeTitle {
+  color: rgba(199, 226, 255, 0.92);
+  font-size: 0.95rem;
+}
+
+.challengeXp {
+  font-family: var(--font-mono);
+  color: var(--neon-amber);
+}
+
+.progressTrack {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(5, 7, 13, 0.35);
+  border: 1px solid rgba(110, 231, 255, 0.18);
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(53, 230, 255, 0.6), rgba(255, 61, 242, 0.35));
+  box-shadow: var(--shadow-neon);
+}
+
+.challengeMeta {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+

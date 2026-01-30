@@ -1,0 +1,57 @@
+.panel {
+  position: relative;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(8, 16, 32, 0.68), rgba(8, 16, 32, 0.38));
+  /* Importante para não cortar Tooltip dos gráficos */
+  overflow: visible;
+}
+
+.panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 12% 10%, rgba(53, 230, 255, 0.12), transparent 42%),
+    radial-gradient(circle at 92% 20%, rgba(255, 61, 242, 0.08), transparent 40%);
+  opacity: 0.75;
+}
+
+.header {
+  position: relative;
+  padding: 0.95rem 1rem 0.75rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-bottom: 1px solid rgba(110, 231, 255, 0.16);
+}
+
+.headerText {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.title {
+  font-family: var(--font-star);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 1.05rem;
+}
+
+.subtitle {
+  color: var(--muted);
+  line-height: 1.35;
+  font-size: 0.92rem;
+}
+
+.rightSlot {
+  flex: 0 0 auto;
+}
+
+.body {
+  position: relative;
+  padding: 1rem;
+}
+

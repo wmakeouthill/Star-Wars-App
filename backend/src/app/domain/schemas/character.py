@@ -17,8 +17,15 @@ class FilmSummary(BaseModel):
 class CharacterResponse(BaseModel):
     id: str
     name: str
+    image_url: Optional[str] = None
     height: Optional[int] = Field(None, description="Altura em centímetros")
+    height_raw: Optional[str] = Field(None, description="Valor bruto vindo da SWAPI (pode ser faixa/unidade)")
+    height_min: Optional[int] = Field(None, description="Mínimo quando a SWAPI retorna faixa")
+    height_max: Optional[int] = Field(None, description="Máximo quando a SWAPI retorna faixa")
     mass: Optional[float] = Field(None, description="Massa em kg")
+    mass_raw: Optional[str] = Field(None, description="Valor bruto vindo da SWAPI (pode ser faixa/unidade)")
+    mass_min: Optional[float] = Field(None, description="Mínimo quando a SWAPI retorna faixa")
+    mass_max: Optional[float] = Field(None, description="Máximo quando a SWAPI retorna faixa")
     hair_color: str
     skin_color: str
     eye_color: str

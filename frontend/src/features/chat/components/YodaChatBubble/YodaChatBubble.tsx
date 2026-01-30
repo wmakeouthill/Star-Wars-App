@@ -31,7 +31,8 @@ function getPersonaUi(persona: ChatPersona) {
 }
 
 export function YodaChatBubble() {
-  const { messages, input, setInput, sendMessage, isLoading, persona, setPersona } = useChatContext();
+  const { messages, input, setInput, sendMessage, isLoading, persona, setPersona, clearHistory } =
+    useChatContext();
   const [isOpen, setIsOpen] = useState(false);
   const windowRef = useRef<HTMLDialogElement | null>(null);
   const ui = getPersonaUi(persona);
@@ -121,6 +122,16 @@ export function YodaChatBubble() {
                 title={ui.toggleTitle}
               >
                 {ui.toggleLabel}
+              </button>
+              <button
+                type="button"
+                className={styles.clear}
+                onClick={() => clearHistory()}
+                disabled={isLoading}
+                aria-label="Limpar histórico deste personagem"
+                title="Limpar histórico"
+              >
+                Limpar
               </button>
               <button
                 type="button"
