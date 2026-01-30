@@ -11,6 +11,7 @@ import { StarshipsPage } from '@/features/starships/pages/StarshipsPage/Starship
 import { VehiclesPage } from '@/features/vehicles/pages/VehiclesPage/VehiclesPage';
 import { SpeciesPage } from '@/features/species/pages/SpeciesPage/SpeciesPage';
 import { PageLayout } from '@/shared/components/PageLayout';
+import { StarfieldEvents } from '@/shared/components/StarfieldEvents';
 import { useAppNavigation } from './App.hooks';
 import styles from './App.module.css';
 
@@ -20,6 +21,7 @@ export function App() {
 
   return (
     <ChatProvider>
+      <StarfieldEvents />
       <div className={styles.app}>
         <PageLayout
           title="Holocron Analytics"

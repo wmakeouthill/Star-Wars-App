@@ -110,7 +110,28 @@ class ChatService:
         name = name_override or self._extract_entity_name(message)
         people = await self._swapi.get_all_people()
         match = self._find_match(people, name)
+        if not match and name:
+            # Fallback: às vezes o "nome" vem como frase inteira ("o que você acha do Luke...").
+            # Sanitiza e tenta novamente para evitar "não encontrei" indevido.
+            for candidate in self._candidate_entity_queries(name, message):
+                if candidate and candidate != name:
+                    match = self._find_match(people, candidate)
+                    if match:
+                        name = candidate
+                        break
+
         if not match:
+            # Se for pergunta de opinião, não precisamos bloquear por SWAPI: respondemos in-character.
+            if self._is_opinion_question(message) and name:
+                ai_message = await self._ai_response(persona, message, context, None)
+                response = ai_message or self._persona_opinion_about_character(persona, {"name": name})
+                return ChatResponse(
+                    message=response,
+                    data={"name": name},
+                    suggested_actions=["Buscar personagens por nome"],
+                    xp_earned=5,
+                )
+
             return ChatResponse(
                 message=self._persona_reply(
                     persona,
@@ -545,6 +566,58 @@ class ChatService:
             return {"type": "character", "name": raw}
 
         return None
+
+    def _candidate_entity_queries(self, name: str, message: str) -> List[str]:
+        """
+        Gera tentativas de "nome" mais limpas para lookup no SWAPI.
+        Ex.: name="o que voce acha do luke skywalker" -> "luke skywalker".
+        """
+        raw = (name or "").strip()
+        if not raw:
+            return []
+
+        candidates: List[str] = [raw]
+
+        sanitized = self._sanitize_entity_query(raw)
+        if sanitized and sanitized not in candidates:
+            candidates.append(sanitized)
+
+        # Também tenta sanitizar a mensagem inteira (caso `name` tenha vindo esquisito).
+        msg_sanitized = self._sanitize_entity_query((message or "").strip())
+        if msg_sanitized and msg_sanitized not in candidates:
+            candidates.append(msg_sanitized)
+
+        # Heurística simples: últimas 2-3 palavras costumam ser o nome ("luke skywalker").
+        toks = self._normalize_text(sanitized or raw).split()
+        if len(toks) >= 2:
+            tail2 = " ".join(toks[-2:])
+            if tail2 and tail2 not in candidates:
+                candidates.append(tail2)
+        if len(toks) >= 3:
+            tail3 = " ".join(toks[-3:])
+            if tail3 and tail3 not in candidates:
+                candidates.append(tail3)
+
+        return candidates
+
+    def _sanitize_entity_query(self, text: str) -> str:
+        raw = (text or "").strip()
+        if not raw:
+            return ""
+
+        # Remove perguntas/frames comuns (PT-BR) e preposições que atrapalham o match.
+        raw = re.sub(
+            r"^\s*(?:o que|oq)\s+(?:voce\s+)?(?:acha|sabe)\s+(?:do|da|de|sobre)\s+",
+            "",
+            raw,
+            flags=re.IGNORECASE,
+        )
+        raw = re.sub(r"^\s*(?:qual\s+(?:a\s+)?sua\s+opini[aã]o)\s+(?:do|da|de|sobre)\s+", "", raw, flags=re.IGNORECASE)
+        raw = re.sub(r"^\s*(?:sua\s+opini[aã]o)\s+(?:do|da|de|sobre)\s+", "", raw, flags=re.IGNORECASE)
+        raw = re.sub(r"^\s*(?:opini[aã]o)\s+sobre\s+", "", raw, flags=re.IGNORECASE)
+        raw = re.sub(r"^\s*(?:do|da|de|sobre)\s+", "", raw, flags=re.IGNORECASE)
+        raw = re.sub(r"^\s*(?:o|a|os|as)\s+", "", raw, flags=re.IGNORECASE)
+        return raw.strip(" .!?;:")
 
     def _persona_add_lore_hint(self, persona: str, data: Dict[str, Any], base: str) -> str:
         name = str(data.get("name") or "")

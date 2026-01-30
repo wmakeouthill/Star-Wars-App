@@ -1,0 +1,61 @@
+.layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.shootingStar {
+  position: absolute;
+  left: var(--x0);
+  top: var(--y0);
+  width: var(--len);
+  height: var(--thick);
+  border-radius: 999px;
+  opacity: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, var(--alpha)) 42%,
+    rgba(53, 230, 255, calc(var(--alpha) * 0.85)) 55%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: translate3d(0, 0, 0) rotate(var(--angle));
+  filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.14))
+    drop-shadow(0 0 18px rgba(53, 230, 255, 0.1));
+  animation: shootingStar var(--dur) ease-out forwards;
+}
+
+.shootingStar::before {
+  content: '';
+  position: absolute;
+  right: 12%;
+  top: 50%;
+  width: calc(var(--thick) * 4.5);
+  height: calc(var(--thick) * 4.5);
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, calc(var(--alpha) * 0.95));
+  box-shadow: 0 0 16px rgba(255, 255, 255, 0.22), 0 0 26px rgba(53, 230, 255, 0.18);
+}
+
+@keyframes shootingStar {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) rotate(var(--angle)) scaleX(0.65);
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--dx), var(--dy), 0) rotate(var(--angle)) scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layer {
+    display: none;
+  }
+}

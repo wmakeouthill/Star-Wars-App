@@ -43,11 +43,12 @@ body {
 body {
   min-height: 100vh;
   background:
-    radial-gradient(circle at 12% 12%, rgba(53, 230, 255, 0.08), transparent 40%),
-    radial-gradient(circle at 88% 18%, rgba(255, 61, 242, 0.06), transparent 38%),
-    radial-gradient(circle at 30% 88%, rgba(151, 255, 61, 0.04), transparent 45%),
-    linear-gradient(180deg, rgba(4, 7, 13, 0.9), rgba(4, 7, 13, 1));
-  background-color: var(--bg-0);
+    radial-gradient(circle at 15% 18%, rgba(53, 230, 255, 0.06), transparent 46%),
+    radial-gradient(circle at 88% 16%, rgba(255, 61, 242, 0.045), transparent 44%),
+    radial-gradient(circle at 28% 90%, rgba(151, 255, 61, 0.028), transparent 56%),
+    radial-gradient(circle at 55% 48%, rgba(255, 255, 255, 0.02), transparent 62%),
+    linear-gradient(180deg, #000000 0%, #01020a 35%, #030614 100%);
+  background-color: #000000;
   color: var(--text);
   font-family: var(--font-ui);
   overflow-x: hidden;
@@ -57,17 +58,51 @@ body {
 body::before {
   content: '';
   position: fixed;
-  inset: 0;
+  inset: -12%;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.55;
+  opacity: 0.78;
   background-image:
-    radial-gradient(circle at 12px 18px, rgba(255, 255, 255, 0.55) 1px, transparent 2px),
-    radial-gradient(circle at 60px 42px, rgba(255, 255, 255, 0.35) 1px, transparent 2px),
-    radial-gradient(circle at 110px 70px, rgba(53, 230, 255, 0.22) 1px, transparent 2px),
-    radial-gradient(circle at 190px 120px, rgba(255, 61, 242, 0.16) 1px, transparent 2px);
-  background-size: 240px 220px;
-  filter: drop-shadow(0 0 6px rgba(53, 230, 255, 0.06));
+    /* many small stars */
+    radial-gradient(circle at 12px 18px, rgba(255, 255, 255, 0.78) 1px, transparent 2px),
+    radial-gradient(circle at 54px 64px, rgba(255, 255, 255, 0.48) 1px, transparent 2px),
+    radial-gradient(circle at 98px 22px, rgba(255, 255, 255, 0.62) 1px, transparent 2px),
+    radial-gradient(circle at 140px 96px, rgba(255, 255, 255, 0.36) 1px, transparent 2px),
+    radial-gradient(circle at 190px 120px, rgba(255, 255, 255, 0.52) 1px, transparent 2px),
+    radial-gradient(circle at 220px 30px, rgba(255, 255, 255, 0.28) 1px, transparent 2px),
+    radial-gradient(circle at 18px 148px, rgba(255, 255, 255, 0.44) 1px, transparent 2px),
+    radial-gradient(circle at 170px 170px, rgba(255, 255, 255, 0.3) 1px, transparent 2px),
+    radial-gradient(circle at 210px 210px, rgba(255, 255, 255, 0.22) 1px, transparent 2px),
+    radial-gradient(circle at 260px 140px, rgba(255, 255, 255, 0.2) 1px, transparent 2px),
+    /* a few tinted stars */
+    radial-gradient(circle at 110px 70px, rgba(53, 230, 255, 0.26) 1px, transparent 2px),
+    radial-gradient(circle at 30px 92px, rgba(255, 61, 242, 0.18) 1px, transparent 2px),
+    /* medium stars */
+    radial-gradient(circle at 240px 180px, rgba(255, 255, 255, 0.24) 2px, transparent 4px),
+    radial-gradient(circle at 420px 260px, rgba(255, 255, 255, 0.18) 2px, transparent 4px),
+    /* rare bright stars */
+    radial-gradient(circle at 680px 420px, rgba(255, 255, 255, 0.14) 3px, transparent 7px),
+    radial-gradient(circle at 980px 140px, rgba(255, 255, 255, 0.1) 4px, transparent 10px);
+  background-size:
+    180px 160px,
+    200px 180px,
+    240px 210px,
+    280px 240px,
+    320px 280px,
+    380px 340px,
+    460px 420px,
+    560px 520px,
+    600px 560px,
+    740px 680px,
+    520px 480px,
+    640px 600px,
+    1000px 920px,
+    1200px 1080px,
+    2200px 2000px,
+    2600px 2400px;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.06))
+    drop-shadow(0 0 10px rgba(53, 230, 255, 0.05));
+  animation: starfieldDrift 240s linear infinite, starfieldTwinkle 7s ease-in-out infinite;
 }
 
 /* Scanlines */
@@ -77,7 +112,7 @@ body::after {
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.12;
+  opacity: 0.08;
   background: repeating-linear-gradient(
     to bottom,
     rgba(255, 255, 255, 0.06),
@@ -92,6 +127,36 @@ body::after {
 #root {
   position: relative;
   z-index: 1;
+  isolation: isolate;
+}
+
+/* Extra star layer with flicker (twinkle) */
+#root::before {
+  content: '';
+  position: fixed;
+  inset: -16%;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.55;
+  background-image:
+    radial-gradient(circle at 22px 30px, rgba(255, 255, 255, 0.68) 1px, transparent 2px),
+    radial-gradient(circle at 76px 118px, rgba(255, 255, 255, 0.34) 1px, transparent 2px),
+    radial-gradient(circle at 162px 60px, rgba(255, 255, 255, 0.56) 1px, transparent 2px),
+    radial-gradient(circle at 238px 186px, rgba(255, 255, 255, 0.28) 1px, transparent 2px),
+    radial-gradient(circle at 312px 92px, rgba(53, 230, 255, 0.18) 1px, transparent 2px),
+    radial-gradient(circle at 392px 246px, rgba(255, 61, 242, 0.12) 1px, transparent 2px),
+    radial-gradient(circle at 520px 340px, rgba(255, 255, 255, 0.14) 2px, transparent 5px);
+  background-size:
+    260px 240px,
+    320px 280px,
+    420px 360px,
+    520px 480px,
+    620px 560px,
+    820px 760px,
+    1600px 1400px;
+  filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.05))
+    drop-shadow(0 0 14px rgba(53, 230, 255, 0.04));
+  animation: starfieldDrift2 320s linear infinite reverse, starfieldFlicker 9s steps(7, end) infinite;
 }
 
 button,
@@ -103,4 +168,65 @@ textarea {
 
 ::selection {
   background: rgba(53, 230, 255, 0.22);
+}
+
+@keyframes starfieldDrift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-6%, -4%, 0);
+  }
+}
+
+@keyframes starfieldTwinkle {
+  0%,
+  100% {
+    opacity: 0.72;
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.05))
+      drop-shadow(0 0 10px rgba(53, 230, 255, 0.04));
+  }
+  50% {
+    opacity: 0.86;
+    filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.08))
+      drop-shadow(0 0 14px rgba(53, 230, 255, 0.06));
+  }
+}
+
+@keyframes starfieldDrift2 {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(7%, -3%, 0);
+  }
+}
+
+@keyframes starfieldFlicker {
+  0%,
+  100% {
+    opacity: 0.42;
+  }
+  18% {
+    opacity: 0.6;
+  }
+  37% {
+    opacity: 0.48;
+  }
+  52% {
+    opacity: 0.64;
+  }
+  71% {
+    opacity: 0.44;
+  }
+  86% {
+    opacity: 0.58;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before,
+  #root::before {
+    animation: none !important;
+  }
 }
