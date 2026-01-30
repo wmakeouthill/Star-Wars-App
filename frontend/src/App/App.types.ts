@@ -4,6 +4,8 @@ export type AppSection =
   | 'characters'
   | 'planets'
   | 'starships'
+  | 'vehicles'
+  | 'species'
   | 'films'
   | 'chat'
   | 'gamification';

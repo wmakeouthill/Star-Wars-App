@@ -16,3 +16,9 @@ export async function fetchCharacters(filters: CharacterFilters) {
         page_size: filters.pageSize,
     });
 }
+
+export async function fetchCharacterById(characterId: string, includeRelations: boolean) {
+    return apiGet<Character>(`/api/v1/characters/${characterId}`, {
+        include_relations: includeRelations,
+    });
+}

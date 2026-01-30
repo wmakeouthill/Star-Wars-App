@@ -7,6 +7,8 @@ const navigationItems: AppNavigationItem[] = [
     { id: 'characters', label: 'Personagens' },
     { id: 'planets', label: 'Planetas' },
     { id: 'starships', label: 'Naves' },
+    { id: 'vehicles', label: 'Veículos' },
+    { id: 'species', label: 'Espécies' },
     { id: 'films', label: 'Filmes' },
     { id: 'chat', label: 'Mestre Yoda (Tela)' },
     { id: 'gamification', label: 'Gamificação' },

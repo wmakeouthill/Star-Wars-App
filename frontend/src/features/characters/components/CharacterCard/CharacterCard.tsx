@@ -3,7 +3,7 @@ import { CharacterCardProps } from './CharacterCard.types';
 import styles from './CharacterCard.module.css';
 import placeholderImage from '@/shared/images/placeholder.svg';
 
-export function CharacterCard({ character }: Readonly<CharacterCardProps>) {
+export function CharacterCard({ character, onSelect, isSelected }: Readonly<CharacterCardProps>) {
   const { heightLabel, massLabel } = useCharacterCard(character);
   const imageUrl = character.image_url ?? placeholderImage;
 
@@ -30,6 +30,15 @@ export function CharacterCard({ character }: Readonly<CharacterCardProps>) {
         <p className={styles.detail}>Gênero: {character.gender}</p>
         {character.homeworld && (
           <p className={styles.detail}>Planeta natal: {character.homeworld.name}</p>
+        )}
+        {onSelect && (
+          <button
+            type="button"
+            className={`${styles.button} ${isSelected ? styles.buttonActive : ''}`}
+            onClick={() => onSelect(character.id)}
+          >
+            {isSelected ? 'Detalhes carregados' : 'Ver detalhes'}
+          </button>
         )}
       </div>
     </article>

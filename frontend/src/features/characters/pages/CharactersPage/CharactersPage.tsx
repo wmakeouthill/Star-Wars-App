@@ -11,13 +11,16 @@ export function CharactersPage() {
     sortBy,
     sortOrder,
     page,
+    selectedCharacterId,
     setName,
     setGender,
     setFilmId,
     setSortBy,
     setSortOrder,
     setPage,
+    setSelectedCharacterId,
     query,
+    characterDetailsQuery,
   } = useCharactersPage();
 
   return (
@@ -65,7 +68,12 @@ export function CharactersPage() {
 
       <div className={styles.grid}>
         {query.data?.items.map((character) => (
-          <CharacterCard key={character.id} character={character} />
+          <CharacterCard
+            key={character.id}
+            character={character}
+            isSelected={selectedCharacterId === character.id}
+            onSelect={(characterId) => setSelectedCharacterId(characterId)}
+          />
         ))}
       </div>
 
@@ -75,6 +83,43 @@ export function CharactersPage() {
           totalPages={query.data.meta.total_pages}
           onPageChange={setPage}
         />
+      )}
+
+      {selectedCharacterId && (
+        <section className={styles.charactersSection}>
+          <h3 className={styles.sectionTitle}>Detalhes do personagem selecionado</h3>
+          {characterDetailsQuery.isLoading && (
+            <p className={styles.status}>Carregando detalhes do personagem...</p>
+          )}
+          {characterDetailsQuery.isError && (
+            <p className={styles.status}>Erro ao carregar detalhes do personagem.</p>
+          )}
+          {characterDetailsQuery.data && (
+            <>
+              {characterDetailsQuery.data.homeworld?.name && (
+                <p className={styles.status}>
+                  <strong>Planeta natal:</strong> {characterDetailsQuery.data.homeworld.name}
+                </p>
+              )}
+              <p className={styles.status}>
+                <strong>Filmes:</strong>{' '}
+                {(characterDetailsQuery.data.films ?? []).map((f) => f.title).join(', ') || '—'}
+              </p>
+              <p className={styles.status}>
+                <strong>Espécies:</strong>{' '}
+                {(characterDetailsQuery.data.species ?? []).map((s) => s.name).join(', ') || '—'}
+              </p>
+              <p className={styles.status}>
+                <strong>Veículos:</strong>{' '}
+                {(characterDetailsQuery.data.vehicles ?? []).map((v) => v.name).join(', ') || '—'}
+              </p>
+              <p className={styles.status}>
+                <strong>Naves:</strong>{' '}
+                {(characterDetailsQuery.data.starships ?? []).map((s) => s.name).join(', ') || '—'}
+              </p>
+            </>
+          )}
+        </section>
       )}
     </section>
   );

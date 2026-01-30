@@ -9,6 +9,8 @@ import { GamificationPage } from '@/features/gamification/pages/GamificationPage
 import { PlanetsPage } from '@/features/planets/pages/PlanetsPage/PlanetsPage';
 import { ReportsPage } from '@/features/reports/pages/ReportsPage/ReportsPage';
 import { StarshipsPage } from '@/features/starships/pages/StarshipsPage/StarshipsPage';
+import { VehiclesPage } from '@/features/vehicles/pages/VehiclesPage/VehiclesPage';
+import { SpeciesPage } from '@/features/species/pages/SpeciesPage/SpeciesPage';
 import { PageLayout } from '@/shared/components/PageLayout';
 import { useAppNavigation } from './App.hooks';
 import styles from './App.module.css';
@@ -67,6 +69,8 @@ export function App() {
             {activeSection === 'characters' && <CharactersPage />}
             {activeSection === 'planets' && <PlanetsPage />}
             {activeSection === 'starships' && <StarshipsPage />}
+            {activeSection === 'vehicles' && <VehiclesPage />}
+            {activeSection === 'species' && <SpeciesPage />}
             {activeSection === 'films' && <FilmsPage />}
             {activeSection === 'chat' && <ChatPage />}
             {activeSection === 'gamification' && <GamificationPage />}
