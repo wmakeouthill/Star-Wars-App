@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CharacterCard } from '@/features/characters/components/CharacterCard';
 import { useCharacters } from '@/features/characters/hooks/useCharacters';
 import { useCharacterDetails } from '@/features/characters/hooks/useCharacterDetails';
@@ -19,7 +19,9 @@ import type { Starship } from '@/features/starships/types/starships.types';
 import { Pagination } from '@/shared/components';
 import styles from './DashboardPage.module.css';
 
-const PANEL_PAGE_SIZE = 5;
+const DASHBOARD_MIN_CARD_WIDTH = 260;
+const DASHBOARD_CARD_GAP = 16; // 1rem
+const DASHBOARD_MAX_COLS = 6;
 
 type DetailsState =
   | { kind: 'character'; id: string; title: string; data: Character }
@@ -30,6 +32,8 @@ type DetailsState =
 export function DashboardPage() {
   const [globalQuery, setGlobalQuery] = useState('');
   const [details, setDetails] = useState<DetailsState | null>(null);
+  const gridRef = useRef<HTMLDivElement | null>(null);
+  const [cardsCols, setCardsCols] = useState(4);
 
   const [charactersGender, setCharactersGender] = useState('');
   const [charactersFilmId, setCharactersFilmId] = useState('');
@@ -46,6 +50,40 @@ export function DashboardPage() {
   const [selectedFilmId, setSelectedFilmId] = useState<string | null>(null);
   const [filmCharactersPage, setFilmCharactersPage] = useState(1);
 
+  const dashboardPageSize = useMemo(() => {
+    // Garante 1 linha por seção: pegamos exatamente a quantidade de colunas visíveis.
+    return Math.max(1, Math.min(DASHBOARD_MAX_COLS, cardsCols));
+  }, [cardsCols]);
+
+  useEffect(() => {
+    const el = gridRef.current;
+    if (!el) return;
+
+    const computeCols = (width: number) => {
+      const cols = Math.floor((width + DASHBOARD_CARD_GAP) / (DASHBOARD_MIN_CARD_WIDTH + DASHBOARD_CARD_GAP));
+      return Math.max(1, Math.min(DASHBOARD_MAX_COLS, cols));
+    };
+
+    const ro = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      setCardsCols(computeCols(entry.contentRect.width));
+    });
+
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Se a quantidade de colunas mudar, resetamos páginas para evitar “sobrar 1 card” na linha de baixo
+  // ou cair em página inválida.
+  useEffect(() => {
+    setCharactersPage(1);
+    setPlanetsPage(1);
+    setStarshipsPage(1);
+    setFilmsPage(1);
+    setFilmCharactersPage(1);
+  }, [dashboardPageSize]);
+
   const charactersFilters = useMemo(
     () => ({
       name: globalQuery || undefined,
@@ -54,9 +92,9 @@ export function DashboardPage() {
       sortBy: 'name' as const,
       sortOrder: 'asc' as const,
       page: charactersPage,
-      pageSize: PANEL_PAGE_SIZE,
+      pageSize: dashboardPageSize,
     }),
-    [globalQuery, charactersGender, charactersFilmId, charactersPage]
+    [globalQuery, charactersGender, charactersFilmId, charactersPage, dashboardPageSize]
   );
 
   const planetsFilters = useMemo(
@@ -66,9 +104,9 @@ export function DashboardPage() {
       sortBy: 'name' as const,
       sortOrder: 'asc' as const,
       page: planetsPage,
-      pageSize: PANEL_PAGE_SIZE,
+      pageSize: dashboardPageSize,
     }),
-    [globalQuery, planetsClimate, planetsPage]
+    [globalQuery, planetsClimate, planetsPage, dashboardPageSize]
   );
 
   const starshipsFilters = useMemo(
@@ -78,9 +116,9 @@ export function DashboardPage() {
       sortBy: 'name' as const,
       sortOrder: 'asc' as const,
       page: starshipsPage,
-      pageSize: PANEL_PAGE_SIZE,
+      pageSize: dashboardPageSize,
     }),
-    [globalQuery, starshipsManufacturer, starshipsPage]
+    [globalQuery, starshipsManufacturer, starshipsPage, dashboardPageSize]
   );
 
   const filmsFilters = useMemo(
@@ -90,16 +128,16 @@ export function DashboardPage() {
       sortBy: 'episode_id' as const,
       sortOrder: 'asc' as const,
       page: filmsPage,
-      pageSize: PANEL_PAGE_SIZE,
+      pageSize: dashboardPageSize,
     }),
-    [globalQuery, filmsDirector, filmsPage]
+    [globalQuery, filmsDirector, filmsPage, dashboardPageSize]
   );
 
   const charactersQuery = useCharacters(charactersFilters);
   const planetsQuery = usePlanets(planetsFilters);
   const starshipsQuery = useStarships(starshipsFilters);
   const filmsQuery = useFilms(filmsFilters);
-  const filmCharactersQuery = useFilmCharacters(selectedFilmId, filmCharactersPage, PANEL_PAGE_SIZE);
+  const filmCharactersQuery = useFilmCharacters(selectedFilmId, filmCharactersPage, dashboardPageSize);
 
   const characterDetailsQuery = useCharacterDetails(
     details?.kind === 'character' ? details.id : null
@@ -185,7 +223,7 @@ export function DashboardPage() {
         </div>
       </div>
 
-      <div className={styles.grid}>
+      <div className={styles.grid} ref={gridRef}>
         <section className={styles.panel}>
           <header className={styles.panelHeader}>
             <h2 className={styles.panelTitle}>👤 Personagens</h2>
@@ -215,8 +253,11 @@ export function DashboardPage() {
             {charactersQuery.isLoading && <p className={styles.status}>Carregando personagens...</p>}
             {charactersQuery.isError && <p className={styles.status}>Erro ao carregar personagens.</p>}
 
-            <div className={styles.cardsGrid}>
-              {(charactersQuery.data?.items ?? []).slice(0, 5).map((character) => (
+            <div
+              className={styles.cardsGrid}
+              style={{ ['--cards-cols' as never]: dashboardPageSize } as React.CSSProperties}
+            >
+              {(charactersQuery.data?.items ?? []).map((character) => (
                 <CharacterCard
                   key={character.id}
                   character={character}
@@ -265,8 +306,11 @@ export function DashboardPage() {
             {planetsQuery.isLoading && <p className={styles.status}>Carregando planetas...</p>}
             {planetsQuery.isError && <p className={styles.status}>Erro ao carregar planetas.</p>}
 
-            <div className={styles.cardsGrid}>
-              {(planetsQuery.data?.items ?? []).slice(0, 5).map((planet) => (
+            <div
+              className={styles.cardsGrid}
+              style={{ ['--cards-cols' as never]: dashboardPageSize } as React.CSSProperties}
+            >
+              {(planetsQuery.data?.items ?? []).map((planet) => (
                 <PlanetCard
                   key={planet.id}
                   planet={planet}
@@ -315,8 +359,11 @@ export function DashboardPage() {
             {starshipsQuery.isLoading && <p className={styles.status}>Carregando naves...</p>}
             {starshipsQuery.isError && <p className={styles.status}>Erro ao carregar naves.</p>}
 
-            <div className={styles.cardsGrid}>
-              {(starshipsQuery.data?.items ?? []).slice(0, 5).map((starship) => (
+            <div
+              className={styles.cardsGrid}
+              style={{ ['--cards-cols' as never]: dashboardPageSize } as React.CSSProperties}
+            >
+              {(starshipsQuery.data?.items ?? []).map((starship) => (
                 <StarshipCard
                   key={starship.id}
                   starship={starship}
@@ -365,8 +412,11 @@ export function DashboardPage() {
             {filmsQuery.isLoading && <p className={styles.status}>Carregando filmes...</p>}
             {filmsQuery.isError && <p className={styles.status}>Erro ao carregar filmes.</p>}
 
-            <div className={styles.cardsGrid}>
-              {(filmsQuery.data?.items ?? []).slice(0, 5).map((film) => (
+            <div
+              className={styles.cardsGrid}
+              style={{ ['--cards-cols' as never]: dashboardPageSize } as React.CSSProperties}
+            >
+              {(filmsQuery.data?.items ?? []).map((film) => (
                 <FilmCard
                   key={film.id}
                   film={film}
@@ -419,8 +469,11 @@ export function DashboardPage() {
                 <p className={styles.status}>Erro ao carregar personagens.</p>
               )}
 
-              <div className={styles.cardsGrid}>
-                {(filmCharactersQuery.data?.items ?? []).slice(0, 5).map((character) => (
+              <div
+                className={styles.cardsGrid}
+                style={{ ['--cards-cols' as never]: dashboardPageSize } as React.CSSProperties}
+              >
+                {(filmCharactersQuery.data?.items ?? []).map((character) => (
                   <CharacterCard
                     key={character.id}
                     character={character}

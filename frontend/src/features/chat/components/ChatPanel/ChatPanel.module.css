@@ -33,6 +33,9 @@
   background: rgba(56, 189, 248, 0.2);
   padding: 0.5rem 0.75rem;
   border-radius: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.4;
 }
 
 .messageAssistant {
@@ -40,6 +43,9 @@
   background: rgba(148, 163, 184, 0.2);
   padding: 0.5rem 0.75rem;
   border-radius: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.4;
 }
 
 .controls {

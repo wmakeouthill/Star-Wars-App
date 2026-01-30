@@ -47,6 +47,17 @@ class ChatService:
         )
 
     async def _route_structured_intent(self, persona: str, message: str, context: List) -> ChatResponse | None:
+        # Perguntas de opinião com pronomes ("dele/dela/ele/ela/isso") devem usar o último alvo mencionado.
+        if self._is_opinion_question(message) and self._message_mentions_pronoun(message):
+            last = self._last_entity_from_context(context)
+            if last and last.get("name"):
+                if last.get("type") == "character":
+                    return await self._respond_character(persona, message, context, name_override=last["name"])
+                if last.get("type") == "planet":
+                    return await self._respond_planet(persona, message, context, name_override=last["name"])
+                if last.get("type") == "film":
+                    return await self._respond_film(persona, message, context, name_override=last["name"])
+
         # Intenções "naturais" (ex.: "quero falar sobre o Luke") sem exigir palavra-chave.
         inferred = self._infer_entity_request(message)
         if inferred and self._looks_like_pronoun(inferred.get("name")):
@@ -61,6 +72,16 @@ class ChatService:
                 return await self._respond_planet(persona, message, context, name_override=name)
             if inferred_type == "film":
                 return await self._respond_film(persona, message, context, name_override=name)
+
+        # Se o usuário mandar apenas um nome/título ("Luke Skywalker"), assume consulta da entidade.
+        standalone = self._infer_standalone_entity(message)
+        if standalone:
+            if standalone.get("type") == "character":
+                return await self._respond_character(persona, message, context, name_override=standalone.get("name"))
+            if standalone.get("type") == "planet":
+                return await self._respond_planet(persona, message, context, name_override=standalone.get("name"))
+            if standalone.get("type") == "film":
+                return await self._respond_film(persona, message, context, name_override=standalone.get("name"))
 
         lower = message.lower()
         if "personagem" in lower or "quem é" in lower:
@@ -125,6 +146,8 @@ class ChatService:
             if persona == "yoda"
             else f"{match.get('name')}. Gênero: {match.get('gender')}. Ano de nascimento: {match.get('birth_year')}."
         )
+        # Quando a IA estiver desabilitada, adiciona um toque de "lore" seguro e curto (sem números).
+        response = self._persona_add_lore_hint(persona, data, response)
         ai_message = await self._ai_response(persona, message, context, data_snippet)
         return ChatResponse(
             message=ai_message or self._persona_reply(persona, response),
@@ -349,8 +372,10 @@ class ChatService:
         if not self._is_opinion_question(lowered):
             return None
 
-        # "acha/gosta/odeia do/da/de X"
+        # "acha/gosta/odeia do/da/de X" ou "opinião sobre X"
         m = re.search(r"\b(?:acha|gosta|odeia)\s+(?:do|da|de)\s+(?:o|a|os|as)?\s*(.+)$", lowered)
+        if not m:
+            m = re.search(r"\b(?:opini[aã]o)\s+sobre\s+(?:o|a|os|as)?\s*(.+)$", lowered)
         if not m:
             return None
 
@@ -387,6 +412,66 @@ class ChatService:
             return False
         return bool(re.fullmatch(r"(ele|ela|dele|dela|deles|delas|isso|disso|nisso|nele|nela)", t))
 
+    def _message_mentions_pronoun(self, message: str) -> bool:
+        text = self._normalize_text(message or "")
+        if not text:
+            return False
+        return bool(re.search(r"\b(ele|ela|dele|dela|deles|delas|isso|disso|nisso|nele|nela)\b", text))
+
+    def _extract_entity_from_assistant_content(self, content: str) -> dict[str, str] | None:
+        """
+        Extrai o último alvo a partir de respostas determinísticas do backend.
+        Útil quando o contexto do usuário só tem "dele/dela".
+        """
+        raw = (content or "").strip()
+        if not raw:
+            return None
+
+        # Remove prefixo do Vader "*pshhh... khhh*" (se existir).
+        raw = re.sub(r"^\s*\*[^*]+\*\s*", "", raw).strip()
+
+        # Personagem: "Luke Skywalker é. Gênero: ..." ou "Luke Skywalker. Gênero: ..."
+        m = re.search(r"^\s*(?P<name>.+?)(?:\s+é|\.)\s*G[eê]nero\s*:", raw, flags=re.IGNORECASE)
+        if m:
+            return {"type": "character", "name": m.group("name").strip()}
+
+        # Planeta: "Tatooine planeta é. Clima: ..." ou "Tatooine. Clima: ..."
+        m = re.search(r"^\s*(?P<name>.+?)(?:\s+planeta\s+é|\.)\s*Clima\s*:", raw, flags=re.IGNORECASE)
+        if m:
+            return {"type": "planet", "name": m.group("name").strip()}
+
+        # Filme: "Filme Uma Nova Esperança é. Episódio ..." ou "Uma Nova Esperança. Episódio ..."
+        m = re.search(
+            r"^\s*(?:Filme\s+)?(?P<title>.+?)(?:\s+é|\.)\s*Epis[oó]dio\s+",
+            raw,
+            flags=re.IGNORECASE,
+        )
+        if m:
+            return {"type": "film", "name": m.group("title").strip()}
+
+        return None
+
+    def _last_entity_from_context(self, context: List) -> dict[str, str] | None:
+        """
+        Tenta encontrar a última entidade mencionada, priorizando mensagens do assistente
+        (pois elas normalmente confirmam o match com dados do SWAPI).
+        """
+        for item in reversed(context or []):
+            role = getattr(item, "role", "")
+            content = getattr(item, "content", "")
+            if role == "assistant":
+                extracted = self._extract_entity_from_assistant_content(content)
+                if extracted:
+                    return extracted
+
+        for item in reversed(context or []):
+            if getattr(item, "role", "") != "user":
+                continue
+            prev = self._infer_entity_request(getattr(item, "content", ""))
+            if prev and prev.get("name") and not self._looks_like_pronoun(prev.get("name")):
+                return prev
+        return None
+
     def _resolve_pronoun_from_context(self, inferred: dict[str, str], context: List) -> dict[str, str] | None:
         """
         Resolve "ele/ela/dele/dela" para a última entidade explícita mencionada no contexto.
@@ -394,6 +479,14 @@ class ChatService:
         Ex.: usuário: "quero saber sobre o luke skywalker" -> depois "o que você acha sobre ele?"
         """
         inferred_type = inferred.get("type") or "character"
+
+        # Primeiro tenta extrair a partir da última resposta do assistente (mais confiável).
+        for item in reversed(context or []):
+            if getattr(item, "role", "") != "assistant":
+                continue
+            extracted = self._extract_entity_from_assistant_content(getattr(item, "content", ""))
+            if extracted and extracted.get("type") == inferred_type and extracted.get("name"):
+                return {"type": inferred_type, "name": extracted["name"]}
 
         # Procura primeiro em mensagens do usuário, pois normalmente é onde o alvo foi definido.
         for item in reversed(context or []):
@@ -416,10 +509,60 @@ class ChatService:
             return False
         return bool(
             re.search(
-                r"\b(o que voce acha|oq voce acha|qual sua opiniao|sua opiniao|voce gosta|voce odeia|voce sente)\b",
+                r"\b("
+                r"o que (?:voce )?acha|"
+                r"oq (?:voce )?acha|"
+                r"o que c[ée] acha|"
+                r"qual (?:a )?sua opini[aã]o|"
+                r"sua opini[aã]o|"
+                r"opini[aã]o|"
+                r"(?:voce )?gosta|"
+                r"(?:voce )?odeia|"
+                r"(?:voce )?sente"
+                r")\b",
                 text,
             )
         )
+
+    def _infer_standalone_entity(self, message: str) -> dict[str, str] | None:
+        raw = (message or "").strip()
+        if not raw:
+            return None
+
+        lowered = self._normalize_text(raw)
+        if not lowered:
+            return None
+
+        # Evita saudações curtas e frases de comando.
+        if lowered in {"oi", "ola", "olá", "eai", "e aí", "bom dia", "boa tarde", "boa noite"}:
+            return None
+        if any(word in lowered for word in {"fale", "conversar", "sobre", "personagem", "planeta", "filme", "episodio"}):
+            return None
+
+        # Se parece um nome (>=2 palavras) ou um token bem "nomeável", assume personagem.
+        tokens = lowered.split()
+        if len(tokens) >= 2:
+            return {"type": "character", "name": raw}
+
+        return None
+
+    def _persona_add_lore_hint(self, persona: str, data: Dict[str, Any], base: str) -> str:
+        name = str(data.get("name") or "")
+        norm = self._normalize_text(name)
+        if not name:
+            return base
+
+        if "luke skywalker" in norm:
+            if persona == "vader":
+                return (
+                    base
+                    + " Um símbolo para rebeldes. Um risco para o Império. E um eco de escolhas antigas."
+                )
+            return base + " Um herói da Rebelião, tornar-se ele pôde. Jedi, o caminho buscou."
+
+        if persona == "yoda":
+            return base + " Destino, em movimento está. Ações e escolhas, mais que rótulos importam."
+        return base + " O que importa é o que ele faz com esse destino."
 
     def _persona_opinion_about_character(self, persona: str, data: Dict[str, Any]) -> str:
         name = str(data.get("name") or "esse alguém")

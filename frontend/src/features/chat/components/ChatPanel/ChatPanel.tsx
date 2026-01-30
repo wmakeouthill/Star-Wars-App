@@ -1,10 +1,8 @@
-import { useChatPanel } from './ChatPanel.hooks';
+import { useEffect, useMemo, useRef } from 'react';
 import { ChatPanelProps } from './ChatPanel.types';
 import styles from './ChatPanel.module.css';
 
 export function ChatPanel(props: Readonly<ChatPanelProps>) {
-  useChatPanel();
-
   const {
     messages,
     input,
@@ -46,9 +44,25 @@ export function ChatPanel(props: Readonly<ChatPanelProps>) {
     .filter(Boolean)
     .join(' ');
 
+  const messagesRef = useRef<HTMLDivElement | null>(null);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+  const lastMessageKey = useMemo(() => {
+    const last = messages[messages.length - 1];
+    return last ? `${last.role}:${last.content}` : '';
+  }, [messages]);
+
+  useEffect(() => {
+    // Mantém o comportamento esperado de chat: última mensagem sempre visível.
+    // Use scrollIntoView para evitar “pulos” estranhos do layout.
+    const t = window.setTimeout(() => {
+      bottomRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' });
+    }, 0);
+    return () => window.clearTimeout(t);
+  }, [lastMessageKey, isLoading]);
+
   return (
     <div className={panelClassName}>
-      <div className={messagesClassName}>
+      <div ref={messagesRef} className={messagesClassName}>
         {messages.map((message, index) => (
           <div
             key={`${message.role}-${index}`}
@@ -58,6 +72,7 @@ export function ChatPanel(props: Readonly<ChatPanelProps>) {
           </div>
         ))}
         {isLoading && <div className={styles.messageAssistant}>Pensando...</div>}
+        <div ref={bottomRef} />
       </div>
       <div className={controlsClassName}>
         <input
@@ -67,6 +82,7 @@ export function ChatPanel(props: Readonly<ChatPanelProps>) {
           onChange={(event) => onInputChange(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === 'Enter') {
+              event.preventDefault();
               if (!isLoading) {
                 onSend();
               }
