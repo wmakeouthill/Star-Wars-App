@@ -12,6 +12,10 @@
   },
   "rewrites": [
     {
+      "source": "/api/:path*",
+      "destination": "/api/[...path]"
+    },
+    {
       "source": "/((?!api/|assets/|.*\\..*).*)",
       "destination": "/index.html"
     }
