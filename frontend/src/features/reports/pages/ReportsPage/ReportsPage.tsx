@@ -163,24 +163,36 @@ export function ReportsPage() {
               />
             </div>
             <div className={styles.panelGrid}>
-              <HorizontalBarChart
-                data={report?.characters.hairColorsTop ?? []}
-                height={Math.min(400, 140 + (report?.characters.hairColorsTop.length ?? 0) * 28)}
-              />
-              <HorizontalBarChart
-                data={report?.characters.eyeColorsTop ?? []}
-                height={Math.min(400, 140 + (report?.characters.eyeColorsTop.length ?? 0) * 28)}
-              />
+              <div className={styles.chartSection}>
+                <div className={styles.chartSectionTitle}>Top Cores de Cabelo</div>
+                <HorizontalBarChart
+                  data={report?.characters.hairColorsTop ?? []}
+                  height={Math.min(400, 140 + (report?.characters.hairColorsTop.length ?? 0) * 28)}
+                />
+              </div>
+              <div className={styles.chartSection}>
+                <div className={styles.chartSectionTitle}>Top Cores de Olhos</div>
+                <HorizontalBarChart
+                  data={report?.characters.eyeColorsTop ?? []}
+                  height={Math.min(400, 140 + (report?.characters.eyeColorsTop.length ?? 0) * 28)}
+                />
+              </div>
             </div>
             <div className={styles.panelGrid}>
-              <HorizontalBarChart
-                data={report?.characters.skinColorsTop ?? []}
-                height={Math.min(400, 140 + (report?.characters.skinColorsTop.length ?? 0) * 28)}
-              />
-              <HorizontalBarChart
-                data={report?.characters.homeworldTop ?? []}
-                height={Math.min(400, 140 + (report?.characters.homeworldTop.length ?? 0) * 28)}
-              />
+              <div className={styles.chartSection}>
+                <div className={styles.chartSectionTitle}>Top Cores de Pele</div>
+                <HorizontalBarChart
+                  data={report?.characters.skinColorsTop ?? []}
+                  height={Math.min(400, 140 + (report?.characters.skinColorsTop.length ?? 0) * 28)}
+                />
+              </div>
+              <div className={styles.chartSection}>
+                <div className={styles.chartSectionTitle}>Top Planetas de Origem</div>
+                <HorizontalBarChart
+                  data={report?.characters.homeworldTop ?? []}
+                  height={Math.min(400, 140 + (report?.characters.homeworldTop.length ?? 0) * 28)}
+                />
+              </div>
             </div>
           </div>
         </ReportPanel>
@@ -250,14 +262,20 @@ export function ReportsPage() {
               <TreemapChart data={report?.planets.climateTerrainTreemap ?? []} height={320} />
             </div>
             <div className={styles.panelGrid}>
-              <HorizontalBarChart
-                data={report?.planets.climateTop ?? []}
-                height={Math.min(400, 140 + (report?.planets.climateTop.length ?? 0) * 28)}
-              />
-              <HorizontalBarChart
-                data={report?.planets.terrainTop ?? []}
-                height={Math.min(400, 140 + (report?.planets.terrainTop.length ?? 0) * 28)}
-              />
+              <div className={styles.chartSection}>
+                <div className={styles.chartSectionTitle}>Top Climas</div>
+                <HorizontalBarChart
+                  data={report?.planets.climateTop ?? []}
+                  height={Math.min(400, 140 + (report?.planets.climateTop.length ?? 0) * 28)}
+                />
+              </div>
+              <div className={styles.chartSection}>
+                <div className={styles.chartSectionTitle}>Top Terrenos</div>
+                <HorizontalBarChart
+                  data={report?.planets.terrainTop ?? []}
+                  height={Math.min(400, 140 + (report?.planets.terrainTop.length ?? 0) * 28)}
+                />
+              </div>
             </div>
             <div className={styles.chartSection}>
               <div className={styles.chartSectionTitle}>Top Planetas por Residentes</div>
@@ -348,14 +366,20 @@ export function ReportsPage() {
               <RadarChartComponent data={report?.starships.topShipsRadar ?? []} height={320} />
             </div>
             <div className={styles.panelGrid}>
-              <HorizontalBarChart
-                data={report?.starships.classTop ?? []}
-                height={Math.min(400, 140 + (report?.starships.classTop.length ?? 0) * 28)}
-              />
-              <HorizontalBarChart
-                data={report?.starships.manufacturerTop ?? []}
-                height={Math.min(480, 140 + (report?.starships.manufacturerTop.length ?? 0) * 28)}
-              />
+              <div className={styles.chartSection}>
+                <div className={styles.chartSectionTitle}>Top Classes de Naves</div>
+                <HorizontalBarChart
+                  data={report?.starships.classTop ?? []}
+                  height={Math.min(400, 140 + (report?.starships.classTop.length ?? 0) * 28)}
+                />
+              </div>
+              <div className={styles.chartSection}>
+                <div className={styles.chartSectionTitle}>Top Fabricantes de Naves</div>
+                <HorizontalBarChart
+                  data={report?.starships.manufacturerTop ?? []}
+                  height={Math.min(480, 140 + (report?.starships.manufacturerTop.length ?? 0) * 28)}
+                />
+              </div>
             </div>
           </div>
         </ReportPanel>
@@ -488,7 +512,10 @@ export function ReportsPage() {
                 value={`${report?.gamification.achievementsUnlocked ?? 0}/${(report?.gamification.achievementsUnlocked ?? 0) + (report?.gamification.achievementsLocked ?? 0)}`}
               />
             </StatGrid>
-            <VerticalBarChart data={chatVsQueries} height={280} />
+            <div className={styles.chartSection}>
+              <div className={styles.chartSectionTitle}>Consultas vs Mensagens</div>
+              <VerticalBarChart data={chatVsQueries} height={280} />
+            </div>
           </div>
         </ReportPanel>
       </div>
