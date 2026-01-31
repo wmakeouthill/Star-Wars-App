@@ -59,11 +59,13 @@ class ETagMiddleware(BaseHTTPMiddleware):
 
         if_none_match = (request.headers.get("if-none-match") or "").strip()
         if if_none_match and if_none_match == etag:
-            # 304 não deve ter body.
+            # 304 não deve ter body nem Content-Length.
+            # Remove Content-Length para evitar "Response content shorter than Content-Length"
+            headers_304 = {k: v for k, v in headers.items() if k.lower() != "content-length"}
             return Response(
                 status_code=304,
-                headers=headers,
-                media_type=response.media_type,
+                headers=headers_304,
+                media_type=None,  # 304 não deve ter media_type
                 background=response.background,
             )
 
