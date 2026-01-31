@@ -10,6 +10,7 @@ import {
   fetchDailyChallenge,
   fetchGamificationAchievements,
   fetchGamificationLeaderboard,
+  fetchGamificationLeaderboardDetailed,
   fetchGamificationProfile,
   fetchChatStatsByPersona,
 } from '@/features/gamification/services/gamification.service';
@@ -295,6 +296,15 @@ function useGamificationQuery() {
       ]);
       return { profile, achievements, leaderboard, dailyChallenge, chatStats };
     },
+    staleTime: STALE_TIME_USER,
+    gcTime: GC_TIME_USER,
+  });
+}
+
+function useLeaderboardDetailedQuery() {
+  return useQuery({
+    queryKey: ['reports', 'leaderboard-detailed'],
+    queryFn: () => fetchGamificationLeaderboardDetailed(50),
     staleTime: STALE_TIME_USER,
     gcTime: GC_TIME_USER,
   });
@@ -663,6 +673,7 @@ export function useReportsPage() {
   const speciesQuery = useSpeciesQuery();
   const vehiclesQuery = useVehiclesQuery();
   const gamificationQuery = useGamificationQuery();
+  const leaderboardDetailedQuery = useLeaderboardDetailedQuery();
 
   // Dados processados por seção
   const charactersItems = charactersQuery.data?.items;
@@ -831,6 +842,7 @@ export function useReportsPage() {
     species: speciesQuery.isLoading,
     vehicles: vehiclesQuery.isLoading,
     gamification: gamificationQuery.isLoading,
+    leaderboardDetailed: leaderboardDetailedQuery.isLoading,
     any: charactersQuery.isLoading || planetsQuery.isLoading || starshipsQuery.isLoading ||
          filmsQuery.isLoading || speciesQuery.isLoading || vehiclesQuery.isLoading || gamificationQuery.isLoading,
     all: charactersQuery.isLoading && planetsQuery.isLoading && starshipsQuery.isLoading &&
@@ -845,6 +857,7 @@ export function useReportsPage() {
     species: speciesQuery.isError,
     vehicles: vehiclesQuery.isError,
     gamification: gamificationQuery.isError,
+    leaderboardDetailed: leaderboardDetailedQuery.isError,
     any: charactersQuery.isError || planetsQuery.isError || starshipsQuery.isError ||
          filmsQuery.isError || speciesQuery.isError || vehiclesQuery.isError || gamificationQuery.isError,
   };
@@ -872,6 +885,7 @@ export function useReportsPage() {
     chatVsQueries,
     leaderboard: leaderboardData,
     leaderboardFull: gamificationReport?.leaderboardTop ?? [],
+    leaderboardDetailed: leaderboardDetailedQuery.data ?? [],
     challengeProgress,
 
     // Current user info (for leaderboard highlighting)

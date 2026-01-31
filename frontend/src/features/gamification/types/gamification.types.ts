@@ -28,6 +28,13 @@ export interface LeaderboardEntry {
   picture?: string | null;
 }
 
+export interface LeaderboardEntryDetailed extends LeaderboardEntry {
+  total_queries: number;
+  chat_messages: number;
+  achievements_count: number;
+  total_quizzes: number;
+}
+
 export interface DailyChallenge {
   id: string;
   title: string;

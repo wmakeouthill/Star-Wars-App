@@ -3,7 +3,7 @@ import {
   DonutChart,
   HorizontalBarChart,
   KpiSkeleton,
-  Leaderboard,
+  LeaderboardTable,
   MiniStat,
   PanelSkeleton,
   RadarChartComponent,
@@ -33,7 +33,7 @@ export function ReportsPage() {
     gamificationReport,
     achievementsDonut,
     chatVsQueries,
-    leaderboardFull,
+    leaderboardDetailed,
     challengeProgress,
     currentUserId,
     currentUserName,
@@ -156,14 +156,6 @@ export function ReportsPage() {
                   />
                 </div>
               </div>
-              <div className={styles.chartSection}>
-                <div className={styles.chartSectionTitle}>Leaderboard Global</div>
-                <Leaderboard
-                  data={leaderboardFull}
-                  currentUserId={currentUserId}
-                  currentUserName={currentUserName}
-                />
-              </div>
             </div>
           </ReportPanel>
         )}
@@ -204,6 +196,26 @@ export function ReportsPage() {
           </ReportPanel>
         )}
       </div>
+
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* LEADERBOARD GLOBAL - Tabela Completa */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {loading.leaderboardDetailed ? (
+        <PanelSkeleton rows={1} />
+      ) : (
+        <ReportPanel
+          title="🏆 Leaderboard Global"
+          subtitle="Ranking completo de jogadores com estatísticas detalhadas."
+        >
+          <LeaderboardTable
+            data={leaderboardDetailed}
+            currentUserId={currentUserId}
+            currentUserName={currentUserName}
+            isLoading={loading.leaderboardDetailed}
+            isError={errors.leaderboardDetailed}
+          />
+        </ReportPanel>
+      )}
 
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* CROSS ANALYTICS - Visão Geral da Galáxia */}

@@ -3,6 +3,7 @@ import {
   AchievementStatus,
   DailyChallenge,
   LeaderboardEntry,
+  LeaderboardEntryDetailed,
   QuizHistoryEntry,
   QuizLeaderboardEntry,
   QuizResult,
@@ -16,6 +17,10 @@ export async function fetchGamificationProfile() {
 
 export async function fetchGamificationLeaderboard(limit = 10) {
   return apiGet<LeaderboardEntry[]>('/api/v1/gamification/leaderboard', { limit });
+}
+
+export async function fetchGamificationLeaderboardDetailed(limit = 50) {
+  return apiGet<LeaderboardEntryDetailed[]>('/api/v1/gamification/leaderboard-detailed', { limit });
 }
 
 export async function fetchGamificationAchievements() {

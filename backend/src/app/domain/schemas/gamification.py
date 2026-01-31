@@ -35,6 +35,15 @@ class LeaderboardEntrySchema(BaseModel):
     picture: Optional[str] = None
 
 
+class LeaderboardEntryDetailedSchema(LeaderboardEntrySchema):
+    """Entrada detalhada do leaderboard com estatísticas extras."""
+    
+    total_queries: int = 0
+    chat_messages: int = 0
+    achievements_count: int = 0
+    total_quizzes: int = 0
+
+
 class DailyChallengeSchema(BaseModel):
     id: str
     title: str

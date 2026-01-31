@@ -10,6 +10,7 @@ from app.domain.schemas.gamification import (
     AchievementSchema,
     AchievementStatusSchema,
     DailyChallengeSchema,
+    LeaderboardEntryDetailedSchema,
     LeaderboardEntrySchema,
     QuizHistoryEntrySchema,
     QuizLeaderboardEntrySchema,
@@ -19,7 +20,7 @@ from app.domain.schemas.gamification import (
 )
 from app.interfaces.api.v1.dependencies.auth import get_current_user_id, require_authenticated_user_id
 from app.interfaces.api.v1.dependencies.services import get_gamification_service
-from app.infrastructure.db.models.gamification import UserGamificationModel
+from app.infrastructure.db.models.gamification import UserAchievementModel, UserGamificationModel
 from app.infrastructure.db.models.user import User
 from app.infrastructure.db.session import get_db
 
@@ -83,6 +84,71 @@ def get_leaderboard(
             picture=(u.picture if u else None),
         )
         for (g, u) in rows
+    ]
+
+
+@router.get("/leaderboard-detailed", response_model=list[LeaderboardEntryDetailedSchema])
+def get_leaderboard_detailed(
+    limit: int = 50,
+    service: GamificationService = Depends(get_gamification_service),
+    db: Session = Depends(get_db),
+):
+    """
+    Retorna o ranking detalhado com estatísticas extras (consultas, chat, conquistas, quizzes).
+    """
+    from sqlalchemy import func as sqlfunc
+    from app.infrastructure.db.models.quiz_result import QuizResult
+
+    limit = max(1, min(100, int(limit)))
+
+    # Subquery para contar conquistas por usuário
+    achievements_subq = (
+        select(
+            UserAchievementModel.user_id,
+            sqlfunc.count(UserAchievementModel.achievement_id).label("achievements_count"),
+        )
+        .group_by(UserAchievementModel.user_id)
+        .subquery()
+    )
+
+    # Subquery para contar quizzes por usuário
+    quizzes_subq = (
+        select(
+            QuizResult.user_id,
+            sqlfunc.count(QuizResult.id).label("total_quizzes"),
+        )
+        .group_by(QuizResult.user_id)
+        .subquery()
+    )
+
+    # Query principal com joins
+    rows = db.execute(
+        select(
+            UserGamificationModel,
+            User,
+            sqlfunc.coalesce(achievements_subq.c.achievements_count, 0).label("achievements_count"),
+            sqlfunc.coalesce(quizzes_subq.c.total_quizzes, 0).label("total_quizzes"),
+        )
+        .join(User, User.id == UserGamificationModel.user_id, isouter=True)
+        .join(achievements_subq, achievements_subq.c.user_id == UserGamificationModel.user_id, isouter=True)
+        .join(quizzes_subq, quizzes_subq.c.user_id == UserGamificationModel.user_id, isouter=True)
+        .order_by(desc(UserGamificationModel.total_xp))
+        .limit(limit)
+    ).all()
+
+    return [
+        LeaderboardEntryDetailedSchema(
+            user_id=str(g.user_id),
+            total_xp=int(g.total_xp),
+            jedi_rank=g.jedi_rank,
+            name=(u.name if u else None),
+            picture=(u.picture if u else None),
+            total_queries=int(g.total_queries),
+            chat_messages=int(g.chat_messages),
+            achievements_count=int(row.achievements_count),
+            total_quizzes=int(row.total_quizzes),
+        )
+        for (g, u, row) in [(r[0], r[1], r) for r in rows]
     ]
 
 
