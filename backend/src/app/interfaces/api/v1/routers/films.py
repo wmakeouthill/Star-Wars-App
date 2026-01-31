@@ -18,7 +18,7 @@ from app.interfaces.api.v1.dependencies.services import get_gamification_service
 router = APIRouter(prefix="/films", tags=["Films"])
 
 
-@router.get("/", response_model=PaginatedResponse[FilmResponse])
+@router.get("", response_model=PaginatedResponse[FilmResponse])
 async def list_films(
     title: Optional[str] = Query(None, description="Filtrar por título"),
     director: Optional[str] = Query(None, description="Filtrar por diretor"),

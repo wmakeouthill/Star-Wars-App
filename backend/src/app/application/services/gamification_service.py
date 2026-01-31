@@ -31,7 +31,15 @@ class GamificationService:
 
     def _list_achievements(self, db: Session) -> List[Achievement]:
         rows = db.scalars(select(AchievementModel).order_by(AchievementModel.id)).all()
-        return [Achievement(id=r.id, name=r.name, description=r.description, xp_reward=r.xp_reward) for r in rows]
+        return [
+            Achievement(
+                id=str(r.id),  # cast obrigatório para evitar UUID vs str
+                name=str(r.name),
+                description=str(r.description),
+                xp_reward=int(r.xp_reward or 0),
+            )
+            for r in rows
+        ]
 
     def _unlocked_ids(self, user_uuid: uuid.UUID, db: Session) -> set[str]:
         rows = db.scalars(select(UserAchievementModel.achievement_id).where(UserAchievementModel.user_id == user_uuid)).all()

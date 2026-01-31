@@ -22,7 +22,7 @@ def _gamification_ctx(
     return gamification, db
 
 
-@router.get("/", response_model=PaginatedResponse[CharacterResponse])
+@router.get("", response_model=PaginatedResponse[CharacterResponse])
 async def list_characters(
     name: Optional[str] = Query(None, description="Filtrar por nome"),
     gender: Optional[str] = Query(None, description="Filtrar por gênero"),

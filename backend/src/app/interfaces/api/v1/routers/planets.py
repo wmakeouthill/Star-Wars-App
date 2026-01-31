@@ -16,7 +16,7 @@ from app.interfaces.api.v1.dependencies.services import get_gamification_service
 router = APIRouter(prefix="/planets", tags=["Planets"])
 
 
-@router.get("/", response_model=PaginatedResponse[PlanetResponse])
+@router.get("", response_model=PaginatedResponse[PlanetResponse])
 async def list_planets(
     name: Optional[str] = Query(None, description="Filtrar por nome"),
     climate: Optional[str] = Query(None, description="Filtrar por clima"),

@@ -15,7 +15,7 @@ from app.interfaces.api.v1.dependencies.services import get_gamification_service
 router = APIRouter(prefix="/species", tags=["Species"])
 
 
-@router.get("/", response_model=PaginatedResponse[SpeciesResponse])
+@router.get("", response_model=PaginatedResponse[SpeciesResponse])
 async def list_species(
     name: Optional[str] = Query(None, description="Filtrar por nome"),
     classification: Optional[str] = Query(None, description="Filtrar por classificação"),

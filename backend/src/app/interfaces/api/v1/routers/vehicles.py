@@ -15,7 +15,7 @@ from app.interfaces.api.v1.dependencies.services import get_gamification_service
 router = APIRouter(prefix="/vehicles", tags=["Vehicles"])
 
 
-@router.get("/", response_model=PaginatedResponse[VehicleResponse])
+@router.get("", response_model=PaginatedResponse[VehicleResponse])
 async def list_vehicles(
     name: Optional[str] = Query(None, description="Filtrar por nome"),
     manufacturer: Optional[str] = Query(None, description="Filtrar por fabricante"),
