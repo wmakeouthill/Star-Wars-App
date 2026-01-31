@@ -6,6 +6,11 @@ import yodaAvatar from '@/shared/images/yoda-espada-verde.png';
 import vaderAvatar from '@/shared/images/darth-vader-chat.png';
 import styles from './YodaChatBubble.module.css';
 
+function formatDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+}
+
 function getPersonaUi(persona: ChatPersona) {
   const isYoda = persona === 'yoda';
   const currentLabel = isYoda ? 'Yoda' : 'Vader';
@@ -31,11 +36,27 @@ function getPersonaUi(persona: ChatPersona) {
 }
 
 export function YodaChatBubble() {
-  const { messages, input, setInput, sendMessage, isLoading, persona, setPersona, clearHistory } =
-    useChatContext();
+  const {
+    messages,
+    input,
+    setInput,
+    sendMessage,
+    isLoading,
+    persona,
+    setPersona,
+    conversations,
+    isLoadingConversations,
+    showHistory,
+    toggleHistory,
+    loadConversation,
+    startNewChat,
+  } = useChatContext();
   const [isOpen, setIsOpen] = useState(false);
   const windowRef = useRef<HTMLDialogElement | null>(null);
   const ui = getPersonaUi(persona);
+
+  // Filtra conversas pela persona atual
+  const filteredConversations = conversations.filter((c) => c.persona === persona);
 
   useEffect(() => {
     if (!isOpen) {
@@ -125,13 +146,13 @@ export function YodaChatBubble() {
               </button>
               <button
                 type="button"
-                className={styles.clear}
-                onClick={() => clearHistory()}
+                className={`${styles.historyBtn} ${showHistory ? styles.historyBtnActive : ''}`}
+                onClick={toggleHistory}
                 disabled={isLoading}
-                aria-label="Limpar histórico deste personagem"
-                title="Limpar histórico"
+                aria-label="Ver histórico de conversas"
+                title="Histórico de conversas"
               >
-                Limpar
+                Histórico
               </button>
               <button
                 type="button"
@@ -146,24 +167,77 @@ export function YodaChatBubble() {
           </div>
 
           <div className={styles.body}>
-            <ChatPanel
-              variant="bubble"
-              messages={messages}
-              input={input}
-              isLoading={isLoading}
-              onInputChange={setInput}
-              onSend={sendMessage}
-              placeholder={ui.placeholder}
-            />
+            {showHistory ? (
+              <div className={styles.historyPanel}>
+                <div className={styles.historyHeader}>
+                  <span className={styles.historyTitle}>Conversas salvas</span>
+                </div>
+                {isLoadingConversations ? (
+                  <div className={styles.historyLoading}>Carregando...</div>
+                ) : filteredConversations.length === 0 ? (
+                  <div className={styles.historyEmpty}>
+                    Nenhuma conversa salva ainda.
+                    <br />
+                    <small>Suas conversas são salvas automaticamente quando você está logado.</small>
+                  </div>
+                ) : (
+                  <ul className={styles.historyList}>
+                    {filteredConversations.map((conv) => (
+                      <li key={conv.id}>
+                        <button
+                          type="button"
+                          className={styles.historyItem}
+                          onClick={() => loadConversation(conv.id, conv.persona)}
+                        >
+                          <span className={styles.historyItemTitle}>
+                            {conv.title || 'Conversa sem título'}
+                          </span>
+                          <span className={styles.historyItemMeta}>
+                            <span className={styles.historyItemPersona}>
+                              {conv.persona === 'yoda' ? '🟢 Yoda' : '🔴 Vader'}
+                            </span>
+                            <span className={styles.historyItemDate}>
+                              {formatDate(conv.updated_at)}
+                            </span>
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ) : (
+              <ChatPanel
+                variant="bubble"
+                messages={messages}
+                input={input}
+                isLoading={isLoading}
+                onInputChange={setInput}
+                onSend={sendMessage}
+                placeholder={ui.placeholder}
+              />
+            )}
           </div>
 
           <div className={styles.footer}>
             <div className={styles.footerHint}>
               Dica: use <span className={styles.keycap}>ESC</span> pra fechar.
             </div>
-            <div className={styles.footerCount}>
-              <span className={styles.footerCountLabel}>Msgs</span>
-              <span className={styles.footerCountValue}>{messages.length}</span>
+            <div className={styles.footerRight}>
+              <div className={styles.footerCount}>
+                <span className={styles.footerCountLabel}>Msgs</span>
+                <span className={styles.footerCountValue}>{messages.length}</span>
+              </div>
+              <button
+                type="button"
+                className={styles.newChatBtn}
+                onClick={startNewChat}
+                disabled={isLoading || messages.length === 0}
+                aria-label="Iniciar novo chat"
+                title="Novo chat"
+              >
+                + Novo
+              </button>
             </div>
           </div>
         </dialog>

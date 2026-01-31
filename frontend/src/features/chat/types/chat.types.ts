@@ -19,3 +19,18 @@ export interface ChatResponse {
     xp_earned?: number;
     conversation_id?: string;
 }
+
+export interface ChatConversation {
+    id: string;
+    title: string | null;
+    persona: ChatPersona;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface ChatMessageWithMeta {
+    id: string;
+    role: 'user' | 'assistant';
+    content: string;
+    created_at: string;
+}

@@ -143,7 +143,7 @@
   box-shadow: var(--shadow-magenta);
 }
 
-.clear {
+.historyBtn {
   height: 40px;
   padding: 0 0.85rem;
   border-radius: 999px;
@@ -155,16 +155,23 @@
   font-size: 0.62rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 
-.clear:hover {
+.historyBtn:hover {
   border-color: rgba(255, 61, 242, 0.4);
   box-shadow: var(--shadow-magenta);
 }
 
-.clear:disabled {
+.historyBtn:disabled {
   cursor: not-allowed;
   opacity: 0.55;
+}
+
+.historyBtnActive {
+  background: rgba(53, 230, 255, 0.15);
+  border-color: rgba(53, 230, 255, 0.5);
+  box-shadow: 0 0 12px rgba(53, 230, 255, 0.2);
 }
 
 .headerLeft {
@@ -256,6 +263,12 @@
   color: rgba(255, 255, 255, 0.92);
 }
 
+.footerRight {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .footerCount {
   display: flex;
   align-items: baseline;
@@ -272,5 +285,131 @@
 .footerCountValue {
   font-family: var(--font-mono);
   color: var(--neon-cyan);
+}
+
+.newChatBtn {
+  height: 32px;
+  padding: 0 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(110, 231, 255, 0.25);
+  background: rgba(53, 230, 255, 0.1);
+  color: var(--neon-cyan);
+  cursor: pointer;
+  font-family: var(--font-pixel);
+  font-size: 0.58rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.newChatBtn:hover:not(:disabled) {
+  border-color: rgba(53, 230, 255, 0.5);
+  background: rgba(53, 230, 255, 0.18);
+  box-shadow: 0 0 10px rgba(53, 230, 255, 0.2);
+}
+
+.newChatBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+/* Histórico de conversas */
+.historyPanel {
+  display: flex;
+  flex-direction: column;
+  height: 320px;
+}
+
+.historyHeader {
+  padding-bottom: 0.65rem;
+  margin-bottom: 0.65rem;
+  border-bottom: 1px solid rgba(110, 231, 255, 0.12);
+}
+
+.historyTitle {
+  font-family: var(--font-pixel);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--neon-cyan);
+}
+
+.historyLoading,
+.historyEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  text-align: center;
+  color: rgba(199, 226, 255, 0.6);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.historyEmpty small {
+  margin-top: 0.5rem;
+  font-size: 0.78rem;
+  opacity: 0.7;
+}
+
+.historyList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.historyItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 100%;
+  padding: 0.75rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid rgba(110, 231, 255, 0.15);
+  background: rgba(5, 7, 13, 0.3);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.historyItem:hover {
+  border-color: rgba(53, 230, 255, 0.35);
+  background: rgba(53, 230, 255, 0.08);
+  box-shadow: 0 0 12px rgba(53, 230, 255, 0.1);
+}
+
+.historyItemTitle {
+  font-size: 0.88rem;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.historyItemMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.72rem;
+  color: rgba(199, 226, 255, 0.6);
+}
+
+.historyItemPersona {
+  font-family: var(--font-pixel);
+  font-size: 0.58rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.historyItemDate {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
 }
 

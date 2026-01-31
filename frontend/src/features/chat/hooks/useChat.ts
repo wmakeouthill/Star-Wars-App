@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
-import { sendChatMessage } from '../services/chat.service';
-import { ChatMessage, ChatPersona } from '../types/chat.types';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { getConversationMessages, listConversations, sendChatMessage } from '../services/chat.service';
+import { ChatConversation, ChatMessage, ChatPersona } from '../types/chat.types';
 
 const STORAGE_KEY = 'holocron-chat-v1';
 const MAX_MESSAGES_PER_PERSONA = 50;
@@ -30,6 +30,11 @@ export function useChat() {
     const [conversationIdByPersona, setConversationIdByPersona] = useState<Record<ChatPersona, string | null>>(() =>
         emptyByPersona<string | null>(null)
     );
+
+    // Estado para histórico de conversas
+    const [conversations, setConversations] = useState<ChatConversation[]>([]);
+    const [isLoadingConversations, setIsLoadingConversations] = useState(false);
+    const [showHistory, setShowHistory] = useState(false);
 
     // "Cache" local: re-hidrata histórico (por persona) se existir.
     useEffect(() => {
@@ -102,6 +107,60 @@ export function useChat() {
         setConversationIdByPersona((prev) => ({ ...prev, [targetPersona]: null }));
     };
 
+    // Inicia novo chat (limpa conversa atual)
+    const startNewChat = useCallback(() => {
+        setMessagesByPersona((prev) => ({ ...prev, [persona]: [] }));
+        setInputByPersona((prev) => ({ ...prev, [persona]: '' }));
+        setConversationIdByPersona((prev) => ({ ...prev, [persona]: null }));
+        setShowHistory(false);
+    }, [persona]);
+
+    // Carrega lista de conversas do servidor
+    const loadConversations = useCallback(async () => {
+        setIsLoadingConversations(true);
+        try {
+            const data = await listConversations();
+            setConversations(data);
+        } catch {
+            // Silenciosamente ignora erro (usuário pode não estar autenticado)
+            setConversations([]);
+        } finally {
+            setIsLoadingConversations(false);
+        }
+    }, []);
+
+    // Carrega uma conversa específica do histórico
+    const loadConversation = useCallback(async (conversationId: string, conversationPersona: ChatPersona) => {
+        setIsLoadingConversations(true);
+        try {
+            const messages = await getConversationMessages(conversationId);
+            const chatMessages: ChatMessage[] = messages.map((m) => ({
+                role: m.role,
+                content: m.content,
+            }));
+            
+            setPersona(conversationPersona);
+            setMessagesByPersona((prev) => ({ ...prev, [conversationPersona]: chatMessages }));
+            setConversationIdByPersona((prev) => ({ ...prev, [conversationPersona]: conversationId }));
+            setShowHistory(false);
+        } catch {
+            // Erro ao carregar conversa
+        } finally {
+            setIsLoadingConversations(false);
+        }
+    }, []);
+
+    // Toggle para mostrar/esconder histórico
+    const toggleHistory = useCallback(() => {
+        setShowHistory((prev) => {
+            if (!prev) {
+                // Quando abre, carrega conversas
+                loadConversations();
+            }
+            return !prev;
+        });
+    }, [loadConversations]);
+
     const sendMessage = async () => {
         const currentPersona = persona;
         const currentInput = inputByPersona[currentPersona];
@@ -145,5 +204,12 @@ export function useChat() {
         persona,
         setPersona,
         clearHistory,
+        // Histórico de conversas
+        conversations,
+        isLoadingConversations,
+        showHistory,
+        toggleHistory,
+        loadConversation,
+        startNewChat,
     };
 }

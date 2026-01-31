@@ -76,3 +76,71 @@
   opacity: 0.85;
 }
 
+/* Seção de Chat com Personagens */
+.chatIntro {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.5;
+}
+
+.chatPersonas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.personaCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 12px;
+  border-radius: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.personaCard:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.05);
+  transform: translateY(-2px);
+}
+
+.personaActive {
+  border-color: var(--neon-cyan, #35e6ff);
+  background: rgba(53, 230, 255, 0.1);
+  box-shadow: 0 0 16px rgba(53, 230, 255, 0.2);
+}
+
+.personaActive:hover {
+  border-color: var(--neon-cyan, #35e6ff);
+  background: rgba(53, 230, 255, 0.15);
+}
+
+.personaEmoji {
+  font-size: 24px;
+}
+
+.personaName {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.personaDesc {
+  font-size: 11px;
+  opacity: 0.7;
+  text-align: center;
+}
+
+.chatHint {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+}
+

@@ -5,12 +5,14 @@ import {
   useGamificationLeaderboard,
   useGamificationProfile,
 } from '../../hooks/useGamification';
+import { useChatContext } from '@/features/chat/context';
 
 export function GamificationPage() {
   const profileQuery = useGamificationProfile();
   const achievementsQuery = useGamificationAchievements();
   const leaderboardQuery = useGamificationLeaderboard(10);
   const dailyQuery = useDailyChallenge();
+  const { persona, setPersona } = useChatContext();
 
   const isLoading =
     profileQuery.isLoading ||
@@ -80,6 +82,36 @@ export function GamificationPage() {
       </div>
 
       <div className={styles.grid}>
+        <section className={styles.card}>
+          <h3 className={styles.cardTitle}>Conselheiros Galácticos</h3>
+          <p className={styles.chatIntro}>
+            Converse com os personagens mais icônicos da galáxia! Cada mensagem no chat te dá XP.
+          </p>
+          <div className={styles.chatPersonas}>
+            <button
+              type="button"
+              className={`${styles.personaCard} ${persona === 'yoda' ? styles.personaActive : ''}`}
+              onClick={() => setPersona('yoda')}
+            >
+              <span className={styles.personaEmoji}>🟢</span>
+              <span className={styles.personaName}>Mestre Yoda</span>
+              <span className={styles.personaDesc}>Sabedoria e luz</span>
+            </button>
+            <button
+              type="button"
+              className={`${styles.personaCard} ${persona === 'vader' ? styles.personaActive : ''}`}
+              onClick={() => setPersona('vader')}
+            >
+              <span className={styles.personaEmoji}>🔴</span>
+              <span className={styles.personaName}>Darth Vader</span>
+              <span className={styles.personaDesc}>Poder do lado sombrio</span>
+            </button>
+          </div>
+          <p className={styles.chatHint}>
+            Clique para selecionar e use o botão flutuante no canto inferior direito para conversar.
+          </p>
+        </section>
+
         <section className={styles.card}>
           <h3 className={styles.cardTitle}>Conquistas</h3>
           <ul className={styles.list}>
