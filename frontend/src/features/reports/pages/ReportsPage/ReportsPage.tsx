@@ -3,6 +3,7 @@ import {
   DonutChart,
   HorizontalBarChart,
   KpiSkeleton,
+  Leaderboard,
   MiniStat,
   PanelSkeleton,
   RadarChartComponent,
@@ -32,8 +33,10 @@ export function ReportsPage() {
     gamificationReport,
     achievementsDonut,
     chatVsQueries,
-    leaderboard,
+    leaderboardFull,
     challengeProgress,
+    currentUserId,
+    currentUserName,
   } = useReportsPage();
 
   return (
@@ -556,7 +559,11 @@ export function ReportsPage() {
               </div>
               <div className={styles.chartSection}>
                 <div className={styles.chartSectionTitle}>Leaderboard Global</div>
-                <HorizontalBarChart data={leaderboard} height={Math.min(480, 160 + leaderboard.length * 30)} />
+                <Leaderboard
+                  data={leaderboardFull}
+                  currentUserId={currentUserId}
+                  currentUserName={currentUserName}
+                />
               </div>
             </div>
           </ReportPanel>

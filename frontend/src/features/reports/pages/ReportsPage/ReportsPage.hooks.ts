@@ -748,6 +748,7 @@ export function useReportsPage() {
     const leaderboardTop = leaderboard.map((l) => ({
       user_id: l.user_id,
       total_xp: l.total_xp,
+      jedi_rank: l.jedi_rank ?? null,
       name: l.name ?? null,
       picture: l.picture ?? null,
     }));
@@ -865,6 +866,11 @@ export function useReportsPage() {
     achievementsDonut,
     chatVsQueries,
     leaderboard: leaderboardData,
+    leaderboardFull: gamificationReport?.leaderboardTop ?? [],
     challengeProgress,
+
+    // Current user info (for leaderboard highlighting)
+    currentUserId,
+    currentUserName,
   };
 }

@@ -91,7 +91,13 @@ export interface ReportsSnapshot {
     achievementsUnlocked: number;
     achievementsLocked: number;
     achievementsRewardsTop: ChartDatum[];
-    leaderboardTop: { user_id: string; total_xp: number }[];
+    leaderboardTop: {
+      user_id: string;
+      total_xp: number;
+      jedi_rank?: string | null;
+      name?: string | null;
+      picture?: string | null;
+    }[];
     dailyChallenge?: {
       title: string;
       xp_reward: number;

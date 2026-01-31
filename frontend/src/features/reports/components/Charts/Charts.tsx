@@ -759,3 +759,88 @@ export function StatGrid({ children }: Readonly<{ children: React.ReactNode }>) 
   return <div className={styles.statGrid}>{children}</div>;
 }
 
+// ───────────────────────────────────────────────────────────────
+// Leaderboard List Component
+// ───────────────────────────────────────────────────────────────
+
+export interface LeaderboardItem {
+  user_id: string;
+  total_xp: number;
+  jedi_rank?: string | null;
+  name?: string | null;
+  picture?: string | null;
+}
+
+function shortUserId(id: string): string {
+  if (!id || id.length < 12) return id || '—';
+  return `${id.slice(0, 6)}…${id.slice(-4)}`;
+}
+
+export function Leaderboard({
+  data,
+  currentUserId,
+  currentUserName,
+}: Readonly<{
+  data: LeaderboardItem[];
+  currentUserId?: string | null;
+  currentUserName?: string | null;
+}>) {
+  return (
+    <div className={styles.leaderboard}>
+      {data.map((entry, idx) => {
+        const rank = idx + 1;
+        const isMe = !!currentUserId && entry.user_id === currentUserId;
+        
+        // Name to display
+        const displayName = isMe 
+          ? (currentUserName || entry.name || 'Você')
+          : (entry.name || shortUserId(entry.user_id));
+        
+        // Rank styling classes
+        const rankClass = rank === 1 ? styles.rank1 
+          : rank === 2 ? styles.rank2 
+          : rank === 3 ? styles.rank3 
+          : '';
+        
+        return (
+          <div 
+            key={entry.user_id} 
+            className={`${styles.leaderboardItem} ${isMe ? styles.isCurrentUser : ''}`}
+          >
+            <div className={`${styles.leaderboardRank} ${rankClass}`}>
+              {rank}
+            </div>
+            
+            {entry.picture ? (
+              <img 
+                src={entry.picture} 
+                alt={displayName} 
+                className={styles.leaderboardAvatar}
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <div className={styles.leaderboardAvatarPlaceholder}>
+                {(displayName[0] || '?').toUpperCase()}
+              </div>
+            )}
+            
+            <div className={styles.leaderboardInfo}>
+              <div className={`${styles.leaderboardName} ${isMe ? styles.isYou : ''}`}>
+                {isMe ? `Você ${currentUserName ? `(${currentUserName})` : ''}` : displayName}
+              </div>
+              {entry.jedi_rank && (
+                <div className={styles.leaderboardJediRank}>{entry.jedi_rank}</div>
+              )}
+            </div>
+            
+            <div className={styles.leaderboardXp}>
+              <div className={styles.leaderboardXpValue}>{entry.total_xp.toLocaleString()}</div>
+              <div className={styles.leaderboardXpLabel}>XP</div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
