@@ -73,8 +73,11 @@ def get_species_service(
     return SpeciesService(swapi_client=swapi_client, images=images)
 
 
-def get_film_service(swapi_client: SWAPIClient = Depends(get_swapi_client)) -> FilmService:
-    return FilmService(swapi_client=swapi_client)
+def get_film_service(
+    swapi_client: SWAPIClient = Depends(get_swapi_client),
+    images: ImageLookupService = Depends(get_image_lookup_service),
+) -> FilmService:
+    return FilmService(swapi_client=swapi_client, images=images)
 
 
 def get_chat_service(swapi_client: SWAPIClient = Depends(get_swapi_client)) -> ChatService:

@@ -11,6 +11,7 @@ from app.interfaces.api.v1.routers import (
     chat,
     gamification,
     character_image_fallbacks,
+    image_fallbacks,
     vehicles,
     species,
 )
@@ -41,6 +42,7 @@ def create_app() -> FastAPI:
 
     app.include_router(gamification.router, prefix=API_V1_PREFIX)
     app.include_router(character_image_fallbacks.router, prefix=API_V1_PREFIX)
+    app.include_router(image_fallbacks.router, prefix=API_V1_PREFIX)
     app.include_router(vehicles.router, prefix=API_V1_PREFIX)
     app.include_router(species.router, prefix=API_V1_PREFIX)
 

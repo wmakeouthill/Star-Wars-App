@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from typing import List, Optional, Tuple
 
+from app.application.services.image_lookup_service import ImageLookupService
 from app.domain.exceptions.not_found import ResourceNotFoundError
 from app.domain.schemas.common import PaginatedResponse, PageMeta
 from app.domain.schemas.film import FilmFilter, FilmResponse
@@ -23,9 +24,14 @@ _FILM_POSTER_BY_EPISODE: dict[int, str] = {
 }
 
 
+def _norm_name(value: str) -> str:
+    return " ".join(str(value).strip().split()).casefold()
+
+
 class FilmService:
-    def __init__(self, swapi_client: ISWAPIClient) -> None:
+    def __init__(self, swapi_client: ISWAPIClient, images: ImageLookupService | None = None) -> None:
         self._swapi = swapi_client
+        self._images = images
 
     async def list_films(
         self,
@@ -36,6 +42,7 @@ class FilmService:
         page_size: int,
     ) -> PaginatedResponse[FilmResponse]:
         can_use_swapi_paging = sort_by is None and not filters.director and not filters.producer
+        image_index = await self._images.get_films_index() if self._images else None
 
         if can_use_swapi_paging:
             raw_items, total = await fetch_swapi_slice(
@@ -43,14 +50,14 @@ class FilmService:
             )
             total_pages = max(1, (total + page_size - 1) // page_size)
             meta = PageMeta(page=page, page_size=page_size, total=total, total_pages=total_pages)
-            response_items = [self._map_film(item) for item in raw_items]
+            response_items = [self._map_film(item, image_index=image_index) for item in raw_items]
             return PaginatedResponse(items=response_items, meta=meta)
 
         films = await self._swapi.get_all_films()
         filtered = self._apply_filters(films, filters)
         sorted_items = self._apply_sort(filtered, sort_by, sort_order)
         page_items, meta = self._apply_pagination(sorted_items, page, page_size)
-        response_items = [self._map_film(item) for item in page_items]
+        response_items = [self._map_film(item, image_index=image_index) for item in page_items]
         return PaginatedResponse(items=response_items, meta=meta)
 
     async def get_film(self, film_id: str) -> FilmResponse:
@@ -58,7 +65,8 @@ class FilmService:
             film = await self._swapi.get_film(film_id)
         except Exception as exc:  # noqa: BLE001
             raise ResourceNotFoundError("Filme", film_id) from exc
-        return self._map_film(film)
+        image_index = await self._images.get_films_index() if self._images else None
+        return self._map_film(film, image_index=image_index)
 
     async def get_film_with_relations(self, film_id: str) -> FilmResponse:
         try:
@@ -89,12 +97,14 @@ class FilmService:
                 mapped.append(NamedResourceSummary(id=extract_id(url), name=item.get("name", "")))
             return mapped
 
+        image_index = await self._images.get_films_index() if self._images else None
         return self._map_film(
             film,
             planets_rel=map_named(planets_raw),
             starships_rel=map_named(starships_raw),
             vehicles_rel=map_named(vehicles_raw),
             species_rel=map_named(species_raw),
+            image_index=image_index,
         )
 
     def _apply_filters(self, films: List[dict], filters: FilmFilter) -> List[dict]:
@@ -139,6 +149,7 @@ class FilmService:
         starships_rel: Optional[list[NamedResourceSummary]] = None,
         vehicles_rel: Optional[list[NamedResourceSummary]] = None,
         species_rel: Optional[list[NamedResourceSummary]] = None,
+        image_index: dict[str, str] | None = None,
     ) -> FilmResponse:
         characters_urls = film.get("characters", []) or []
         planets_urls = film.get("planets", []) or []
@@ -146,10 +157,16 @@ class FilmService:
         vehicles_urls = film.get("vehicles", []) or []
         species_urls = film.get("species", []) or []
         episode_id = int(film.get("episode_id", 0))
+        title = film.get("title", "")
+        image_url = None
+        if image_index is not None and title:
+            image_url = image_index.get(_norm_name(title))
+        if not image_url:
+            image_url = _FILM_POSTER_BY_EPISODE.get(episode_id)
         return FilmResponse(
             id=extract_id(film.get("url", "")),
-            title=film.get("title", ""),
-            image_url=_FILM_POSTER_BY_EPISODE.get(episode_id),
+            title=title,
+            image_url=image_url,
             episode_id=episode_id,
             opening_crawl=film.get("opening_crawl", "") or "",
             director=film.get("director", ""),

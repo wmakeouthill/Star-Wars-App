@@ -9,6 +9,7 @@ from app.interfaces.api.v1.routers import (
     chat,
     gamification,
     character_image_fallbacks,
+    image_fallbacks,
     vehicles,
     species,
 )
@@ -23,6 +24,7 @@ __all__ = [
     "chat",
     "gamification",
     "character_image_fallbacks",
+    "image_fallbacks",
     "vehicles",
     "species",
 ]

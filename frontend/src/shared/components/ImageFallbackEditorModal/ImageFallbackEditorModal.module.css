@@ -1,0 +1,93 @@
+.container {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.row {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.label {
+  font-size: 0.9rem;
+  color: rgba(199, 226, 255, 0.8);
+}
+
+.input {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(5, 7, 13, 0.18);
+  color: var(--text);
+  outline: none;
+}
+
+.input:focus {
+  border-color: var(--border-strong);
+  box-shadow: 0 0 0 3px rgba(53, 230, 255, 0.12);
+}
+
+.help {
+  font-size: 0.85rem;
+  color: rgba(199, 226, 255, 0.65);
+  overflow-wrap: anywhere;
+}
+
+.error {
+  font-size: 0.9rem;
+  color: rgba(255, 120, 120, 0.95);
+}
+
+.preview {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.previewImage {
+  width: min(420px, 100%);
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(5, 7, 13, 0.18);
+}
+
+.actions {
+  display: flex;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.button {
+  padding: 0.55rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(8, 16, 32, 0.4);
+  color: var(--text);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.button:hover {
+  transform: translateY(-1px);
+  border-color: var(--border-strong);
+  box-shadow: 0 0 16px rgba(53, 230, 255, 0.12);
+}
+
+.buttonPrimary {
+  border-color: rgba(151, 255, 61, 0.45);
+  background: rgba(151, 255, 61, 0.08);
+}
+
+.buttonPrimary:hover {
+  box-shadow: 0 0 18px rgba(151, 255, 61, 0.14);
+}
+
+.buttonDisabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+

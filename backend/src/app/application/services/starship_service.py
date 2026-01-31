@@ -36,7 +36,7 @@ class StarshipService:
         )
 
         if can_use_swapi_paging:
-            image_index = await self._images.get_vehicles_index() if self._images else None
+            image_index = await self._images.get_starships_index() if self._images else None
             raw_items, total = await fetch_swapi_slice(
                 self._swapi.get_starships_page, page=page, page_size=page_size, search=filters.name
             )
@@ -45,7 +45,7 @@ class StarshipService:
             response_items = [self._map_starship(item, image_index=image_index) for item in raw_items]
             return PaginatedResponse(items=response_items, meta=meta)
 
-        image_index = await self._images.get_vehicles_index() if self._images else None
+        image_index = await self._images.get_starships_index() if self._images else None
         starships = await self._swapi.get_all_starships()
         filtered = self._apply_filters(starships, filters)
         sorted_items = self._apply_sort(filtered, sort_by, sort_order)
@@ -58,7 +58,7 @@ class StarshipService:
             starship = await self._swapi.get_starship(starship_id)
         except Exception as exc:  # noqa: BLE001
             raise ResourceNotFoundError("Nave", starship_id) from exc
-        image_index = await self._images.get_vehicles_index() if self._images else None
+        image_index = await self._images.get_starships_index() if self._images else None
         return self._map_starship(starship, image_index=image_index)
 
     async def get_starship_with_relations(self, starship_id: str) -> StarshipResponse:
@@ -85,7 +85,7 @@ class StarshipService:
             url = item.get("url", "")
             pilots.append(NamedResourceSummary(id=extract_id(url), name=item.get("name", "")))
 
-        image_index = await self._images.get_vehicles_index() if self._images else None
+        image_index = await self._images.get_starships_index() if self._images else None
         return self._map_starship(
             starship,
             image_index=image_index,
