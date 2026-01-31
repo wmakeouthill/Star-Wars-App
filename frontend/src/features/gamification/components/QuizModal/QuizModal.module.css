@@ -79,6 +79,117 @@
   padding: 14px;
 }
 
+.setup {
+  border: 1px solid rgba(110, 231, 255, 0.16);
+  border-radius: 16px;
+  background: rgba(5, 7, 13, 0.18);
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.setupTitle {
+  font-family: var(--font-star, system-ui);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: 16px;
+}
+
+.setupText {
+  color: rgba(199, 226, 255, 0.8);
+  line-height: 1.4;
+}
+
+.categoryActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.categoryGrid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 720px) {
+  .categoryGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.categoryCard {
+  text-align: left;
+  padding: 12px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(110, 231, 255, 0.18);
+  background: rgba(0, 0, 0, 0.22);
+  color: rgba(255, 255, 255, 0.92);
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  display: grid;
+  gap: 6px;
+}
+
+.categoryCard:hover {
+  transform: translateY(-1px);
+  border-color: rgba(110, 231, 255, 0.32);
+  box-shadow: 0 0 12px rgba(53, 230, 255, 0.08);
+}
+
+.categoryCardActive {
+  border-color: rgba(53, 230, 255, 0.5);
+  background: linear-gradient(135deg, rgba(53, 230, 255, 0.14), rgba(255, 61, 242, 0.06));
+}
+
+.categoryTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+.categoryCheckbox {
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.95);
+  background: rgba(0, 0, 0, 0.25);
+  flex: 0 0 auto;
+}
+
+.categoryCardActive .categoryCheckbox {
+  border-color: rgba(53, 230, 255, 0.6);
+  background: rgba(53, 230, 255, 0.12);
+}
+
+.categoryDescription {
+  color: rgba(199, 226, 255, 0.72);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.setupError {
+  border: 1px solid rgba(255, 61, 242, 0.35);
+  background: rgba(255, 61, 242, 0.1);
+  color: rgba(255, 220, 250, 0.95);
+  padding: 10px 12px;
+  border-radius: 14px;
+  font-weight: 800;
+}
+
+.setupFooter {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
 .emptyTitle,
 .finishTitle {
   font-family: var(--font-star, system-ui);
