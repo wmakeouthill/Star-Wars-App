@@ -38,13 +38,17 @@ function getCategoryLabel(category: string): string {
 }
 
 export function QuizHistoryModal({ open, onClose }: QuizHistoryModalProps) {
-  const { data: history, isLoading, isError } = useQuery({
+  const { data: history, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ['gamification', 'quiz-history'],
     queryFn: () => fetchQuizHistory(20),
     enabled: open,
     staleTime: 1000 * 60, // 1 minuto
     gcTime: 1000 * 60 * 5, // 5 minutos
   });
+
+  const handleRefresh = () => {
+    refetch();
+  };
 
   const summary = history?.length
     ? {
@@ -59,8 +63,20 @@ export function QuizHistoryModal({ open, onClose }: QuizHistoryModalProps) {
       }
     : null;
 
+  const refreshButton = (
+    <button
+      type="button"
+      className={styles.refreshButton}
+      onClick={handleRefresh}
+      disabled={isFetching}
+      aria-label="Atualizar histórico"
+    >
+      {isFetching ? 'Atualizando...' : 'Atualizar'}
+    </button>
+  );
+
   return (
-    <DetailsModal open={open} onClose={onClose} title="Histórico de Quizzes">
+    <DetailsModal open={open} onClose={onClose} title="Histórico de Quizzes" headerActions={refreshButton}>
       <div className={styles.container}>
         {isLoading && <div className={styles.loading}>Carregando histórico...</div>}
 

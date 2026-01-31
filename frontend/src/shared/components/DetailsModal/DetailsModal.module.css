@@ -41,6 +41,12 @@
   margin: 0;
 }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .close {
   padding: 0.55rem 0.85rem;
   border-radius: 999px;

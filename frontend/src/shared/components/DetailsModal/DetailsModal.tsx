@@ -7,9 +7,10 @@ type DetailsModalProps = {
   title: string;
   onClose: () => void;
   children: React.ReactNode;
+  headerActions?: React.ReactNode;
 };
 
-export function DetailsModal({ open, title, onClose, children }: Readonly<DetailsModalProps>) {
+export function DetailsModal({ open, title, onClose, children, headerActions }: Readonly<DetailsModalProps>) {
   useEffect(() => {
     if (!open) return;
 
@@ -49,9 +50,12 @@ export function DetailsModal({ open, title, onClose, children }: Readonly<Detail
       >
         <div className={styles.header}>
           <h3 className={styles.title}>{title}</h3>
-          <button type="button" className={styles.close} onClick={onClose}>
-            Fechar
-          </button>
+          <div className={styles.headerActions}>
+            {headerActions}
+            <button type="button" className={styles.close} onClick={onClose}>
+              Fechar
+            </button>
+          </div>
         </div>
         <div className={styles.content}>{children}</div>
       </div>
