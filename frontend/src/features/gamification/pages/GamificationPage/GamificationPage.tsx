@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import styles from './GamificationPage.module.css';
 import {
   useDailyChallenge,
@@ -6,6 +7,7 @@ import {
   useGamificationProfile,
 } from '../../hooks/useGamification';
 import { useChatContext } from '@/features/chat/context';
+import { QuizModal } from '../../components/QuizModal';
 
 export function GamificationPage() {
   const profileQuery = useGamificationProfile();
@@ -13,6 +15,7 @@ export function GamificationPage() {
   const leaderboardQuery = useGamificationLeaderboard(10);
   const dailyQuery = useDailyChallenge();
   const { persona, setPersona } = useChatContext();
+  const [quizOpen, setQuizOpen] = useState(false);
 
   const isLoading =
     profileQuery.isLoading ||
@@ -33,6 +36,12 @@ export function GamificationPage() {
   const leaderboard = leaderboardQuery.data!;
   const daily = dailyQuery.data!;
   const profileDisplayName = profile.name?.trim() ? profile.name : 'Visitante';
+  const profileInitials = profileDisplayName
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase())
+    .join('');
 
   return (
     <div className={styles.container}>
@@ -40,7 +49,20 @@ export function GamificationPage() {
         <section className={styles.card}>
           <h3 className={styles.cardTitle}>Seu perfil Jedi</h3>
           <div className={styles.mono}>Usuário: {profileDisplayName}</div>
-          <div className={styles.row}>
+          <div className={styles.profileStats}>
+            {profile.picture?.trim() ? (
+              <img
+                className={styles.profileAvatar}
+                src={profile.picture}
+                alt={`Foto de ${profileDisplayName}`}
+                loading="lazy"
+              />
+            ) : (
+              <div className={styles.profileAvatarPlaceholder} aria-label="Sem foto">
+                {profileInitials || '—'}
+              </div>
+            )}
+            <div className={styles.row}>
             <div className={styles.stat}>
               <div className={styles.statLabel}>Rank</div>
               <div className={styles.statValue}>{profile.jedi_rank}</div>
@@ -56,6 +78,7 @@ export function GamificationPage() {
             <div className={styles.stat}>
               <div className={styles.statLabel}>Chat</div>
               <div className={styles.statValue}>{profile.chat_messages}</div>
+            </div>
             </div>
           </div>
         </section>
@@ -134,16 +157,55 @@ export function GamificationPage() {
           <h3 className={styles.cardTitle}>Ranking</h3>
           <ul className={styles.list}>
             {leaderboard.map((entry, index) => (
-              <li key={`${entry.user_id}-${index}`} className={styles.stat}>
-                <div>
-                  <strong>#{index + 1}</strong> {entry.jedi_rank} — {entry.total_xp} XP
+              <li key={`${entry.user_id}-${index}`} className={`${styles.stat} ${styles.leaderboardItem}`}>
+                <div className={styles.leaderboardLeft}>
+                  {entry.picture?.trim() ? (
+                    <img
+                      className={styles.leaderboardAvatar}
+                      src={entry.picture}
+                      alt={entry.name?.trim() ? `Foto de ${entry.name}` : 'Foto do usuário'}
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className={styles.leaderboardAvatarPlaceholder} aria-label="Sem foto">
+                      {(entry.name?.trim()
+                        ? entry.name
+                            .split(' ')
+                            .filter(Boolean)
+                            .slice(0, 2)
+                            .map((p) => p[0]?.toUpperCase())
+                            .join('')
+                        : '') || '—'}
+                    </div>
+                  )}
+                  <div className={styles.leaderboardText}>
+                    <div className={styles.leaderboardMain}>
+                      <strong>#{index + 1}</strong> {entry.jedi_rank} — {entry.total_xp} XP
+                    </div>
+                    <div className={styles.mono}>{entry.name?.trim() ? entry.name : entry.user_id}</div>
+                  </div>
                 </div>
-                <div className={styles.mono}>{entry.name?.trim() ? entry.name : entry.user_id}</div>
               </li>
             ))}
           </ul>
         </section>
+
+        <button
+          type="button"
+          className={`${styles.card} ${styles.quizCard}`}
+          onClick={() => setQuizOpen(true)}
+          aria-label="Abrir quizz"
+        >
+          <div className={styles.quizKicker}>🧠 Novo</div>
+          <div className={styles.quizTitle}>Quizz</div>
+          <div className={styles.quizDescription}>
+            Perguntas geradas dinamicamente a partir dos dados já em cache da API.
+          </div>
+          <div className={styles.quizCta}>Jogar agora</div>
+        </button>
       </div>
+
+      <QuizModal open={quizOpen} onClose={() => setQuizOpen(false)} />
     </div>
   );
 }

@@ -2,7 +2,11 @@ export interface ApiError extends Error {
     status?: number;
 }
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
+const FALLBACK_BASE_URL = import.meta.env.DEV
+    ? 'http://localhost:8000'
+    : (globalThis.location?.origin ?? 'http://localhost:8000');
+
+const BASE_URL = import.meta.env.VITE_API_BASE_URL?.trim() || FALLBACK_BASE_URL;
 const USER_ID_HEADER = 'X-User-Id';
 const USER_ID_STORAGE_KEY = 'holocron_user_id';
 const AUTH_REFRESH_PATHNAME = '/api/v1/auth/refresh';
