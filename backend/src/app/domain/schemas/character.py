@@ -33,6 +33,7 @@ class CharacterResponse(BaseModel):
     eye_color: str
     birth_year: str
     gender: str
+    homeworld_id: Optional[str] = Field(None, description="ID do planeta natal (sem carregar o planeta)")
     homeworld: Optional[PlanetSummary] = None
     films: List[FilmSummary] = []
     species: List[NamedResourceSummary] = []

@@ -25,6 +25,7 @@ export interface Character {
     eye_color: string;
     birth_year: string;
     gender: string;
+    homeworld_id?: string | null;
     homeworld?: PlanetSummary | null;
     films?: FilmSummary[];
     species?: Array<{ id: string; name: string }>;

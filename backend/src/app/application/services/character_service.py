@@ -203,6 +203,11 @@ class CharacterService:
         starships: Optional[List[NamedResourceSummary]] = None,
         image_index: dict[str, str] | None = None,
     ) -> CharacterResponse:
+        homeworld_url = person.get("homeworld") or ""
+        homeworld_id = extract_id(homeworld_url) if homeworld_url else None
+        if homeworld_id == "":
+            homeworld_id = None
+
         height_parsed = parse_swapi_number(person.get("height"))
         mass_parsed = parse_swapi_number(person.get("mass"))
         image_url = None
@@ -225,6 +230,7 @@ class CharacterService:
             eye_color=person.get("eye_color", ""),
             birth_year=person.get("birth_year", ""),
             gender=person.get("gender", ""),
+            homeworld_id=homeworld_id,
             homeworld=homeworld,
             films=films or [],
             species=species or [],

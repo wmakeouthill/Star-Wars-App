@@ -283,7 +283,14 @@ export function useReportsPage() {
     const massBucketsOrder = [UNKNOWN_LABEL, '< 50 kg', '50–79 kg', '80–99 kg', '100–149 kg', '≥ 150 kg'];
     const massBuckets = toBuckets(charactersItems, (c) => bucketMassKg(c.mass), massBucketsOrder);
 
-    const homeworldValues = charactersItems.map((c) => normalizeLabel(c.homeworld?.name));
+    // No endpoint de listagem, o backend não carrega o objeto homeworld (para evitar N+1).
+    // Para o relatório, usamos `homeworld_id` e fazemos join com a lista de planetas já carregada.
+    const planetsById = new Map(planetsItems.map((p) => [p.id, p.name] as const));
+    const homeworldValues = charactersItems.map((c) => {
+      if (c.homeworld?.name) return normalizeLabel(c.homeworld.name);
+      if (c.homeworld_id) return normalizeLabel(planetsById.get(c.homeworld_id));
+      return UNKNOWN_LABEL;
+    });
     const homeworldTop = toTopCounts(homeworldValues, 10);
 
     // Scatter: Height vs Mass
