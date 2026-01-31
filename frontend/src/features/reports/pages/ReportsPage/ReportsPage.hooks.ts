@@ -138,7 +138,7 @@ export function useReportsPage() {
   const snapshotQuery = useQuery({
     queryKey: ['reports', 'snapshot'],
     queryFn: fetchReportsSnapshot,
-    staleTime: 1000 * 60,
+    staleTime: 1000 * 60 * 5,
   });
 
   const report = useMemo<ReportsSnapshot | null>(() => {

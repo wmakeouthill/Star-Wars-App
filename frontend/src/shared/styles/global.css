@@ -85,20 +85,20 @@ body::before {
     radial-gradient(circle at 980px 140px, rgba(255, 255, 255, 0.1) 4px, transparent 10px),
     radial-gradient(circle at 1480px 820px, rgba(255, 255, 255, 0.08) 5px, transparent 14px);
   background-size:
-    150px 130px,
-    170px 150px,
-    200px 180px,
-    240px 200px,
-    280px 240px,
-    320px 280px,
+    110px 95px,
+    130px 115px,
+    155px 140px,
+    180px 160px,
+    220px 190px,
+    260px 230px,
+    300px 270px,
     360px 320px,
     420px 380px,
     480px 440px,
-    560px 520px,
-    380px 340px,
+    320px 290px,
+    420px 380px,
     520px 480px,
-    600px 560px,
-    720px 680px,
+    620px 580px,
     1200px 1080px,
     2200px 2000px,
     2600px 2400px,
@@ -166,6 +166,35 @@ body::after {
   animation: starfieldDrift2 320s linear infinite reverse, starfieldFlicker 9s steps(7, end) infinite;
 }
 
+/* Micro-stars layer for extra density/variation */
+#root::after {
+  content: '';
+  position: fixed;
+  inset: -18%;
+  pointer-events: none;
+  z-index: -3;
+  opacity: 0.5;
+  background-image:
+    radial-gradient(circle at 10px 14px, rgba(255, 255, 255, 0.62) 1px, transparent 2px),
+    radial-gradient(circle at 34px 48px, rgba(255, 255, 255, 0.34) 1px, transparent 2px),
+    radial-gradient(circle at 72px 22px, rgba(255, 255, 255, 0.48) 1px, transparent 2px),
+    radial-gradient(circle at 120px 92px, rgba(255, 255, 255, 0.26) 1px, transparent 2px),
+    radial-gradient(circle at 160px 60px, rgba(53, 230, 255, 0.14) 1px, transparent 2px),
+    radial-gradient(circle at 210px 110px, rgba(255, 61, 242, 0.1) 1px, transparent 2px),
+    radial-gradient(circle at 260px 150px, rgba(255, 255, 255, 0.16) 2px, transparent 5px);
+  background-size:
+    120px 110px,
+    160px 140px,
+    200px 180px,
+    260px 230px,
+    360px 320px,
+    520px 480px,
+    1200px 1080px;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.04))
+    drop-shadow(0 0 12px rgba(53, 230, 255, 0.03));
+  animation: starfieldDrift3 420s linear infinite, starfieldFlicker 11s steps(9, end) infinite;
+}
+
 button,
 input,
 select,
@@ -231,9 +260,19 @@ textarea {
   }
 }
 
+@keyframes starfieldDrift3 {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-8%, 6%, 0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   body::before,
-  #root::before {
+  #root::before,
+  #root::after {
     animation: none !important;
   }
 }

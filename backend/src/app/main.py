@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.infrastructure.config.settings import get_settings
+from app.infrastructure.etag_middleware import ETagMiddleware
 from app.interfaces.api.v1.routers import (
     auth,
     health,
@@ -30,7 +31,10 @@ def create_app() -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=["ETag"],
     )
+
+    app.add_middleware(ETagMiddleware)
 
     app.include_router(health.router, prefix=API_V1_PREFIX)
     app.include_router(auth.router, prefix=API_V1_PREFIX)

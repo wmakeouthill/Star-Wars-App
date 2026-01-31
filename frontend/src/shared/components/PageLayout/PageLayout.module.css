@@ -7,8 +7,7 @@
 .header {
   padding: 2.25rem 2rem 1.15rem;
   border-bottom: 1px solid var(--border);
-  background: linear-gradient(180deg, rgba(5, 7, 13, 0.55), rgba(5, 7, 13, 0.24));
-  backdrop-filter: blur(6px);
+  background: linear-gradient(135deg, rgba(8, 16, 32, 0.58), rgba(8, 16, 32, 0.24));
   position: sticky;
   top: 0;
   z-index: 3;
@@ -51,16 +50,16 @@
     radial-gradient(circle at 520px 180px, rgba(255, 255, 255, 0.16) 2px, transparent 5px),
     radial-gradient(circle at 820px 240px, rgba(255, 255, 255, 0.1) 3px, transparent 9px);
   background-size:
-    170px 150px,
-    210px 190px,
-    260px 240px,
-    300px 280px,
-    360px 320px,
-    440px 400px,
-    560px 520px,
-    820px 760px,
-    1400px 1280px,
-    2200px 2000px;
+    120px 110px,
+    150px 130px,
+    180px 160px,
+    220px 190px,
+    260px 230px,
+    320px 280px,
+    420px 380px,
+    620px 560px,
+    1200px 1080px,
+    2000px 1800px;
   mix-blend-mode: screen;
   filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.05))
     drop-shadow(0 0 12px rgba(53, 230, 255, 0.04));

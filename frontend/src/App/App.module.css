@@ -60,8 +60,7 @@
   flex-wrap: wrap;
   padding: 1.05rem 2rem;
   border-bottom: 1px solid var(--border);
-  background: rgba(5, 7, 13, 0.26);
-  backdrop-filter: blur(6px);
+  background: linear-gradient(135deg, rgba(8, 16, 32, 0.52), rgba(8, 16, 32, 0.22));
   position: relative;
   overflow: hidden;
   isolation: isolate;
@@ -82,12 +81,12 @@
     radial-gradient(circle at 210px 40px, rgba(53, 230, 255, 0.16) 1px, transparent 2px),
     radial-gradient(circle at 260px 140px, rgba(255, 61, 242, 0.1) 1px, transparent 2px);
   background-size:
-    170px 150px,
-    210px 190px,
-    260px 240px,
-    300px 280px,
-    380px 340px,
-    560px 520px,
+    120px 110px,
+    150px 130px,
+    180px 160px,
+    220px 190px,
+    280px 240px,
+    420px 380px,
     820px 760px;
   mix-blend-mode: screen;
   filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.05))

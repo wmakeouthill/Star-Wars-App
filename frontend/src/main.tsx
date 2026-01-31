@@ -6,7 +6,15 @@ import '@/shared/styles/global.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { staleTime: 1000 * 60 },
+    queries: {
+      // A maior parte dos dados do SWAPI é bem estática; aumentamos o cache em memória
+      // para reduzir chamadas repetidas e acelerar navegação entre páginas.
+      staleTime: 1000 * 60 * 5,
+      gcTime: 1000 * 60 * 30,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      retry: 1,
+    },
   },
 });
 
