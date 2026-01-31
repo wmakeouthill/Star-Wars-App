@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
 
+from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
 
 from app.application.services.gamification_service import GamificationService
@@ -12,6 +13,8 @@ from app.domain.schemas.gamification import (
 )
 from app.interfaces.api.v1.dependencies.auth import get_current_user_id
 from app.interfaces.api.v1.dependencies.services import get_gamification_service
+from app.infrastructure.db.models.gamification import UserGamificationModel
+from app.infrastructure.db.models.user import User
 from app.infrastructure.db.session import get_db
 
 router = APIRouter(prefix="/gamification", tags=["Gamificação"])
@@ -40,9 +43,24 @@ def get_leaderboard(
     service: GamificationService = Depends(get_gamification_service),
     db: Session = Depends(get_db),
 ):
-    users = service.get_leaderboard(db=db, limit=limit)
+    # Retorna o ranking com dados opcionais do usuário (nome/foto) quando existir login Google.
+    # Para usuários sem perfil (ex.: entradas legacy), `name/picture` podem vir como null.
+    limit = max(1, int(limit))
+    rows = db.execute(
+        select(UserGamificationModel, User)
+        .join(User, User.id == UserGamificationModel.user_id, isouter=True)
+        .order_by(desc(UserGamificationModel.total_xp))
+        .limit(limit)
+    ).all()
     return [
-        LeaderboardEntrySchema(user_id=u.user_id, total_xp=u.total_xp, jedi_rank=u.jedi_rank) for u in users
+        LeaderboardEntrySchema(
+            user_id=str(g.user_id),
+            total_xp=int(g.total_xp),
+            jedi_rank=g.jedi_rank,
+            name=(u.name if u else None),
+            picture=(u.picture if u else None),
+        )
+        for (g, u) in rows
     ]
 
 

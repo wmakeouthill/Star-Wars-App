@@ -12,6 +12,7 @@ import {
   fetchGamificationLeaderboard,
   fetchGamificationProfile,
 } from '@/features/gamification/services/gamification.service';
+import { useAuth } from '@/features/auth/context/AuthContext';
 import type { Character } from '@/features/characters/types/characters.types';
 import type { Film } from '@/features/films/types/films.types';
 import type { Planet } from '@/features/planets/types/planets.types';
@@ -29,6 +30,13 @@ const STALE_TIME_SWAPI = 1000 * 60 * 60 * 24; // 24 horas para dados estáticos 
 const GC_TIME_SWAPI = 1000 * 60 * 60 * 48; // 48 horas - manter em memória por mais tempo
 const STALE_TIME_USER = 1000 * 60 * 5; // 5 minutos para dados do usuário
 const GC_TIME_USER = 1000 * 60 * 30; // 30 minutos
+
+function shortUserId(userId: string) {
+  const raw = (userId ?? '').trim();
+  if (!raw) return 'Usuário';
+  if (raw.length <= 12) return raw;
+  return `${raw.slice(0, 6)}…${raw.slice(-3)}`;
+}
 
 function normalizeLabel(value: string | null | undefined): string {
   const raw = (value ?? '').trim();
@@ -641,6 +649,10 @@ function useFilmsReport(films: Film[] | undefined) {
 // ═══════════════════════════════════════════════════════════════
 
 export function useReportsPage() {
+  const { user } = useAuth();
+  const currentUserId = (user?.id ?? '').trim() || null;
+  const currentUserName = (user?.name ?? '').trim() || (user?.email ?? '').trim() || null;
+
   // Queries individuais para loading progressivo
   const charactersQuery = useCharactersQuery();
   const planetsQuery = usePlanetsQuery();
@@ -733,7 +745,12 @@ export function useReportsPage() {
       .slice(0, 8)
       .map((a) => ({ name: a.name, value: a.xp_reward }));
 
-    const leaderboardTop = leaderboard.map((l) => ({ user_id: l.user_id, total_xp: l.total_xp }));
+    const leaderboardTop = leaderboard.map((l) => ({
+      user_id: l.user_id,
+      total_xp: l.total_xp,
+      name: l.name ?? null,
+      picture: l.picture ?? null,
+    }));
 
     return {
       totalXp: profile.total_xp,
@@ -779,9 +796,16 @@ export function useReportsPage() {
   const leaderboardData = useMemo<ChartDatum[]>(
     () =>
       gamificationReport
-        ? gamificationReport.leaderboardTop.map((entry) => ({ name: entry.user_id, value: entry.total_xp }))
+        ? gamificationReport.leaderboardTop.map((entry) => {
+          const isMe = !!currentUserId && entry.user_id === currentUserId;
+          const label =
+            (isMe && currentUserName) ||
+            entry.name ||
+            shortUserId(entry.user_id);
+          return { name: isMe ? `Você (${label})` : label, value: entry.total_xp };
+        })
         : [],
-    [gamificationReport]
+    [gamificationReport, currentUserId, currentUserName]
   );
 
   const challengeProgress = useMemo(() => {

@@ -29,6 +29,8 @@ class LeaderboardEntrySchema(BaseModel):
     user_id: str
     total_xp: int
     jedi_rank: JediRank
+    name: Optional[str] = None
+    picture: Optional[str] = None
 
 
 class DailyChallengeSchema(BaseModel):

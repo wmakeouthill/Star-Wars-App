@@ -22,6 +22,8 @@ export interface LeaderboardEntry {
   user_id: string;
   total_xp: number;
   jedi_rank: string;
+  name?: string | null;
+  picture?: string | null;
 }
 
 export interface DailyChallenge {
