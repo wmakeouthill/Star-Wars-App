@@ -11,6 +11,7 @@ import {
   fetchGamificationAchievements,
   fetchGamificationLeaderboard,
   fetchDailyChallenge,
+  fetchChatStatsByPersona,
 } from '@/features/gamification/services/gamification.service';
 import type { PaginatedResponse } from '@/shared/types/common.types';
 
@@ -227,6 +228,7 @@ export function usePrefetchAllData() {
         qc.prefetchQuery({ queryKey: ['gamification', 'achievements'], queryFn: fetchGamificationAchievements, staleTime: STALE_TIME }),
         qc.prefetchQuery({ queryKey: ['gamification', 'leaderboard', 10], queryFn: () => fetchGamificationLeaderboard(10), staleTime: STALE_TIME }),
         qc.prefetchQuery({ queryKey: ['gamification', 'daily-challenge'], queryFn: fetchDailyChallenge, staleTime: STALE_TIME }),
+        qc.prefetchQuery({ queryKey: ['gamification', 'chat-stats'], queryFn: () => fetchChatStatsByPersona().catch(() => ({ yoda_messages: 0, vader_messages: 0, total_messages: 0 })), staleTime: STALE_TIME }),
         qc.prefetchQuery({
           queryKey: ['reports', 'gamification'],
           queryFn: () => Promise.all([
@@ -234,7 +236,8 @@ export function usePrefetchAllData() {
             fetchGamificationAchievements(),
             fetchGamificationLeaderboard(10),
             fetchDailyChallenge(),
-          ]).then(([profile, achievements, leaderboard, dailyChallenge]) => ({ profile, achievements, leaderboard, dailyChallenge })),
+            fetchChatStatsByPersona().catch(() => ({ yoda_messages: 0, vader_messages: 0, total_messages: 0 })),
+          ]).then(([profile, achievements, leaderboard, dailyChallenge, chatStats]) => ({ profile, achievements, leaderboard, dailyChallenge, chatStats })),
           staleTime: STALE_TIME,
         }),
       ];

@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { DetailsModal } from '@/shared/components';
+import { useAuth } from '@/features/auth/context/AuthContext';
+import { useQuizLeaderboard, useSubmitQuizResult } from '../../hooks/useGamification';
 import type { PaginatedResponse } from '@/shared/types/common.types';
 import type { Character } from '@/features/characters/types/characters.types';
 import type { Film } from '@/features/films/types/films.types';
@@ -119,10 +121,14 @@ function buildOptions(params: {
   const candidates = pool.map((v) => normalizeText(v)).filter(Boolean) as string[];
   const uniquePool = Array.from(new Set(candidates));
   const distractorPool = uniquePool.filter((v) => v !== correct);
-  const neededDistractors = Math.max(0, optionsCount - 1);
-  if (distractorPool.length < neededDistractors) return null;
-
-  const distractors = sampleDistinct(distractorPool, neededDistractors, rng);
+  
+  // Adaptação: usa quantos distratores tivermos disponíveis (mínimo 1)
+  // Se só temos 2 diretores de filme, teremos 2 opções em vez de 4
+  const availableDistractors = distractorPool.length;
+  if (availableDistractors < 1) return null; // Precisa de pelo menos 1 distrator
+  
+  const actualDistractors = Math.min(availableDistractors, optionsCount - 1);
+  const distractors = sampleDistinct(distractorPool, actualDistractors, rng);
   const labels = shuffle([correct, ...distractors], rng);
   const options = labels.map((label, idx) => ({ id: `opt-${idx}-${label}`, label }));
   const correctOptionId = options.find((o) => o.label === correct)?.id;
@@ -437,6 +443,11 @@ function QuizQuestionView({
 
 export function QuizModal({ open, onClose }: Readonly<QuizModalProps>) {
   const queryClient = useQueryClient();
+  const { status: authStatus } = useAuth();
+  const isAuthenticated = authStatus === 'authenticated';
+
+  const leaderboardQuery = useQuizLeaderboard(10);
+  const submitMutation = useSubmitQuizResult();
 
   const [mode, setMode] = useState<'setup' | 'playing'>('setup');
   const [selectedCategories, setSelectedCategories] = useState<QuizCategoryId[]>(
@@ -449,6 +460,10 @@ export function QuizModal({ open, onClose }: Readonly<QuizModalProps>) {
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [score, setScore] = useState(0);
+  const [xpEarned, setXpEarned] = useState<number | null>(null);
+
+  // Flag para evitar submit duplicado
+  const submittedRef = useRef(false);
 
   const resetRun = useCallback(() => {
     setQuestions([]);
@@ -456,6 +471,8 @@ export function QuizModal({ open, onClose }: Readonly<QuizModalProps>) {
     setSelectedOptionId(null);
     setRevealed(false);
     setScore(0);
+    setXpEarned(null);
+    submittedRef.current = false;
   }, []);
 
   const regenerate = useCallback(
@@ -539,6 +556,29 @@ export function QuizModal({ open, onClose }: Readonly<QuizModalProps>) {
     const correctLabel = current.options.find((o) => o.id === current.correctOptionId)?.label ?? '—';
     return { isCorrect, correctLabel };
   }, [current, revealed, selectedOptionId]);
+
+  // Envia resultado ao backend quando o quiz termina (apenas se autenticado)
+  useEffect(() => {
+    if (!isFinished) return;
+    if (!isAuthenticated) return;
+    if (submittedRef.current) return;
+    if (total === 0) return;
+
+    submittedRef.current = true;
+    submitMutation.mutate(
+      {
+        score,
+        correct_answers: score,
+        total_questions: total,
+        categories: selectedCategories,
+      },
+      {
+        onSuccess: (data) => {
+          setXpEarned(data.xp_earned);
+        },
+      }
+    );
+  }, [isFinished, isAuthenticated, score, total, selectedCategories, submitMutation]);
 
   const onPick = (optionId: string) => {
     if (!current) return;
@@ -628,6 +668,19 @@ export function QuizModal({ open, onClose }: Readonly<QuizModalProps>) {
         <div className={styles.finishScore}>
           Você fez <strong>{score}</strong> de <strong>{total}</strong>.
         </div>
+
+        {isAuthenticated && xpEarned !== null && (
+          <div className={styles.xpEarned}>+{xpEarned} XP ganhos!</div>
+        )}
+        {isAuthenticated && submitMutation.isPending && (
+          <div className={styles.xpPending}>Salvando resultado…</div>
+        )}
+        {!isAuthenticated && (
+          <div className={styles.loginHint}>
+            Faça login com Google para salvar sua pontuação no ranking.
+          </div>
+        )}
+
         <div className={styles.finishActions}>
           <button type="button" className={styles.primaryButton} onClick={reroll}>
             Jogar de novo
@@ -636,6 +689,39 @@ export function QuizModal({ open, onClose }: Readonly<QuizModalProps>) {
             Trocar categorias
           </button>
         </div>
+
+        {/* Mini-leaderboard */}
+        {leaderboardQuery.data && leaderboardQuery.data.length > 0 && (
+          <div className={styles.leaderboardSection}>
+            <div className={styles.leaderboardTitle}>Ranking de Quiz</div>
+            <div className={styles.leaderboardList}>
+              {leaderboardQuery.data.slice(0, 5).map((entry, idx) => (
+                <div key={entry.user_id} className={styles.leaderboardItem}>
+                  <div className={styles.leaderboardRank}>#{idx + 1}</div>
+                  {entry.picture ? (
+                    <img
+                      src={entry.picture}
+                      alt={entry.name ?? 'User'}
+                      className={styles.leaderboardAvatar}
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className={styles.leaderboardAvatarPlaceholder}>
+                      {(entry.name?.[0] ?? '?').toUpperCase()}
+                    </div>
+                  )}
+                  <div className={styles.leaderboardInfo}>
+                    <div className={styles.leaderboardName}>{entry.name ?? 'Anônimo'}</div>
+                    <div className={styles.leaderboardStats}>
+                      {entry.total_quizzes} quizzes · {entry.accuracy}% acertos
+                    </div>
+                  </div>
+                  <div className={styles.leaderboardScore}>{entry.best_score}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     );
   } else if (current) {

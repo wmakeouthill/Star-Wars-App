@@ -1,8 +1,11 @@
-import { apiGet } from '@/shared/services/api';
+import { apiGet, apiPost } from '@/shared/services/api';
 import {
   AchievementStatus,
   DailyChallenge,
   LeaderboardEntry,
+  QuizLeaderboardEntry,
+  QuizResult,
+  QuizResultCreate,
   UserGamification,
 } from '../types/gamification.types';
 
@@ -20,5 +23,27 @@ export async function fetchGamificationAchievements() {
 
 export async function fetchDailyChallenge() {
   return apiGet<DailyChallenge>('/api/v1/gamification/daily-challenge');
+}
+
+export interface ChatStatsByPersona {
+  yoda_messages: number;
+  vader_messages: number;
+  total_messages: number;
+}
+
+export async function fetchChatStatsByPersona() {
+  return apiGet<ChatStatsByPersona>('/api/v1/gamification/chat-stats');
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Quiz
+// ────────────────────────────────────────────────────────────────────
+
+export async function submitQuizResult(payload: QuizResultCreate) {
+  return apiPost<QuizResult>('/api/v1/gamification/quiz-result', payload);
+}
+
+export async function fetchQuizLeaderboard(limit = 10) {
+  return apiGet<QuizLeaderboardEntry[]>('/api/v1/gamification/quiz-leaderboard', { limit });
 }
 

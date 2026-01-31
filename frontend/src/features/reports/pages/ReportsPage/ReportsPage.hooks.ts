@@ -11,6 +11,7 @@ import {
   fetchGamificationAchievements,
   fetchGamificationLeaderboard,
   fetchGamificationProfile,
+  fetchChatStatsByPersona,
 } from '@/features/gamification/services/gamification.service';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import type { Character } from '@/features/characters/types/characters.types';
@@ -285,13 +286,14 @@ function useGamificationQuery() {
   return useQuery({
     queryKey: ['reports', 'gamification'],
     queryFn: async () => {
-      const [profile, achievements, leaderboard, dailyChallenge] = await Promise.all([
+      const [profile, achievements, leaderboard, dailyChallenge, chatStats] = await Promise.all([
         fetchGamificationProfile(),
         fetchGamificationAchievements(),
         fetchGamificationLeaderboard(10),
         fetchDailyChallenge(),
+        fetchChatStatsByPersona().catch(() => ({ yoda_messages: 0, vader_messages: 0, total_messages: 0 })),
       ]);
-      return { profile, achievements, leaderboard, dailyChallenge };
+      return { profile, achievements, leaderboard, dailyChallenge, chatStats };
     },
     staleTime: STALE_TIME_USER,
     gcTime: GC_TIME_USER,
@@ -734,7 +736,7 @@ export function useReportsPage() {
     const data = gamificationQuery.data;
     if (!data) return null;
 
-    const { profile, achievements, leaderboard, dailyChallenge } = data;
+    const { profile, achievements, leaderboard, dailyChallenge, chatStats } = data;
 
     const achievementsUnlocked = achievements.filter((a) => a.unlocked).length;
     const achievementsLocked = Math.max(0, achievements.length - achievementsUnlocked);
@@ -758,6 +760,8 @@ export function useReportsPage() {
       jediRank: profile.jedi_rank,
       totalQueries: profile.total_queries,
       chatMessages: profile.chat_messages,
+      yodaMessages: chatStats?.yoda_messages ?? 0,
+      vaderMessages: chatStats?.vader_messages ?? 0,
       achievementsUnlocked,
       achievementsLocked,
       achievementsRewardsTop,
@@ -787,8 +791,9 @@ export function useReportsPage() {
     () =>
       gamificationReport
         ? [
-          { name: 'Consultas', value: gamificationReport.totalQueries },
-          { name: 'Mensagens no chat', value: gamificationReport.chatMessages },
+          { name: 'Consultas API', value: gamificationReport.totalQueries },
+          { name: 'Amigo do Yoda', value: gamificationReport.yodaMessages },
+          { name: 'Lacaio do Vader', value: gamificationReport.vaderMessages },
         ]
         : [],
     [gamificationReport]

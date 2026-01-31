@@ -4,6 +4,7 @@ from app.infrastructure.db.models.gamification import AchievementModel, UserAchi
 from app.infrastructure.db.models.chat import ChatConversation, ChatMessageModel
 from app.infrastructure.db.models.character_image_fallback import CharacterImageFallback
 from app.infrastructure.db.models.image_fallback import ImageFallback
+from app.infrastructure.db.models.quiz_result import QuizResult
 
 __all__ = [
     "User",
@@ -15,5 +16,6 @@ __all__ = [
     "ChatMessageModel",
     "CharacterImageFallback",
     "ImageFallback",
+    "QuizResult",
 ]
 

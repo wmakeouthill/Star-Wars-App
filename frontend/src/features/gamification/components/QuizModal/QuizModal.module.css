@@ -284,3 +284,120 @@
   margin-top: 14px;
 }
 
+/* XP e hints */
+.xpEarned {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(151, 255, 61, 0.35);
+  background: rgba(151, 255, 61, 0.1);
+  color: rgba(220, 255, 220, 0.95);
+  font-weight: 800;
+  text-align: center;
+}
+
+.xpPending {
+  margin-top: 10px;
+  color: rgba(199, 226, 255, 0.7);
+  font-size: 13px;
+  text-align: center;
+}
+
+.loginHint {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 212, 74, 0.25);
+  background: rgba(255, 212, 74, 0.08);
+  color: rgba(255, 240, 200, 0.9);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* Leaderboard */
+.leaderboardSection {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(110, 231, 255, 0.12);
+}
+
+.leaderboardTitle {
+  font-family: var(--font-pixel, ui-monospace);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(199, 226, 255, 0.8);
+  margin-bottom: 10px;
+}
+
+.leaderboardList {
+  display: grid;
+  gap: 8px;
+}
+
+.leaderboardItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(110, 231, 255, 0.12);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.leaderboardRank {
+  font-family: var(--font-mono, ui-monospace);
+  font-weight: 900;
+  font-size: 13px;
+  color: var(--neon-cyan, #35e6ff);
+  min-width: 28px;
+}
+
+.leaderboardAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(110, 231, 255, 0.2);
+}
+
+.leaderboardAvatarPlaceholder {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(53, 230, 255, 0.12);
+  border: 1px solid rgba(110, 231, 255, 0.2);
+  font-weight: 900;
+  font-size: 14px;
+  color: rgba(199, 226, 255, 0.85);
+}
+
+.leaderboardInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.leaderboardName {
+  font-weight: 700;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.92);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.leaderboardStats {
+  font-size: 11px;
+  color: rgba(199, 226, 255, 0.6);
+}
+
+.leaderboardScore {
+  font-family: var(--font-mono, ui-monospace);
+  font-weight: 900;
+  font-size: 16px;
+  color: var(--neon-amber, #ffd44a);
+}
+

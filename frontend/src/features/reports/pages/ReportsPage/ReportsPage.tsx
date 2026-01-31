@@ -197,7 +197,7 @@ export function ReportsPage() {
                 />
               </StatGrid>
               <div className={styles.chartSection}>
-                <div className={styles.chartSectionTitle}>Consultas vs Mensagens</div>
+                <div className={styles.chartSectionTitle}>Atividade: Consultas e Conversas</div>
                 <VerticalBarChart data={chatVsQueries} height={280} />
               </div>
             </div>

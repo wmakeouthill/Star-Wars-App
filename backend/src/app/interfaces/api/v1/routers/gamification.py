@@ -11,9 +11,12 @@ from app.domain.schemas.gamification import (
     AchievementStatusSchema,
     DailyChallengeSchema,
     LeaderboardEntrySchema,
+    QuizLeaderboardEntrySchema,
+    QuizResultCreateSchema,
+    QuizResultSchema,
     UserGamificationSchema,
 )
-from app.interfaces.api.v1.dependencies.auth import get_current_user_id
+from app.interfaces.api.v1.dependencies.auth import get_current_user_id, require_authenticated_user_id
 from app.interfaces.api.v1.dependencies.services import get_gamification_service
 from app.infrastructure.db.models.gamification import UserGamificationModel
 from app.infrastructure.db.models.user import User
@@ -97,3 +100,56 @@ def get_daily_challenge(
     user_id: str = Depends(get_current_user_id),
 ):
     return DailyChallengeSchema(**service.get_daily_challenge(user_id))
+
+
+@router.get("/chat-stats")
+def get_chat_stats(
+    service: GamificationService = Depends(get_gamification_service),
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    """
+    Retorna estatísticas de chat separadas por persona (Yoda/Vader).
+    """
+    return service.get_chat_stats_by_persona(user_id, db)
+
+
+# ────────────────────────────────────────────────────────────────────
+# Quiz
+# ────────────────────────────────────────────────────────────────────
+
+
+@router.post("/quiz-result", response_model=QuizResultSchema)
+def submit_quiz_result(
+    payload: QuizResultCreateSchema,
+    service: GamificationService = Depends(get_gamification_service),
+    user_id: str = Depends(require_authenticated_user_id),
+    db: Session = Depends(get_db),
+):
+    """
+    Registra resultado de quiz para usuários autenticados (Google).
+    Concede XP baseado em respostas corretas.
+    """
+    result = service.record_quiz_result(
+        user_id=user_id,
+        score=payload.score,
+        correct_answers=payload.correct_answers,
+        total_questions=payload.total_questions,
+        categories=payload.categories,
+        db=db,
+    )
+    return QuizResultSchema(**result)
+
+
+@router.get("/quiz-leaderboard", response_model=list[QuizLeaderboardEntrySchema])
+def get_quiz_leaderboard(
+    limit: int = 10,
+    service: GamificationService = Depends(get_gamification_service),
+    db: Session = Depends(get_db),
+):
+    """
+    Ranking de quiz ordenado por melhor score.
+    Qualquer usuário pode consultar (não requer autenticação).
+    """
+    rows = service.get_quiz_leaderboard(db, limit=limit)
+    return [QuizLeaderboardEntrySchema(**r) for r in rows]
