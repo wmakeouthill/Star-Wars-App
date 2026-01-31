@@ -3,6 +3,7 @@ import {
   AchievementStatus,
   DailyChallenge,
   LeaderboardEntry,
+  QuizHistoryEntry,
   QuizLeaderboardEntry,
   QuizResult,
   QuizResultCreate,
@@ -45,5 +46,9 @@ export async function submitQuizResult(payload: QuizResultCreate) {
 
 export async function fetchQuizLeaderboard(limit = 10) {
   return apiGet<QuizLeaderboardEntry[]>('/api/v1/gamification/quiz-leaderboard', { limit });
+}
+
+export async function fetchQuizHistory(limit = 20) {
+  return apiGet<QuizHistoryEntry[]>('/api/v1/gamification/quiz-history', { limit });
 }
 

@@ -109,7 +109,7 @@ async def send_message(
 ):
     response = await service.process_message(request)
     if response.xp_earned > 0:
-        gamification.record_chat_message(user_id, response.xp_earned, db)
+        gamification.record_chat_message(user_id, response.xp_earned, db, persona=str(request.persona))
 
     # Persistência (somente para usuário autenticado UUID)
     user_uuid = _try_uuid(user_id)

@@ -70,7 +70,9 @@ class GamificationService:
             row.total_xp += max(0, int(xp_awarded))
             row.jedi_rank = JediRank.from_xp(int(row.total_xp)).value
 
-            unlocked = self._apply_achievement_rules(user_uuid, row, db)
+            # Busca contagem de mensagens por persona para regras de conquista
+            chat_stats = self.get_chat_stats_by_persona(user_id, db)
+            unlocked = self._apply_achievement_rules(user_uuid, row, db, chat_stats=chat_stats)
             db.commit()
             return unlocked
         except Exception:
@@ -79,10 +81,13 @@ class GamificationService:
             db.rollback()
             return []
 
-    def record_chat_message(self, user_id: str, xp_awarded: int, db: Session) -> List[Achievement]:
+    def record_chat_message(self, user_id: str, xp_awarded: int, db: Session, persona: str = "yoda") -> List[Achievement]:
         """
         Registra uma mensagem de chat do usuário e concede XP.
         Falha silenciosamente se houver problemas com o banco.
+
+        Args:
+            persona: 'yoda' ou 'vader' - determina qual conquista pode ser desbloqueada.
         """
         try:
             user_uuid = self._try_parse_user_uuid(user_id)
@@ -94,7 +99,9 @@ class GamificationService:
             row.total_xp += max(0, int(xp_awarded))
             row.jedi_rank = JediRank.from_xp(int(row.total_xp)).value
 
-            unlocked = self._apply_achievement_rules(user_uuid, row, db)
+            # Busca contagem de mensagens por persona para regras de conquista
+            chat_stats = self.get_chat_stats_by_persona(user_id, db)
+            unlocked = self._apply_achievement_rules(user_uuid, row, db, chat_stats=chat_stats)
             db.commit()
             return unlocked
         except Exception:
@@ -157,11 +164,13 @@ class GamificationService:
         user_uuid: uuid.UUID,
         row: UserGamificationModel,
         db: Session,
+        chat_stats: dict | None = None,
     ) -> List[Achievement]:
         """
         Regras atuais (MVP):
         - primeiro_contato: total_queries + chat_messages >= 1
-        - amigo_yoda: chat_messages >= 5
+        - amigo_yoda: yoda_messages >= 5 (mensagens específicas para Yoda)
+        - lacaio_vader: vader_messages >= 5 (mensagens específicas para Vader)
         - explorador: total_queries >= 10
         """
         unlocked_now: List[Achievement] = []
@@ -184,8 +193,16 @@ class GamificationService:
 
         if int(row.total_queries) + int(row.chat_messages) >= 1:
             unlock("primeiro_contato")
-        if int(row.chat_messages) >= 5:
+
+        # Conquistas baseadas em mensagens por persona
+        yoda_messages = chat_stats.get("yoda_messages", 0) if chat_stats else 0
+        vader_messages = chat_stats.get("vader_messages", 0) if chat_stats else 0
+
+        if yoda_messages >= 5:
             unlock("amigo_yoda")
+        if vader_messages >= 5:
+            unlock("lacaio_vader")
+
         if int(row.total_queries) >= 10:
             unlock("explorador")
 
@@ -331,6 +348,43 @@ class GamificationService:
                     "accuracy": accuracy,
                     "name": r.name,
                     "picture": r.picture,
+                }
+            )
+        return result
+
+    def get_quiz_history(self, user_id: str, db: Session, limit: int = 20) -> List[dict]:
+        """
+        Retorna histórico de quizzes do usuário ordenado por data (mais recentes primeiro).
+        """
+        user_uuid = self._try_parse_user_uuid(user_id)
+        if user_uuid is None:
+            return []
+
+        limit = max(1, min(100, int(limit)))
+
+        rows = db.scalars(
+            select(QuizResult)
+            .where(QuizResult.user_id == user_uuid)
+            .order_by(desc(QuizResult.played_at))
+            .limit(limit)
+        ).all()
+
+        result: List[dict] = []
+        for r in rows:
+            total_q = int(r.total_questions or 0)
+            correct = int(r.correct_answers or 0)
+            accuracy = round((correct / total_q * 100) if total_q > 0 else 0, 1)
+            categories = (r.categories or "").split(",") if r.categories else []
+            result.append(
+                {
+                    "id": str(r.id),
+                    "score": int(r.score or 0),
+                    "correct_answers": correct,
+                    "total_questions": total_q,
+                    "categories": [c.strip() for c in categories if c.strip()],
+                    "xp_earned": int(r.xp_earned or 0),
+                    "played_at": r.played_at.isoformat() if r.played_at else "",
+                    "accuracy": accuracy,
                 }
             )
         return result

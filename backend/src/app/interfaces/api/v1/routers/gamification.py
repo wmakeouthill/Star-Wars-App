@@ -11,6 +11,7 @@ from app.domain.schemas.gamification import (
     AchievementStatusSchema,
     DailyChallengeSchema,
     LeaderboardEntrySchema,
+    QuizHistoryEntrySchema,
     QuizLeaderboardEntrySchema,
     QuizResultCreateSchema,
     QuizResultSchema,
@@ -153,3 +154,17 @@ def get_quiz_leaderboard(
     """
     rows = service.get_quiz_leaderboard(db, limit=limit)
     return [QuizLeaderboardEntrySchema(**r) for r in rows]
+
+
+@router.get("/quiz-history", response_model=list[QuizHistoryEntrySchema])
+def get_quiz_history(
+    limit: int = 20,
+    service: GamificationService = Depends(get_gamification_service),
+    user_id: str = Depends(require_authenticated_user_id),
+    db: Session = Depends(get_db),
+):
+    """
+    Histórico de quizzes do usuário autenticado, ordenado por data (mais recentes primeiro).
+    """
+    rows = service.get_quiz_history(user_id, db, limit=limit)
+    return [QuizHistoryEntrySchema(**r) for r in rows]

@@ -1,0 +1,1 @@
+export { QuizHistoryModal } from './QuizHistoryModal';

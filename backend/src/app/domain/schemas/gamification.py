@@ -82,3 +82,16 @@ class QuizLeaderboardEntrySchema(BaseModel):
     accuracy: float = Field(..., description="Percentual de acerto geral")
     name: Optional[str] = None
     picture: Optional[str] = None
+
+
+class QuizHistoryEntrySchema(BaseModel):
+    """Entrada do histórico de quiz do usuário."""
+
+    id: str
+    score: int
+    correct_answers: int
+    total_questions: int
+    categories: List[str]
+    xp_earned: int
+    played_at: str
+    accuracy: float = Field(..., description="Percentual de acerto")

@@ -71,3 +71,14 @@ export interface QuizLeaderboardEntry {
   picture?: string | null;
 }
 
+export interface QuizHistoryEntry {
+  id: string;
+  score: number;
+  correct_answers: number;
+  total_questions: number;
+  categories: string[];
+  xp_earned: number;
+  played_at: string;
+  accuracy: number;
+}
+

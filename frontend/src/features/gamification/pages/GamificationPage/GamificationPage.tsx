@@ -8,6 +8,7 @@ import {
 } from '../../hooks/useGamification';
 import { useChatContext } from '@/features/chat/context';
 import { QuizModal } from '../../components/QuizModal';
+import { QuizHistoryModal } from '../../components/QuizHistoryModal';
 
 export function GamificationPage() {
   const profileQuery = useGamificationProfile();
@@ -16,6 +17,7 @@ export function GamificationPage() {
   const dailyQuery = useDailyChallenge();
   const { persona, setPersona } = useChatContext();
   const [quizOpen, setQuizOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const isLoading =
     profileQuery.isLoading ||
@@ -190,22 +192,35 @@ export function GamificationPage() {
           </ul>
         </section>
 
-        <button
-          type="button"
-          className={`${styles.card} ${styles.quizCard}`}
-          onClick={() => setQuizOpen(true)}
-          aria-label="Abrir quizz"
-        >
+        <section className={`${styles.card} ${styles.quizSection}`}>
           <div className={styles.quizKicker}>🧠 Novo</div>
           <div className={styles.quizTitle}>Quizz</div>
           <div className={styles.quizDescription}>
             Perguntas geradas dinamicamente a partir dos dados já em cache da API.
           </div>
-          <div className={styles.quizCta}>Jogar agora</div>
-        </button>
+          <div className={styles.quizActions}>
+            <button
+              type="button"
+              className={styles.quizButton}
+              onClick={() => setQuizOpen(true)}
+              aria-label="Abrir quizz"
+            >
+              Jogar agora
+            </button>
+            <button
+              type="button"
+              className={styles.quizHistoryButton}
+              onClick={() => setHistoryOpen(true)}
+              aria-label="Ver histórico de quizzes"
+            >
+              Histórico
+            </button>
+          </div>
+        </section>
       </div>
 
       <QuizModal open={quizOpen} onClose={() => setQuizOpen(false)} />
+      <QuizHistoryModal open={historyOpen} onClose={() => setHistoryOpen(false)} />
     </div>
   );
 }

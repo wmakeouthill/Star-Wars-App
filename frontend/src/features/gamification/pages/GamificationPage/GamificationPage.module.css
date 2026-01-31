@@ -226,9 +226,8 @@
   text-align: center;
 }
 
-/* Card-botão do Quizz */
-.quizCard {
-  cursor: pointer;
+/* Seção do Quizz */
+.quizSection {
   color: var(--text);
   text-align: left;
   padding: 20px;
@@ -237,13 +236,6 @@
   border: 1px solid rgba(53, 230, 255, 0.22);
   background: linear-gradient(135deg, rgba(53, 230, 255, 0.12), rgba(255, 61, 242, 0.08));
   box-shadow: 0 0 18px rgba(53, 230, 255, 0.06);
-  transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-}
-
-.quizCard:hover {
-  transform: translateY(-2px);
-  border-color: rgba(53, 230, 255, 0.4);
-  box-shadow: 0 0 18px rgba(53, 230, 255, 0.12), 0 0 16px rgba(255, 61, 242, 0.08);
 }
 
 .quizKicker {
@@ -270,10 +262,15 @@
   line-height: 1.45;
 }
 
-.quizCta {
+.quizActions {
   margin-top: 6px;
-  display: inline-flex;
-  width: fit-content;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.quizButton,
+.quizHistoryButton {
   padding: 10px 14px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.14);
@@ -282,5 +279,25 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   font-size: 12px;
+  color: var(--text);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.quizButton {
+  border-color: rgba(53, 230, 255, 0.35);
+  background: linear-gradient(135deg, rgba(53, 230, 255, 0.14), rgba(255, 61, 242, 0.08));
+}
+
+.quizButton:hover {
+  transform: translateY(-1px);
+  border-color: rgba(53, 230, 255, 0.55);
+  box-shadow: 0 0 14px rgba(53, 230, 255, 0.15);
+}
+
+.quizHistoryButton:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
 }
 
