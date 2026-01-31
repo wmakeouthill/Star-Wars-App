@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import styles from './DetailsModal.module.css';
 
 type DetailsModalProps = {
@@ -25,8 +26,20 @@ export function DetailsModal({ open, title, onClose, children }: Readonly<Detail
 
   if (!open) return null;
 
-  return (
-    <div className={styles.overlay} role="presentation" onClick={onClose}>
+  return createPortal(
+    <div
+      className={styles.overlay}
+      role="button"
+      tabIndex={0}
+      aria-label="Fechar modal"
+      onClick={onClose}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape' || event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onClose();
+        }
+      }}
+    >
       <div
         className={styles.dialog}
         role="dialog"
@@ -42,7 +55,8 @@ export function DetailsModal({ open, title, onClose, children }: Readonly<Detail
         </div>
         <div className={styles.content}>{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

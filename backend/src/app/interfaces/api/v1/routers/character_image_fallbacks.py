@@ -10,22 +10,43 @@ from app.domain.schemas.character_image_fallback import (
     CharacterImageFallbackSchema,
     CharacterImageFallbackUpsertRequest,
 )
+from app.infrastructure.cache.memory_cache import MemoryCache
 from app.infrastructure.db.models.character_image_fallback import CharacterImageFallback
+from app.infrastructure.db.models.user import User
 from app.infrastructure.db.session import get_db
 from app.interfaces.api.v1.dependencies.auth import require_authenticated_user_id
+from app.interfaces.api.v1.dependencies.services import get_cache
 
 
 router = APIRouter(prefix="/admin/character-image-fallbacks", tags=["Admin: Character Image Fallbacks"])
+
+IMAGE_FALLBACK_EDITOR_EMAIL = "wcacorreia1995@gmail.com"
+CHARACTERS_IMAGE_INDEX_CACHE_KEY = "images:index:characters"
 
 
 def _norm_name(value: str) -> str:
     return " ".join(str(value).strip().split()).casefold()
 
 
+def _require_image_fallback_admin_user(
+    user_id: str = Depends(require_authenticated_user_id),
+    db: Session = Depends(get_db),
+) -> str:
+    """
+    Regra de autorização do MVP:
+    apenas o usuário com email específico pode editar fallbacks de imagem.
+    """
+    user = db.get(User, uuid.UUID(user_id))
+    email = (user.email if user else None) or ""
+    if email.strip().casefold() != IMAGE_FALLBACK_EDITOR_EMAIL.casefold():
+        raise HTTPException(status_code=403, detail="Sem permissão para editar fallbacks de imagem.")
+    return user_id
+
+
 @router.get("/", response_model=list[CharacterImageFallbackSchema])
-def list_fallbacks(
+async def list_fallbacks(
     search: str | None = Query(None, description="Filtra por nome (contains)"),
-    _user_id: str = Depends(require_authenticated_user_id),
+    _user_id: str = Depends(_require_image_fallback_admin_user),
     db: Session = Depends(get_db),
 ):
     stmt = select(CharacterImageFallback).order_by(CharacterImageFallback.updated_at.desc())
@@ -46,27 +67,35 @@ def list_fallbacks(
 
 
 @router.post("/", response_model=CharacterImageFallbackSchema)
-def upsert_fallback(
+async def upsert_fallback(
     payload: CharacterImageFallbackUpsertRequest,
-    _user_id: str = Depends(require_authenticated_user_id),
+    _user_id: str = Depends(_require_image_fallback_admin_user),
     db: Session = Depends(get_db),
+    cache: MemoryCache = Depends(get_cache),
 ):
     name = payload.character_name.strip()
     name_norm = _norm_name(name)
     if not name_norm:
         raise HTTPException(status_code=400, detail="Nome do personagem inválido.")
 
+    image_url = payload.image_url.strip()
+    if not image_url:
+        raise HTTPException(status_code=400, detail="URL de imagem inválida.")
+
     existing = db.scalar(select(CharacterImageFallback).where(CharacterImageFallback.character_name_norm == name_norm))
     if existing is None:
-        row = CharacterImageFallback(character_name=name, character_name_norm=name_norm, image_url=payload.image_url)
+        row = CharacterImageFallback(character_name=name, character_name_norm=name_norm, image_url=image_url)
         db.add(row)
         db.commit()
         db.refresh(row)
     else:
         existing.character_name = name
-        existing.image_url = payload.image_url
+        existing.image_url = image_url
         db.commit()
         row = existing
+
+    # Garante que a nova imagem apareça imediatamente nos endpoints que usam cache.
+    await cache.delete(CHARACTERS_IMAGE_INDEX_CACHE_KEY)
 
     return CharacterImageFallbackSchema(
         id=str(row.id),
@@ -78,15 +107,17 @@ def upsert_fallback(
 
 
 @router.delete("/{fallback_id}")
-def delete_fallback(
+async def delete_fallback(
     fallback_id: str,
-    _user_id: str = Depends(require_authenticated_user_id),
+    _user_id: str = Depends(_require_image_fallback_admin_user),
     db: Session = Depends(get_db),
+    cache: MemoryCache = Depends(get_cache),
 ):
     row = db.get(CharacterImageFallback, uuid.UUID(fallback_id))
     if row is None:
         raise HTTPException(status_code=404, detail="Registro não encontrado.")
     db.delete(row)
     db.commit()
+    await cache.delete(CHARACTERS_IMAGE_INDEX_CACHE_KEY)
     return {"ok": True}
 

@@ -71,3 +71,26 @@
   box-shadow: 0 0 16px rgba(255, 61, 242, 0.14);
 }
 
+.imageEditToggle {
+  border: 1px solid var(--border);
+  background: rgba(8, 16, 32, 0.4);
+  color: var(--text);
+  padding: 6px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.imageEditToggle:hover {
+  border-color: var(--border-strong);
+  box-shadow: 0 0 16px rgba(53, 230, 255, 0.12);
+}
+
+.imageEditToggleActive {
+  border-color: rgba(151, 255, 61, 0.5);
+  background: rgba(151, 255, 61, 0.08);
+  box-shadow: 0 0 18px rgba(151, 255, 61, 0.12);
+}
+
