@@ -2,11 +2,17 @@ export interface ApiError extends Error {
     status?: number;
 }
 
-const FALLBACK_BASE_URL = import.meta.env.DEV
-    ? 'http://localhost:8000'
-    : (globalThis.location?.origin ?? 'http://localhost:8000');
-
-const BASE_URL = import.meta.env.VITE_API_BASE_URL?.trim() || FALLBACK_BASE_URL;
+/**
+ * Em produção (Vercel), o app deve chamar o PRÓPRIO domínio e deixar a Vercel Function
+ * (`/api/[...path].js`) fazer o proxy para o backend real. Isso evita CORS e evita
+ * prompts do browser de "rede local" causados por BASE_URL apontando para localhost.
+ *
+ * Em dev, mantemos a possibilidade de apontar direto para o backend local via
+ * `VITE_API_BASE_URL` (ex.: http://localhost:8000).
+ */
+const BASE_URL = import.meta.env.DEV
+  ? (import.meta.env.VITE_API_BASE_URL?.trim() || 'http://localhost:8000')
+  : (globalThis.location?.origin ?? 'http://localhost:8000');
 const USER_ID_HEADER = 'X-User-Id';
 const USER_ID_STORAGE_KEY = 'holocron_user_id';
 const AUTH_REFRESH_PATHNAME = '/api/v1/auth/refresh';

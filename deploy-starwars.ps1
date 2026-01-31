@@ -1,5 +1,3 @@
-$ErrorActionPreference = "Stop"
-
 <#
 Deploy Cloud Run (Star Wars backend Python) — build local + push + deploy
 
@@ -66,8 +64,12 @@ param(
 
   # CORS (ajuste depois para o domínio real do frontend)
   [Parameter(Mandatory = $false)]
-  [string]$CorsAllowOrigins = "http://localhost:5173,http://127.0.0.1:5173"
+  [string]$CorsAllowOrigins = "https://star-wars-app-sooty.vercel.app,http://localhost:5173,http://127.0.0.1:5173"
 )
+
+$ErrorActionPreference = "Stop"
+
+$allowUnauthenticated = $false  # backend privado por padrão
 
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  Cloud Run Deploy (Star Wars Backend)" -ForegroundColor Cyan
@@ -139,8 +141,20 @@ gcloud projects add-iam-policy-binding $ProjectId `
 
 Write-Host ""
 Write-Host "[4/6] Artifact Registry (repo Docker)..." -ForegroundColor Green
-gcloud artifacts repositories describe $ArtifactRepo --location $Region --project $ProjectId 2>$null | Out-Null
-if ($LASTEXITCODE -ne 0) {
+
+# `gcloud artifacts repositories describe` emite erro (Write-Error) quando não existe.
+# Isso não deve abortar o script (é justamente o sinal para criar o repo).
+$repoExists = $false
+$prevEap = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
+try {
+  gcloud artifacts repositories describe $ArtifactRepo --location $Region --project $ProjectId 2>$null | Out-Null
+  if ($LASTEXITCODE -eq 0) { $repoExists = $true }
+} finally {
+  $ErrorActionPreference = $prevEap
+}
+
+if (-not $repoExists) {
   Write-Host "Criando repo '$ArtifactRepo' em '$Region'..." -ForegroundColor Yellow
   gcloud artifacts repositories create $ArtifactRepo `
     --repository-format=docker `
@@ -201,11 +215,17 @@ $secretsArg = @(
 )
 if ($hasOpenAi) { $secretsArg += "OPENAI_API_KEY=holocron-openai-api-key:latest" }
 
+$secretsCsv = ($secretsArg -join ",")
+
+$envVars = "^~^APP_NAME=Holocron Analytics API~APP_VERSION=0.1.0~JWT_ISSUER=holocron-analytics~JWT_ACCESS_TTL_SECONDS=900~JWT_REFRESH_TTL_SECONDS=2592000~GOOGLE_OAUTH_CLIENT_ID=$GoogleOauthClientId~AUTH_COOKIE_SECURE=$AuthCookieSecure~AUTH_COOKIE_SAMESITE=$AuthCookieSameSite~CORS_ALLOW_ORIGINS=$CorsAllowOrigins~DATABASE_HOST=$DatabaseHost~DATABASE_PORT=$DatabasePort~DATABASE_NAME=$DatabaseName~DATABASE_USERNAME=$DatabaseUsername~AI_ENABLED=false~AI_PROVIDER=openai~OPENAI_MODEL=gpt-4o-mini~SWAPI_BASE_URL=https://swapi.dev/api~CACHE_TTL_SECONDS=3600"
+
+$authFlag = if ($allowUnauthenticated) { "--allow-unauthenticated" } else { "--no-allow-unauthenticated" }
+
 gcloud run deploy $ServiceName `
   --image $image `
   --region $Region `
   --platform managed `
-  --allow-unauthenticated `
+  $authFlag `
   --service-account $runtimeSaEmail `
   --memory 512Mi `
   --cpu 1 `
@@ -214,9 +234,13 @@ gcloud run deploy $ServiceName `
   --min-instances 0 `
   --concurrency 20 `
   --port 8080 `
-  --set-secrets=($secretsArg -join ",") `
-  --set-env-vars="^~^APP_NAME=Holocron Analytics API~APP_VERSION=0.1.0~JWT_ISSUER=holocron-analytics~JWT_ACCESS_TTL_SECONDS=900~JWT_REFRESH_TTL_SECONDS=2592000~GOOGLE_OAUTH_CLIENT_ID=$GoogleOauthClientId~AUTH_COOKIE_SECURE=$AuthCookieSecure~AUTH_COOKIE_SAMESITE=$AuthCookieSameSite~CORS_ALLOW_ORIGINS=$CorsAllowOrigins~DATABASE_HOST=$DatabaseHost~DATABASE_PORT=$DatabasePort~DATABASE_NAME=$DatabaseName~DATABASE_USERNAME=$DatabaseUsername~AI_ENABLED=false~AI_PROVIDER=openai~OPENAI_MODEL=gpt-4o-mini~SWAPI_BASE_URL=https://swapi.dev/api~CACHE_TTL_SECONDS=3600" `
+  --set-secrets $secretsCsv `
+  --set-env-vars $envVars `
   --project $ProjectId
+
+if ($LASTEXITCODE -ne 0) {
+  throw "Falha no deploy do Cloud Run."
+}
 
 $serviceUrl = (gcloud run services describe $ServiceName --region $Region --format="value(status.url)" --project $ProjectId 2>$null).ToString().Trim()
 Write-Host ""
