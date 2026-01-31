@@ -14,8 +14,8 @@
 const { GoogleAuth } = require('google-auth-library');
 
 const CLOUD_RUN_URL = (process.env.CLOUD_RUN_URL || process.env.BACKEND_BASE_URL || 'http://localhost:8000').replace(
-    /\/+$/,
-    ''
+  /\/+$/,
+  ''
 );
 
 let tokenCache = { token: null, expiry: 0 };
@@ -97,7 +97,20 @@ module.exports = async (req, res) => {
       }
     }
 
-    const response = await fetch(targetUrl, fetchOptions);
+    // Fetch inicial com redirect manual para controlar headers
+    let response = await fetch(targetUrl, { ...fetchOptions, redirect: 'manual' });
+
+    // Se houver redirecionamento (3xx), seguir manualmente PRESERVANDO o header Authorization
+    if (response.status >= 300 && response.status < 400 && response.headers.get('location')) {
+      const location = response.headers.get('location');
+      console.log(`[API Proxy] Redirecting to ${location}`);
+
+      // Resolver URL relativa ou absoluta
+      const redirectUrl = new URL(location, targetUrl).toString();
+
+      // Refazer requisição para o novo destino com os MESMOS headers
+      response = await fetch(redirectUrl, { ...fetchOptions, redirect: 'follow' });
+    }
 
     // Propaga headers de resposta importantes
     const contentType = response.headers.get('content-type') || '';
