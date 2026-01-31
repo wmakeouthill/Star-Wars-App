@@ -20,6 +20,8 @@ alembic = "^1.14.0"
 pyjwt = "^2.10.1"
 cryptography = "^44.0.0"
 google-auth = "^2.38.0"
+python-Levenshtein = "^0.26.0"
+rapidfuzz = "^3.10.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
