@@ -12,14 +12,21 @@
 
 .tooltip {
   border: 1px solid rgba(110, 231, 255, 0.22);
-  background: rgba(5, 7, 13, 0.92);
+  background: rgba(5, 7, 13, 0.95);
   border-radius: 12px;
   color: var(--text);
   box-shadow: var(--shadow-neon);
   padding: 0.6rem 0.7rem;
-  max-width: min(320px, 72vw);
+  max-width: min(220px, 50vw);
   white-space: normal;
   overflow-wrap: anywhere;
+  pointer-events: none;
+}
+
+/* Ensure chart containers don't clip tooltips but also contain them */
+.chart {
+  position: relative;
+  overflow: visible;
 }
 
 .tooltipLabel {

@@ -23,6 +23,12 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import type { ChartDatum, ScatterDatum, RadarDatum, TreemapDatum } from '@/features/reports/types/reports.types';
 import styles from './Charts.module.css';
 
+// Shared tooltip wrapper style that keeps tooltip inside viewport
+const TOOLTIP_WRAPPER_STYLE: React.CSSProperties = { 
+  zIndex: 9999,
+  pointerEvents: 'none',
+};
+
 const COLORS = [
   'var(--neon-cyan)',
   'var(--neon-magenta)',
@@ -193,8 +199,7 @@ export function DonutChart({ data, height = 260 }: Readonly<{ data: ChartDatum[]
           </Pie>
           <Tooltip
             content={pieTooltipContent}
-            wrapperStyle={{ zIndex: 9999 }}
-            allowEscapeViewBox={{ x: true, y: true }}
+            wrapperStyle={TOOLTIP_WRAPPER_STYLE}
           />
           <Legend 
             wrapperStyle={{ fontSize: 11 }}
@@ -235,8 +240,7 @@ export function VerticalBarChart({
           <YAxis stroke="rgba(199, 226, 255, 0.7)" tick={{ fontSize: 12 }} />
           <Tooltip
             content={tooltipContent}
-            wrapperStyle={{ zIndex: 9999 }}
-            allowEscapeViewBox={{ x: true, y: true }}
+            wrapperStyle={TOOLTIP_WRAPPER_STYLE}
           />
           <Bar dataKey="value" fill="var(--neon-cyan)" radius={[10, 10, 0, 0]} />
         </BarChart>
@@ -278,8 +282,7 @@ export function HorizontalBarChart({
           />
           <Tooltip
             content={tooltipContent}
-            wrapperStyle={{ zIndex: 9999 }}
-            allowEscapeViewBox={{ x: true, y: true }}
+            wrapperStyle={TOOLTIP_WRAPPER_STYLE}
           />
           <Bar dataKey="value" radius={[0, 10, 10, 0]} fill="var(--neon-cyan)" />
         </BarChart>
@@ -317,7 +320,7 @@ export function StackedBarChart({
             tickFormatter={(value) => truncateLabel(String(value), 12)}
           />
           <YAxis stroke="rgba(199, 226, 255, 0.7)" tick={{ fontSize: 12 }} />
-          <Tooltip wrapperStyle={{ zIndex: 9999 }} allowEscapeViewBox={{ x: true, y: true }} />
+          <Tooltip wrapperStyle={TOOLTIP_WRAPPER_STYLE} />
           <Legend />
           {keys.map((key, index) => (
             <Bar key={key} dataKey={key} stackId="a" fill={COLORS[index % COLORS.length]} radius={index === keys.length - 1 ? [6, 6, 0, 0] : [0, 0, 0, 0]} />
@@ -369,8 +372,8 @@ export function ScatterPlotChart({
           <ZAxis type="number" dataKey="z" range={[40, 400]} />
           <Tooltip
             content={scatterTooltipContent}
-            wrapperStyle={{ zIndex: 9999 }}
-            allowEscapeViewBox={{ x: true, y: true }}
+            wrapperStyle={TOOLTIP_WRAPPER_STYLE}
+            cursor={{ strokeDasharray: '3 3', stroke: 'rgba(110, 231, 255, 0.4)' }}
           />
           <Scatter data={data} fill="var(--neon-cyan)">
             {data.map((entry, index) => (
@@ -424,8 +427,7 @@ export function RadarChartComponent({
           />
           <Tooltip
             content={radarTooltipContent}
-            wrapperStyle={{ zIndex: 9999 }}
-            allowEscapeViewBox={{ x: true, y: true }}
+            wrapperStyle={TOOLTIP_WRAPPER_STYLE}
           />
         </RadarChart>
       ) : null}
@@ -474,7 +476,7 @@ export function MultiRadarChart({
             />
           ))}
           <Legend wrapperStyle={{ fontSize: 11 }} />
-          <Tooltip wrapperStyle={{ zIndex: 9999 }} allowEscapeViewBox={{ x: true, y: true }} />
+          <Tooltip wrapperStyle={TOOLTIP_WRAPPER_STYLE} />
         </RadarChart>
       ) : null}
     </div>
@@ -551,8 +553,7 @@ export function TreemapChart({
         >
           <Tooltip
             content={treemapTooltipContent}
-            wrapperStyle={{ zIndex: 9999 }}
-            allowEscapeViewBox={{ x: true, y: true }}
+            wrapperStyle={TOOLTIP_WRAPPER_STYLE}
           />
         </Treemap>
       ) : null}
