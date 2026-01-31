@@ -12,20 +12,16 @@ import {
   fetchGamificationLeaderboard,
   fetchGamificationProfile,
 } from '@/features/gamification/services/gamification.service';
-import type { Character } from '@/features/characters/types/characters.types';
-import type { Film } from '@/features/films/types/films.types';
-import type { Planet } from '@/features/planets/types/planets.types';
-import type { Starship } from '@/features/starships/types/starships.types';
-import type { Species } from '@/features/species/types/species.types';
-import type { Vehicle } from '@/features/vehicles/types/vehicles.types';
-import type { AchievementStatus, DailyChallenge, LeaderboardEntry, UserGamification } from '@/features/gamification/types/gamification.types';
-import type { PaginatedResponse } from '@/shared/types/common.types';
 import type { ChartDatum, ScatterDatum, RadarDatum, TreemapDatum, StackedDatum } from '@/features/reports/types/reports.types';
 import type { ReportsSnapshot } from './ReportsPage.types';
 
 const REPORTS_PAGE_SIZE = 100;
 const UNKNOWN_LABEL = 'Desconhecido';
 const OTHER_LABEL = 'Outros';
+
+// Cache times
+const STALE_TIME_SWAPI = 1000 * 60 * 60 * 24; // 24 horas para dados estáticos da SWAPI
+const STALE_TIME_USER = 1000 * 60 * 5; // 5 minutos para dados do usuário
 
 function normalizeLabel(value: string | null | undefined): string {
   const raw = (value ?? '').trim();
@@ -212,41 +208,48 @@ function normalizeGravity(gravity: string | null | undefined): string {
   return 'Standard (1g)';
 }
 
-async function fetchReportsSnapshot(): Promise<{
-  characters: PaginatedResponse<Character>;
-  planets: PaginatedResponse<Planet>;
-  starships: PaginatedResponse<Starship>;
-  films: PaginatedResponse<Film>;
-  species: PaginatedResponse<Species>;
-  vehicles: PaginatedResponse<Vehicle>;
-  profile: UserGamification;
-  achievements: AchievementStatus[];
-  leaderboard: LeaderboardEntry[];
-  dailyChallenge: DailyChallenge;
-}> {
-  const [characters, planets, starships, films, species, vehicles, profile, achievements, leaderboard, dailyChallenge] =
-    await Promise.all([
-      fetchCharacters({ page: 1, pageSize: REPORTS_PAGE_SIZE, sortBy: 'name', sortOrder: 'asc' }),
-      fetchPlanets({ page: 1, pageSize: REPORTS_PAGE_SIZE, sortBy: 'name', sortOrder: 'asc' }),
-      fetchStarships({ page: 1, pageSize: REPORTS_PAGE_SIZE, sortBy: 'name', sortOrder: 'asc' }),
-      fetchFilms({ page: 1, pageSize: REPORTS_PAGE_SIZE, sortBy: 'episode_id', sortOrder: 'asc' }),
-      fetchSpecies({ page: 1, pageSize: REPORTS_PAGE_SIZE, sortBy: 'name', sortOrder: 'asc' }),
-      fetchVehicles({ page: 1, pageSize: REPORTS_PAGE_SIZE, sortBy: 'name', sortOrder: 'asc' }),
-      fetchGamificationProfile(),
-      fetchGamificationAchievements(),
-      fetchGamificationLeaderboard(10),
-      fetchDailyChallenge(),
-    ]);
+async function fetchSwapiData() {
+  const [characters, planets, starships, films, species, vehicles] = await Promise.all([
+    fetchCharacters({ page: 1, pageSize: REPORTS_PAGE_SIZE, sortBy: 'name', sortOrder: 'asc' }),
+    fetchPlanets({ page: 1, pageSize: REPORTS_PAGE_SIZE, sortBy: 'name', sortOrder: 'asc' }),
+    fetchStarships({ page: 1, pageSize: REPORTS_PAGE_SIZE, sortBy: 'name', sortOrder: 'asc' }),
+    fetchFilms({ page: 1, pageSize: REPORTS_PAGE_SIZE, sortBy: 'episode_id', sortOrder: 'asc' }),
+    fetchSpecies({ page: 1, pageSize: REPORTS_PAGE_SIZE, sortBy: 'name', sortOrder: 'asc' }),
+    fetchVehicles({ page: 1, pageSize: REPORTS_PAGE_SIZE, sortBy: 'name', sortOrder: 'asc' }),
+  ]);
+  return { characters, planets, starships, films, species, vehicles };
+}
 
-  return { characters, planets, starships, films, species, vehicles, profile, achievements, leaderboard, dailyChallenge };
+async function fetchUserData() {
+  const [profile, achievements, leaderboard, dailyChallenge] = await Promise.all([
+    fetchGamificationProfile(),
+    fetchGamificationAchievements(),
+    fetchGamificationLeaderboard(10),
+    fetchDailyChallenge(),
+  ]);
+  return { profile, achievements, leaderboard, dailyChallenge };
 }
 
 export function useReportsPage() {
-  const snapshotQuery = useQuery({
-    queryKey: ['reports', 'snapshot'],
-    queryFn: fetchReportsSnapshot,
-    staleTime: 1000 * 60 * 5,
+  // Dados SWAPI - cache de 24 horas (dados estáticos)
+  const swapiQuery = useQuery({
+    queryKey: ['reports', 'swapi'],
+    queryFn: fetchSwapiData,
+    staleTime: STALE_TIME_SWAPI,
   });
+
+  // Dados do usuário - cache de 5 minutos (dados dinâmicos)
+  const userQuery = useQuery({
+    queryKey: ['reports', 'user'],
+    queryFn: fetchUserData,
+    staleTime: STALE_TIME_USER,
+  });
+
+  const snapshotQuery = {
+    isLoading: swapiQuery.isLoading || userQuery.isLoading,
+    isError: swapiQuery.isError || userQuery.isError,
+    data: swapiQuery.data && userQuery.data ? { ...swapiQuery.data, ...userQuery.data } : undefined,
+  };
 
   const report = useMemo<ReportsSnapshot | null>(() => {
     if (!snapshotQuery.data) return null;

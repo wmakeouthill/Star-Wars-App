@@ -11,7 +11,6 @@ import {
   PolarRadiusAxis,
   Radar,
   RadarChart,
-  ResponsiveContainer,
   Scatter,
   ScatterChart,
   Tooltip,
@@ -151,22 +150,56 @@ function useMeasuredWidth() {
   return { ref, width };
 }
 
+function pieTooltipContent({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: Array<{ name?: string; value?: number | string; payload?: { name?: string } }>;
+}) {
+  if (!active || !payload?.length) return null;
+  const item = payload[0];
+  return (
+    <div className={styles.tooltip}>
+      <div className={styles.tooltipLabel}>{item?.payload?.name ?? item?.name}</div>
+      <div className={styles.tooltipValue}>{item?.value}</div>
+    </div>
+  );
+}
+
 export function DonutChart({ data, height = 260 }: Readonly<{ data: ChartDatum[]; height?: number }>) {
   const { ref, width } = useMeasuredWidth();
-  const chartWidth = Math.max(0, width);
-  const chartHeight = Math.max(0, Math.floor(height));
+  const chartWidth = Math.max(1, width);
+  const chartHeight = Math.max(1, Math.floor(height));
 
   return (
-    <div ref={ref} className={styles.chart} style={{ height: chartHeight }}>
-      {chartWidth > 0 && chartHeight > 0 ? (
+    <div ref={ref} className={styles.chart} style={{ height: chartHeight, minHeight: chartHeight }}>
+      {width > 0 ? (
         <PieChart width={chartWidth} height={chartHeight}>
-          <Pie data={data} dataKey="value" nameKey="name" innerRadius="55%" outerRadius="80%" paddingAngle={2} />
+          <Pie 
+            data={data} 
+            dataKey="value" 
+            nameKey="name" 
+            cx="50%"
+            cy="50%"
+            innerRadius="50%" 
+            outerRadius="75%" 
+            paddingAngle={2}
+            strokeWidth={0}
+          >
+            {data.map((_, index) => (
+              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+            ))}
+          </Pie>
           <Tooltip
-            content={tooltipContent}
+            content={pieTooltipContent}
             wrapperStyle={{ zIndex: 9999 }}
             allowEscapeViewBox={{ x: true, y: true }}
           />
-          <Legend />
+          <Legend 
+            wrapperStyle={{ fontSize: 11 }}
+            formatter={(value) => <span style={{ color: 'rgba(199, 226, 255, 0.85)' }}>{value}</span>}
+          />
         </PieChart>
       ) : null}
     </div>
@@ -181,12 +214,12 @@ export function VerticalBarChart({
   height?: number;
 }>) {
   const { ref, width } = useMeasuredWidth();
-  const chartWidth = Math.max(0, width);
-  const chartHeight = Math.max(0, Math.floor(height));
+  const chartWidth = Math.max(1, width);
+  const chartHeight = Math.max(1, Math.floor(height));
 
   return (
-    <div ref={ref} className={styles.chart} style={{ height: chartHeight }}>
-      {chartWidth > 0 && chartHeight > 0 ? (
+    <div ref={ref} className={styles.chart} style={{ height: chartHeight, minHeight: chartHeight }}>
+      {width > 0 ? (
         <BarChart width={chartWidth} height={chartHeight} data={data} margin={{ left: 4, right: 12, top: 6, bottom: 34 }}>
           <CartesianGrid stroke="rgba(110, 231, 255, 0.12)" strokeDasharray="4 4" />
           <XAxis
@@ -220,12 +253,12 @@ export function HorizontalBarChart({
   height?: number;
 }>) {
   const { ref, width } = useMeasuredWidth();
-  const chartWidth = Math.max(0, width);
-  const chartHeight = Math.max(0, Math.floor(height));
+  const chartWidth = Math.max(1, width);
+  const chartHeight = Math.max(1, Math.floor(height));
 
   return (
-    <div ref={ref} className={`${styles.chart} ${styles.chartTall}`} style={{ height: chartHeight }}>
-      {chartWidth > 0 && chartHeight > 0 ? (
+    <div ref={ref} className={`${styles.chart} ${styles.chartTall}`} style={{ height: chartHeight, minHeight: chartHeight }}>
+      {width > 0 ? (
         <BarChart
           width={chartWidth}
           height={chartHeight}
@@ -265,12 +298,12 @@ export function StackedBarChart({
   height?: number;
 }>) {
   const { ref, width } = useMeasuredWidth();
-  const chartWidth = Math.max(0, width);
-  const chartHeight = Math.max(0, Math.floor(height));
+  const chartWidth = Math.max(1, width);
+  const chartHeight = Math.max(1, Math.floor(height));
 
   return (
-    <div ref={ref} className={styles.chart} style={{ height: chartHeight }}>
-      {chartWidth > 0 && chartHeight > 0 ? (
+    <div ref={ref} className={styles.chart} style={{ height: chartHeight, minHeight: chartHeight }}>
+      {width > 0 ? (
         <BarChart width={chartWidth} height={chartHeight} data={data} margin={{ left: 4, right: 12, top: 6, bottom: 34 }}>
           <CartesianGrid stroke="rgba(110, 231, 255, 0.12)" strokeDasharray="4 4" />
           <XAxis
@@ -307,14 +340,14 @@ export function ScatterPlotChart({
   height?: number;
 }>) {
   const { ref, width } = useMeasuredWidth();
-  const chartWidth = Math.max(0, width);
-  const chartHeight = Math.max(0, Math.floor(height));
+  const chartWidth = Math.max(1, width);
+  const chartHeight = Math.max(1, Math.floor(height));
 
   const maxZ = Math.max(...data.map((d) => d.z ?? 1), 1);
 
   return (
-    <div ref={ref} className={`${styles.chart} ${styles.chartTall}`} style={{ height: chartHeight }}>
-      {chartWidth > 0 && chartHeight > 0 ? (
+    <div ref={ref} className={`${styles.chart} ${styles.chartTall}`} style={{ height: chartHeight, minHeight: chartHeight }}>
+      {width > 0 && data.length > 0 ? (
         <ScatterChart width={chartWidth} height={chartHeight} margin={{ left: 12, right: 12, top: 16, bottom: 16 }}>
           <CartesianGrid stroke="rgba(110, 231, 255, 0.12)" strokeDasharray="4 4" />
           <XAxis
@@ -362,12 +395,12 @@ export function RadarChartComponent({
   height?: number;
 }>) {
   const { ref, width } = useMeasuredWidth();
-  const chartWidth = Math.max(0, width);
-  const chartHeight = Math.max(0, Math.floor(height));
+  const chartWidth = Math.max(1, width);
+  const chartHeight = Math.max(1, Math.floor(height));
 
   return (
-    <div ref={ref} className={styles.chart} style={{ height: chartHeight }}>
-      {chartWidth > 0 && chartHeight > 0 ? (
+    <div ref={ref} className={styles.chart} style={{ height: chartHeight, minHeight: chartHeight }}>
+      {width > 0 && data.length > 0 ? (
         <RadarChart cx="50%" cy="50%" outerRadius="70%" width={chartWidth} height={chartHeight} data={data}>
           <PolarGrid stroke="rgba(110, 231, 255, 0.25)" />
           <PolarAngleAxis
@@ -410,12 +443,12 @@ export function MultiRadarChart({
   height?: number;
 }>) {
   const { ref, width } = useMeasuredWidth();
-  const chartWidth = Math.max(0, width);
-  const chartHeight = Math.max(0, Math.floor(height));
+  const chartWidth = Math.max(1, width);
+  const chartHeight = Math.max(1, Math.floor(height));
 
   return (
-    <div ref={ref} className={`${styles.chart} ${styles.chartTall}`} style={{ height: chartHeight }}>
-      {chartWidth > 0 && chartHeight > 0 ? (
+    <div ref={ref} className={`${styles.chart} ${styles.chartTall}`} style={{ height: chartHeight, minHeight: chartHeight }}>
+      {width > 0 && data.length > 0 ? (
         <RadarChart cx="50%" cy="50%" outerRadius="65%" width={chartWidth} height={chartHeight} data={data}>
           <PolarGrid stroke="rgba(110, 231, 255, 0.25)" />
           <PolarAngleAxis
@@ -501,27 +534,27 @@ export function TreemapChart({
   height?: number;
 }>) {
   const { ref, width } = useMeasuredWidth();
-  const chartWidth = Math.max(0, width);
-  const chartHeight = Math.max(0, Math.floor(height));
+  const chartWidth = Math.max(1, width);
+  const chartHeight = Math.max(1, Math.floor(height));
 
   return (
-    <div ref={ref} className={styles.chart} style={{ height: chartHeight }}>
-      {chartWidth > 0 && chartHeight > 0 ? (
-        <ResponsiveContainer width="100%" height="100%">
-          <Treemap
-            data={data}
-            dataKey="value"
-            aspectRatio={4 / 3}
-            stroke="rgba(5, 7, 13, 0.8)"
-            content={<TreemapContent />}
-          >
-            <Tooltip
-              content={treemapTooltipContent}
-              wrapperStyle={{ zIndex: 9999 }}
-              allowEscapeViewBox={{ x: true, y: true }}
-            />
-          </Treemap>
-        </ResponsiveContainer>
+    <div ref={ref} className={styles.chart} style={{ height: chartHeight, minHeight: chartHeight }}>
+      {width > 0 && data.length > 0 ? (
+        <Treemap
+          width={chartWidth}
+          height={chartHeight}
+          data={data}
+          dataKey="value"
+          aspectRatio={4 / 3}
+          stroke="rgba(5, 7, 13, 0.8)"
+          content={<TreemapContent />}
+        >
+          <Tooltip
+            content={treemapTooltipContent}
+            wrapperStyle={{ zIndex: 9999 }}
+            allowEscapeViewBox={{ x: true, y: true }}
+          />
+        </Treemap>
       ) : null}
     </div>
   );
@@ -539,8 +572,8 @@ export function GaugeChart({
   height?: number;
 }>) {
   const { ref, width } = useMeasuredWidth();
-  const chartWidth = Math.max(0, width);
-  const chartHeight = Math.max(0, Math.floor(height));
+  const chartWidth = Math.max(1, width);
+  const chartHeight = Math.max(1, Math.floor(height));
   
   const percentage = Math.min(100, Math.max(0, (value / max) * 100));
   const data = [
@@ -549,8 +582,8 @@ export function GaugeChart({
   ];
 
   return (
-    <div ref={ref} className={styles.gaugeContainer} style={{ height: chartHeight }}>
-      {chartWidth > 0 && chartHeight > 0 ? (
+    <div ref={ref} className={styles.gaugeContainer} style={{ height: chartHeight, minHeight: chartHeight }}>
+      {width > 0 ? (
         <div className={styles.gaugeWrapper}>
           <PieChart width={chartWidth} height={chartHeight}>
             <Pie
