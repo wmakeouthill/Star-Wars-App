@@ -72,3 +72,4 @@ build/
 # Test output
 .vitest/
 
+.vercel

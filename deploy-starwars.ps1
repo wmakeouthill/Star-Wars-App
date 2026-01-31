@@ -1,10 +1,16 @@
 $ErrorActionPreference = "Stop"
 
 <#
-Deploy Cloud Run (backend Python only) — build local + push + deploy
+Deploy Cloud Run (Star Wars backend Python) — build local + push + deploy
 
-Uso:
-  .\deploy-cloud-run-backend-only.ps1 -ProjectId "seu-projeto" -Region "southamerica-east1"
+Uso (modo rápido, sem parâmetros):
+  .\deploy-starwars.ps1
+
+APIs mínimas que este script habilita:
+  - run.googleapis.com
+  - secretmanager.googleapis.com
+  - artifactregistry.googleapis.com
+  - iam.googleapis.com (para criar Service Account)
 
 Nota importante:
   Cloud Run SEMPRE precisa puxar a imagem de um registry (não existe “deploy direto do Docker local”).
@@ -12,25 +18,60 @@ Nota importante:
 #>
 
 param(
-  [Parameter(Mandatory = $true)]
-  [string]$ProjectId,
+  [Parameter(Mandatory = $false)]
+  [string]$ProjectId = "star-wars-app-485918",
 
   [Parameter(Mandatory = $false)]
   [string]$Region = "southamerica-east1",
 
   [Parameter(Mandatory = $false)]
-  [string]$ServiceName = "holocron-backend",
+  [string]$ServiceName = "star-wars-backend",
 
   [Parameter(Mandatory = $false)]
   [string]$ArtifactRepo = "cloud-run",
 
   [Parameter(Mandatory = $false)]
-  [string]$ImageTag = "latest"
+  [string]$ImageTag = "latest",
+
+  # Service Account (runtime) do Cloud Run
+  # Este "usuário" é o que precisa de roles/secretmanager.secretAccessor
+  [Parameter(Mandatory = $false)]
+  [string]$RuntimeServiceAccountId = "star-wars-cloudrun-runtime",
+
+  # Google OAuth (NÃO é secret, mas é obrigatório se você usa login Google)
+  [Parameter(Mandatory = $false)]
+  [string]$GoogleOauthClientId = "506724076071-92k26dvdmapll0lqj1crc4onq69am7o1.apps.googleusercontent.com",
+
+  # Cookies (refresh token)
+  # Em produção (HTTPS) => Secure=true
+  # Se frontend estiver em domínio diferente do backend, normalmente precisa SameSite=none.
+  [Parameter(Mandatory = $false)]
+  [bool]$AuthCookieSecure = $true,
+
+  [Parameter(Mandatory = $false)]
+  [string]$AuthCookieSameSite = "none",
+
+  # DB (não-secret; a senha vem do Secret Manager)
+  [Parameter(Mandatory = $false)]
+  [string]$DatabaseHost = "postgresql.uhserver.com",
+
+  [Parameter(Mandatory = $false)]
+  [int]$DatabasePort = 5432,
+
+  [Parameter(Mandatory = $false)]
+  [string]$DatabaseName = "star_wars_app",
+
+  [Parameter(Mandatory = $false)]
+  [string]$DatabaseUsername = "wmakeouthill",
+
+  # CORS (ajuste depois para o domínio real do frontend)
+  [Parameter(Mandatory = $false)]
+  [string]$CorsAllowOrigins = "http://localhost:5173,http://127.0.0.1:5173"
 )
 
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  Cloud Run Deploy (Backend Python)" -ForegroundColor Cyan
-Write-Host "  Build local + Push + Deploy" -ForegroundColor Cyan
+Write-Host "  Cloud Run Deploy (Star Wars Backend)" -ForegroundColor Cyan
+Write-Host "  Project: $ProjectId | Region: $Region" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -58,7 +99,8 @@ Write-Host "[2/6] Habilitando APIs mínimas..." -ForegroundColor Green
 $apis = @(
   "run.googleapis.com",
   "secretmanager.googleapis.com",
-  "artifactregistry.googleapis.com"
+  "artifactregistry.googleapis.com",
+  "iam.googleapis.com"
 )
 foreach ($api in $apis) {
   Write-Host " - $api" -ForegroundColor Yellow
@@ -66,17 +108,34 @@ foreach ($api in $apis) {
 }
 
 Write-Host ""
-Write-Host "[3/6] Preparando IAM para ler secrets..." -ForegroundColor Green
+Write-Host "[3/6] Criando/ajustando Service Account (runtime)..." -ForegroundColor Green
 $projectNumber = (gcloud projects describe $ProjectId --format="value(projectNumber)" 2>$null).ToString().Trim()
 if ([string]::IsNullOrWhiteSpace($projectNumber)) {
   Write-Host "ERRO: não consegui descobrir projectNumber." -ForegroundColor Red
   exit 1
 }
-$runtimeSa = "$projectNumber-compute@developer.gserviceaccount.com"
-Write-Host "Runtime SA (assumido): $runtimeSa" -ForegroundColor Cyan
+
+$runtimeSaEmail = "$RuntimeServiceAccountId@$ProjectId.iam.gserviceaccount.com"
+Write-Host "Runtime SA (dedicado): $runtimeSaEmail" -ForegroundColor Cyan
+
+# Criar SA se não existir
+gcloud iam service-accounts describe $runtimeSaEmail --project $ProjectId 2>$null | Out-Null
+if ($LASTEXITCODE -ne 0) {
+  Write-Host "Criando Service Account '$RuntimeServiceAccountId'..." -ForegroundColor Yellow
+  gcloud iam service-accounts create $RuntimeServiceAccountId `
+    --display-name="Star Wars Cloud Run Runtime" `
+    --project $ProjectId | Out-Null
+}
+
+# Permissões mínimas para o runtime ler secrets
 gcloud projects add-iam-policy-binding $ProjectId `
-  --member="serviceAccount:$runtimeSa" `
+  --member="serviceAccount:$runtimeSaEmail" `
   --role="roles/secretmanager.secretAccessor" | Out-Null
+
+# (Opcional, mas ajuda a evitar erro de pull/artefatos em alguns setups)
+gcloud projects add-iam-policy-binding $ProjectId `
+  --member="serviceAccount:$runtimeSaEmail" `
+  --role="roles/artifactregistry.reader" | Out-Null
 
 Write-Host ""
 Write-Host "[4/6] Artifact Registry (repo Docker)..." -ForegroundColor Green
@@ -108,16 +167,15 @@ if ($LASTEXITCODE -ne 0) { throw "Falha no push da imagem." }
 Write-Host ""
 Write-Host "[6/6] Deploy no Cloud Run (free-tier friendly)..." -ForegroundColor Green
 
-# Secrets recomendados (nomes) -> env vars usadas pelo app
-# - DATABASE_HOST/PORT/NAME/USERNAME podem ser env vars normais (não-secret).
-# - Senhas/chaves devem ser Secret Manager.
+# Secrets (nomes) -> env vars usadas pelo app:
+# Obrigatórios:
+# - holocron-db-password -> DATABASE_PASSWORD
+# - holocron-jwt-secret-key -> JWT_SECRET_KEY
+# Opcional:
+# - holocron-openai-api-key -> OPENAI_API_KEY
 $requiredSecrets = @(
   "holocron-jwt-secret-key",
   "holocron-db-password"
-)
-
-$optionalSecrets = @(
-  "holocron-openai-api-key"
 )
 
 $missing = @()
@@ -143,14 +201,12 @@ $secretsArg = @(
 )
 if ($hasOpenAi) { $secretsArg += "OPENAI_API_KEY=holocron-openai-api-key:latest" }
 
-# Ajuste CORS para o domínio do seu frontend em produção
-$cors = "http://localhost:5173,http://127.0.0.1:5173"
-
 gcloud run deploy $ServiceName `
   --image $image `
   --region $Region `
   --platform managed `
   --allow-unauthenticated `
+  --service-account $runtimeSaEmail `
   --memory 512Mi `
   --cpu 1 `
   --timeout 60 `
@@ -159,11 +215,12 @@ gcloud run deploy $ServiceName `
   --concurrency 20 `
   --port 8080 `
   --set-secrets=($secretsArg -join ",") `
-  --set-env-vars="APP_NAME=Holocron Analytics API,APP_VERSION=0.1.0,JWT_ISSUER=holocron-analytics,JWT_ACCESS_TTL_SECONDS=900,JWT_REFRESH_TTL_SECONDS=2592000,AUTH_COOKIE_SECURE=true,AUTH_COOKIE_SAMESITE=lax,CORS_ALLOW_ORIGINS=$cors,DATABASE_HOST=postgresql.uhserver.com,DATABASE_PORT=5432,DATABASE_NAME=star_wars_app,DATABASE_USERNAME=wmakeouthill,AI_ENABLED=false,AI_PROVIDER=openai,OPENAI_MODEL=gpt-4o-mini,SWAPI_BASE_URL=https://swapi.dev/api,CACHE_TTL_SECONDS=3600" `
+  --set-env-vars="^~^APP_NAME=Holocron Analytics API~APP_VERSION=0.1.0~JWT_ISSUER=holocron-analytics~JWT_ACCESS_TTL_SECONDS=900~JWT_REFRESH_TTL_SECONDS=2592000~GOOGLE_OAUTH_CLIENT_ID=$GoogleOauthClientId~AUTH_COOKIE_SECURE=$AuthCookieSecure~AUTH_COOKIE_SAMESITE=$AuthCookieSameSite~CORS_ALLOW_ORIGINS=$CorsAllowOrigins~DATABASE_HOST=$DatabaseHost~DATABASE_PORT=$DatabasePort~DATABASE_NAME=$DatabaseName~DATABASE_USERNAME=$DatabaseUsername~AI_ENABLED=false~AI_PROVIDER=openai~OPENAI_MODEL=gpt-4o-mini~SWAPI_BASE_URL=https://swapi.dev/api~CACHE_TTL_SECONDS=3600" `
   --project $ProjectId
 
 $serviceUrl = (gcloud run services describe $ServiceName --region $Region --format="value(status.url)" --project $ProjectId 2>$null).ToString().Trim()
 Write-Host ""
 Write-Host "OK: Deploy concluído." -ForegroundColor Green
+Write-Host "Serviço: $ServiceName" -ForegroundColor Cyan
 Write-Host "URL: $serviceUrl" -ForegroundColor Cyan
 
