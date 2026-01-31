@@ -138,10 +138,22 @@ export async function apiGet<T>(
     const headers: Record<string, string> = { [USER_ID_HEADER]: getUserId() };
     if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
-    const response = await fetchWithAuthRetry(buildUrl(path, params), {
+    const url = buildUrl(path, params);
+    const response = await fetchWithAuthRetry(url, {
         credentials: 'include',
         headers,
     });
+    // O backend pode responder 304 (ETag) em GET; dependendo do modo de cache do browser,
+    // isso pode chegar ao JS sem body. Nesse caso, refazemos o GET bypassando o cache
+    // para garantir um 200 com JSON (correção defensiva).
+    if (response.status === 304) {
+      const retry = await fetchWithAuthRetry(url, {
+        credentials: 'include',
+        headers,
+        cache: 'no-store',
+      });
+      return handleResponse<T>(retry);
+    }
     return handleResponse<T>(response);
 }
 

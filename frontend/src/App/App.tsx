@@ -13,6 +13,7 @@ import { SpeciesPage } from '@/features/species/pages/SpeciesPage/SpeciesPage';
 import { AuthProvider } from '@/features/auth/context/AuthProvider';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { LoginPage } from '@/features/auth/pages/LoginPage/LoginPage';
+import { AuthLoadingPage } from '@/features/auth/pages/AuthLoadingPage';
 import { UserMenu } from '@/features/auth/components/UserMenu/UserMenu';
 import { PageLayout } from '@/shared/components/PageLayout';
 import { StarfieldEvents } from '@/shared/components/StarfieldEvents';
@@ -23,6 +24,10 @@ function AppShell() {
   const { activeSection, navigationItems, setActiveSection } = useAppNavigation();
   const [language, setLanguage] = useState<'en' | 'pt-BR'>('en');
   const { status } = useAuth();
+
+  if (status === 'loading') {
+    return <AuthLoadingPage />;
+  }
 
   if (status !== 'authenticated') {
     return <LoginPage />;
