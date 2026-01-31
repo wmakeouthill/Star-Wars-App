@@ -543,7 +543,7 @@ class ChatService:
                         return entity_ctx
             
             # Também tenta extrair tema das últimas mensagens do assistente
-            for item in reversed(context or [])[:3]:
+            for item in list(reversed(context or []))[:3]:
                 if getattr(item, "role", "") == "assistant":
                     content = getattr(item, "content", "")
                     # Extrai nomes/temas mencionados na resposta
@@ -597,16 +597,38 @@ class ChatService:
         return None
 
     async def _route_structured_intent(self, persona: str, message: str, context: List) -> ChatResponse | None:
-        # Perguntas de opinião com pronomes ("dele/dela/ele/ela/isso") devem usar o último alvo mencionado.
-        if self._is_opinion_question(message) and self._message_mentions_pronoun(message):
-            last = self._last_entity_from_context(context)
-            if last and last.get("name"):
-                if last.get("type") == "character":
-                    return await self._respond_character(persona, message, context, name_override=last["name"])
-                if last.get("type") == "planet":
-                    return await self._respond_planet(persona, message, context, name_override=last["name"])
-                if last.get("type") == "film":
-                    return await self._respond_film(persona, message, context, name_override=last["name"])
+        # IMPORTANTE: Pré-processa para detectar nomes de droides PRIMEIRO
+        # Isso evita que "r2 d2" seja ignorado em favor de pronomes
+        preprocessed_message = preprocess_droid_names(message)
+        
+        # Extrai entidade explícita da mensagem (se houver)
+        # Faz isso ANTES de verificar pronomes, para que "r2 d2? o que acha dele" 
+        # detecte R2-D2 em vez de usar "dele" do contexto
+        explicit_entity = self._extract_explicit_entity(preprocessed_message)
+        
+        # Perguntas de opinião: primeiro verifica se há entidade explícita na mensagem
+        if self._is_opinion_question(message):
+            # Se tem entidade explícita, usa ela (não o contexto)
+            if explicit_entity and explicit_entity.get("name"):
+                entity_type = explicit_entity.get("type", "character")
+                entity_name = explicit_entity["name"]
+                if entity_type == "character":
+                    return await self._respond_character(persona, message, context, name_override=entity_name)
+                if entity_type == "planet":
+                    return await self._respond_planet(persona, message, context, name_override=entity_name)
+                if entity_type == "film":
+                    return await self._respond_film(persona, message, context, name_override=entity_name)
+            
+            # Se não tem entidade explícita mas tem pronome, usa o contexto
+            if self._message_mentions_pronoun(message):
+                last = self._last_entity_from_context(context)
+                if last and last.get("name"):
+                    if last.get("type") == "character":
+                        return await self._respond_character(persona, message, context, name_override=last["name"])
+                    if last.get("type") == "planet":
+                        return await self._respond_planet(persona, message, context, name_override=last["name"])
+                    if last.get("type") == "film":
+                        return await self._respond_film(persona, message, context, name_override=last["name"])
 
         # NOVA LÓGICA: Perguntas de categoria ("o r2d2 é um robô?")
         entity_name, category = self._is_category_question(message)
@@ -1486,6 +1508,76 @@ class ChatService:
 
         return None
 
+    def _extract_explicit_entity(self, message: str) -> dict[str, str] | None:
+        """
+        Extrai entidade EXPLICITAMENTE mencionada na mensagem.
+        
+        Isso é diferente de resolver pronomes - aqui procuramos nomes reais.
+        
+        Exemplos:
+            "r2 d2? o que acha dele" -> {"type": "character", "name": "R2-D2"}
+            "luke skywalker, gosta dele?" -> {"type": "character", "name": "Luke Skywalker"}
+            "o que acha dele?" -> None (só tem pronome)
+        """
+        if not message:
+            return None
+        
+        # Pré-processa para detectar droides (converte "r2 d2" -> "R2-D2")
+        preprocessed = preprocess_droid_names(message)
+        
+        # Normaliza para comparação (remove acentos, lowercase, etc.)
+        lowered = self._normalize_text(preprocessed)
+        original_lowered = self._normalize_text(message)
+        
+        # PRIORIDADE 1: Verifica se o preprocess detectou um droide
+        # Se "R2-D2" está no preprocessed mas não no original, foi detectado
+        droid_names = ["r2 d2", "r2d2", "c 3po", "c3po", "bb 8", "bb8", "k 2so", "ig 88", "ig 11"]
+        for droid in droid_names:
+            if droid in original_lowered:
+                # Encontrou um padrão de droide, verifica no alias
+                if droid in CHARACTER_ALIASES:
+                    return {"type": "character", "name": CHARACTER_ALIASES[droid]}
+                # Tenta sem espaço
+                droid_no_space = droid.replace(" ", "")
+                if droid_no_space in CHARACTER_ALIASES:
+                    return {"type": "character", "name": CHARACTER_ALIASES[droid_no_space]}
+        
+        # PRIORIDADE 2: Verifica aliases de personagens (ordenados por tamanho, maior primeiro)
+        # Isso garante que "luke skywalker" seja encontrado antes de "luke"
+        sorted_char_aliases = sorted(CHARACTER_ALIASES.items(), key=lambda x: len(x[0]), reverse=True)
+        for alias, canonical in sorted_char_aliases:
+            alias_normalized = self._normalize_text(alias)
+            if len(alias_normalized) >= 2 and alias_normalized in lowered:
+                # Evita falsos positivos com aliases muito curtos
+                if len(alias_normalized) <= 2 and alias_normalized not in ["r2", "c3", "bb", "ig"]:
+                    continue
+                return {"type": "character", "name": canonical}
+        
+        # PRIORIDADE 3: Verifica aliases de planetas
+        for alias, canonical in PLANET_ALIASES.items():
+            alias_normalized = self._normalize_text(alias)
+            if len(alias_normalized) >= 3 and alias_normalized in lowered:
+                return {"type": "planet", "name": canonical}
+        
+        # PRIORIDADE 4: Verifica aliases de filmes
+        for alias, canonical in FILM_ALIASES.items():
+            alias_normalized = self._normalize_text(alias)
+            if len(alias_normalized) >= 3 and alias_normalized in lowered:
+                return {"type": "film", "name": canonical}
+        
+        # PRIORIDADE 5: Extrai keywords e verifica se alguma é um nome conhecido
+        keywords = extract_keywords(message)
+        for keyword in keywords:
+            # Verifica se a keyword é um alias
+            if keyword in CHARACTER_ALIASES:
+                return {"type": "character", "name": CHARACTER_ALIASES[keyword]}
+            if keyword in PLANET_ALIASES:
+                return {"type": "planet", "name": PLANET_ALIASES[keyword]}
+            if keyword in FILM_ALIASES:
+                return {"type": "film", "name": FILM_ALIASES[keyword]}
+        
+        return None
+
     def _is_opinion_question(self, message: str) -> bool:
         text = self._normalize_text(message or "")
         if not text:
@@ -1521,6 +1613,10 @@ class ChatService:
             return None
         if any(word in lowered for word in {"fale", "conversar", "sobre", "personagem", "planeta", "filme", "episodio"}):
             return None
+        
+        # IMPORTANTE: Verifica se é uma categoria (robôs, jedis, etc.) antes de assumir personagem
+        if is_robot_query(lowered) or self._is_category_query(lowered):
+            return None  # Deixa o fluxo de categoria/RAG responder
 
         # Verifica se é um alias conhecido (mesmo com 1 palavra)
         if lowered in CHARACTER_ALIASES:
@@ -1700,7 +1796,7 @@ class ChatService:
                 context_theme = last_entity.get("type")
             
             # Também verifica as últimas mensagens para detectar o tema
-            for item in reversed(context or [])[:5]:
+            for item in list(reversed(context or []))[:5]:
                 content = getattr(item, "content", "").lower()
                 if not content:
                     continue
