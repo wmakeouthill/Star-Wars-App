@@ -77,9 +77,17 @@ async function prefetchPages<T>(
   return firstPageData;
 }
 
+interface UsePrefetchAllDataOptions {
+  /** Se true, executa o prefetch. Default: true */
+  enabled?: boolean;
+}
+
 /**
  * Hook que faz prefetch de todos os dados necessários para o aplicativo
  * funcionar de forma fluida em TODAS as páginas.
+ * 
+ * IMPORTANTE: Este hook só deve ser chamado quando o usuário está autenticado.
+ * Use a opção `enabled` para controlar quando o prefetch deve ser executado.
  * 
  * Estratégia em 6 fases:
  * 
@@ -108,12 +116,23 @@ async function prefetchPages<T>(
  * - ✅ Filmes
  * - ✅ Gamificação (incluindo Quiz)
  */
-export function usePrefetchAllData() {
+export function usePrefetchAllData(options: UsePrefetchAllDataOptions = {}) {
+  const { enabled = true } = options;
   const queryClient = useQueryClient();
   const hasPrefetched = useRef(false);
 
+  // Reseta o flag quando o usuário faz logout (enabled muda para false)
   useEffect(() => {
-    // Evita múltiplas execuções
+    if (!enabled) {
+      hasPrefetched.current = false;
+    }
+  }, [enabled]);
+
+  useEffect(() => {
+    // Não executa se desabilitado (ex: usuário não autenticado)
+    if (!enabled) return;
+    
+    // Evita múltiplas execuções enquanto autenticado
     if (hasPrefetched.current) return;
     hasPrefetched.current = true;
 

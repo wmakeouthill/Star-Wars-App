@@ -1,14 +1,17 @@
 import { PropsWithChildren, useCallback, useEffect, useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { AuthContext, AuthStatus } from './AuthContext';
 import { AuthUser } from '../types/auth.types';
 import { loginWithGoogleCredential, logout as logoutApi, refreshSession } from '../services/auth.service';
 import type { ApiError } from '@/shared/services/api';
+import { clearSessionStorage } from '@/shared/services/api';
 
 // Em dev (React StrictMode), efeitos podem disparar duas vezes no mount.
 // Como isso é um provider global, garantimos apenas 1 tentativa de refresh por carga.
 let didAttemptInitialRefresh = false;
 
 export function AuthProvider({ children }: Readonly<PropsWithChildren>) {
+  const queryClient = useQueryClient();
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [user, setUser] = useState<AuthUser | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -57,10 +60,13 @@ export function AuthProvider({ children }: Readonly<PropsWithChildren>) {
     try {
       await logoutApi();
     } finally {
+      // Limpa todos os dados em cache para garantir logout completo
+      queryClient.clear();
+      clearSessionStorage();
       setUser(null);
       setStatus('unauthenticated');
     }
-  }, []);
+  }, [queryClient]);
 
   useEffect(() => {
     if (didAttemptInitialRefresh) return;

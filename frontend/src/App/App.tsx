@@ -26,15 +26,16 @@ function AppShell() {
   const [language, setLanguage] = useState<'en' | 'pt-BR'>('en');
   const { status } = useAuth();
 
-  // Prefetch de todos os dados em background após autenticação
+  // Prefetch de todos os dados em background SOMENTE após autenticação confirmada
   // Isso garante navegação rápida e dados disponíveis para o quiz
-  usePrefetchAllData();
+  const isAuthenticated = status === 'authenticated';
+  usePrefetchAllData({ enabled: isAuthenticated });
 
   if (status === 'loading') {
     return <AuthLoadingPage />;
   }
 
-  if (status !== 'authenticated') {
+  if (!isAuthenticated) {
     return <LoginPage />;
   }
 

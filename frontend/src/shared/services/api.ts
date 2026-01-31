@@ -24,6 +24,18 @@ export function setAccessToken(token: string | null) {
   accessToken = token;
 }
 
+/**
+ * Limpa todos os dados de sessão do localStorage.
+ * Usado no logout para garantir que o usuário seja completamente deslogado.
+ */
+export function clearSessionStorage() {
+  try {
+    localStorage.removeItem(USER_ID_STORAGE_KEY);
+  } catch {
+    // Ignora erros de storage (modo privado, etc.)
+  }
+}
+
 function getUserId(): string {
     try {
         const existing = localStorage.getItem(USER_ID_STORAGE_KEY);
