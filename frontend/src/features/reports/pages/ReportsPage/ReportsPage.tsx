@@ -99,8 +99,34 @@ export function ReportsPage() {
               <VerticalBarChart data={report?.films.byYear ?? []} height={300} />
               <HorizontalBarChart
                 data={report?.films.byDirector ?? []}
-                height={Math.min(480, 140 + (report?.films.byDirector.length ?? 0) * 30)}
+                height={Math.max(300, Math.min(480, 140 + (report?.films.byDirector.length ?? 0) * 30))}
               />
+            </div>
+
+            <div className={styles.filmsPreviewHeader}>
+              <div className={styles.filmsPreviewTitle}>Filmes (amostra)</div>
+              <div className={styles.filmsPreviewHint}>
+                {report?.films.preview?.length ? `Mostrando ${report.films.preview.length} de ${report.totals.films}` : '—'}
+              </div>
+            </div>
+            <div className={styles.filmsPreview}>
+              {(report?.films.preview ?? []).map((film) => (
+                <article key={film.id} className={styles.filmCard}>
+                  <div className={styles.filmCardTitleRow}>
+                    <div className={styles.filmCardTitle}>
+                      Ep. {film.episode_id} · {film.title}
+                    </div>
+                    <div className={styles.filmCardYear}>{(film.release_date ?? '').slice(0, 4) || '—'}</div>
+                  </div>
+                  <div className={styles.filmCardMeta}>
+                    Diretor: {film.director || '—'} · Produtor: {film.producer || '—'}
+                  </div>
+                  <div className={styles.filmCardCounts}>
+                    Personagens: {film.characters_count ?? 0} · Planetas: {film.planets_count ?? 0} · Naves:{' '}
+                    {film.starships_count ?? 0}
+                  </div>
+                </article>
+              ))}
             </div>
           </div>
         </ReportPanel>

@@ -12,10 +12,18 @@ import { PlanetCard } from '@/features/planets/components/PlanetCard';
 import { usePlanetDetails } from '@/features/planets/hooks/usePlanetDetails';
 import { usePlanets } from '@/features/planets/hooks/usePlanets';
 import type { Planet } from '@/features/planets/types/planets.types';
+import { SpeciesCard } from '@/features/species/components/SpeciesCard';
+import { useSpeciesDetails } from '@/features/species/hooks/useSpeciesDetails';
+import { useSpecies } from '@/features/species/hooks/useSpecies';
+import type { Species } from '@/features/species/types/species.types';
 import { StarshipCard } from '@/features/starships/components/StarshipCard';
 import { useStarshipDetails } from '@/features/starships/hooks/useStarshipDetails';
 import { useStarships } from '@/features/starships/hooks/useStarships';
 import type { Starship } from '@/features/starships/types/starships.types';
+import { VehicleCard } from '@/features/vehicles/components/VehicleCard';
+import { useVehicleDetails } from '@/features/vehicles/hooks/useVehicleDetails';
+import { useVehicles } from '@/features/vehicles/hooks/useVehicles';
+import type { Vehicle } from '@/features/vehicles/types/vehicles.types';
 import { Pagination } from '@/shared/components';
 import styles from './DashboardPage.module.css';
 
@@ -27,6 +35,8 @@ type DetailsState =
   | { kind: 'character'; id: string; title: string; data: Character }
   | { kind: 'planet'; id: string; title: string; data: Planet }
   | { kind: 'starship'; id: string; title: string; data: Starship }
+  | { kind: 'vehicle'; id: string; title: string; data: Vehicle }
+  | { kind: 'species'; id: string; title: string; data: Species }
   | { kind: 'film'; id: string; title: string; data: Film };
 
 export function DashboardPage() {
@@ -44,6 +54,14 @@ export function DashboardPage() {
 
   const [starshipsManufacturer, setStarshipsManufacturer] = useState('');
   const [starshipsPage, setStarshipsPage] = useState(1);
+
+  const [vehiclesManufacturer, setVehiclesManufacturer] = useState('');
+  const [vehiclesClass, setVehiclesClass] = useState('');
+  const [vehiclesPage, setVehiclesPage] = useState(1);
+
+  const [speciesClassification, setSpeciesClassification] = useState('');
+  const [speciesLanguage, setSpeciesLanguage] = useState('');
+  const [speciesPage, setSpeciesPage] = useState(1);
 
   const [filmsDirector, setFilmsDirector] = useState('');
   const [filmsPage, setFilmsPage] = useState(1);
@@ -80,6 +98,8 @@ export function DashboardPage() {
     setCharactersPage(1);
     setPlanetsPage(1);
     setStarshipsPage(1);
+    setVehiclesPage(1);
+    setSpeciesPage(1);
     setFilmsPage(1);
     setFilmCharactersPage(1);
   }, [dashboardPageSize]);
@@ -121,6 +141,32 @@ export function DashboardPage() {
     [globalQuery, starshipsManufacturer, starshipsPage, dashboardPageSize]
   );
 
+  const vehiclesFilters = useMemo(
+    () => ({
+      name: globalQuery || undefined,
+      manufacturer: vehiclesManufacturer || undefined,
+      vehicleClass: vehiclesClass || undefined,
+      sortBy: 'name' as const,
+      sortOrder: 'asc' as const,
+      page: vehiclesPage,
+      pageSize: dashboardPageSize,
+    }),
+    [globalQuery, vehiclesManufacturer, vehiclesClass, vehiclesPage, dashboardPageSize]
+  );
+
+  const speciesFilters = useMemo(
+    () => ({
+      name: globalQuery || undefined,
+      classification: speciesClassification || undefined,
+      language: speciesLanguage || undefined,
+      sortBy: 'name' as const,
+      sortOrder: 'asc' as const,
+      page: speciesPage,
+      pageSize: dashboardPageSize,
+    }),
+    [globalQuery, speciesClassification, speciesLanguage, speciesPage, dashboardPageSize]
+  );
+
   const filmsFilters = useMemo(
     () => ({
       title: globalQuery || undefined,
@@ -136,6 +182,8 @@ export function DashboardPage() {
   const charactersQuery = useCharacters(charactersFilters);
   const planetsQuery = usePlanets(planetsFilters);
   const starshipsQuery = useStarships(starshipsFilters);
+  const vehiclesQuery = useVehicles(vehiclesFilters);
+  const speciesQuery = useSpecies(speciesFilters);
   const filmsQuery = useFilms(filmsFilters);
   const filmCharactersQuery = useFilmCharacters(selectedFilmId, filmCharactersPage, dashboardPageSize);
 
@@ -144,6 +192,8 @@ export function DashboardPage() {
   );
   const planetDetailsQuery = usePlanetDetails(details?.kind === 'planet' ? details.id : null);
   const starshipDetailsQuery = useStarshipDetails(details?.kind === 'starship' ? details.id : null);
+  const vehicleDetailsQuery = useVehicleDetails(details?.kind === 'vehicle' ? details.id : null);
+  const speciesDetailsQuery = useSpeciesDetails(details?.kind === 'species' ? details.id : null);
   const filmDetailsQuery = useFilmDetails(details?.kind === 'film' ? details.id : null);
 
   useEffect(() => {
@@ -177,9 +227,11 @@ export function DashboardPage() {
               setCharactersPage(1);
               setPlanetsPage(1);
               setStarshipsPage(1);
+              setVehiclesPage(1);
+              setSpeciesPage(1);
               setFilmsPage(1);
             }}
-            placeholder="Buscar em toda a galáxia… (nome, planeta, nave, filme)"
+            placeholder="Buscar em toda a galáxia… (personagens, planetas, naves, veículos, espécies, filmes)"
           />
           <button
             type="button"
@@ -190,12 +242,18 @@ export function DashboardPage() {
               setCharactersFilmId('');
               setPlanetsClimate('');
               setStarshipsManufacturer('');
+              setVehiclesManufacturer('');
+              setVehiclesClass('');
+              setSpeciesClassification('');
+              setSpeciesLanguage('');
               setFilmsDirector('');
               setSelectedFilmId(null);
               setFilmCharactersPage(1);
               setCharactersPage(1);
               setPlanetsPage(1);
               setStarshipsPage(1);
+              setVehiclesPage(1);
+              setSpeciesPage(1);
               setFilmsPage(1);
             }}
           >
@@ -215,6 +273,14 @@ export function DashboardPage() {
           <div className={styles.statChip}>
             <span className={styles.statLabel}>🚀 Naves</span>
             <span className={styles.statValue}>{starshipsQuery.data?.meta.total ?? '—'}</span>
+          </div>
+          <div className={styles.statChip}>
+            <span className={styles.statLabel}>🛻 Veículos</span>
+            <span className={styles.statValue}>{vehiclesQuery.data?.meta.total ?? '—'}</span>
+          </div>
+          <div className={styles.statChip}>
+            <span className={styles.statLabel}>🧬 Espécies</span>
+            <span className={styles.statValue}>{speciesQuery.data?.meta.total ?? '—'}</span>
           </div>
           <div className={styles.statChip}>
             <span className={styles.statLabel}>🎬 Filmes</span>
@@ -387,6 +453,130 @@ export function DashboardPage() {
                 page={starshipsPage}
                 totalPages={starshipsQuery.data.meta.total_pages}
                 onPageChange={setStarshipsPage}
+              />
+            )}
+          </footer>
+        </section>
+
+        <section className={styles.panel}>
+          <header className={styles.panelHeader}>
+            <h2 className={styles.panelTitle}>🛻 Veículos</h2>
+            <div className={styles.panelControls}>
+              <input
+                className={styles.panelInput}
+                value={vehiclesManufacturer}
+                onChange={(e) => {
+                  setVehiclesManufacturer(e.target.value);
+                  setVehiclesPage(1);
+                }}
+                placeholder="Fabricante"
+              />
+              <input
+                className={styles.panelInput}
+                value={vehiclesClass}
+                onChange={(e) => {
+                  setVehiclesClass(e.target.value);
+                  setVehiclesPage(1);
+                }}
+                placeholder="Classe"
+              />
+            </div>
+          </header>
+
+          <div className={styles.panelBody}>
+            {vehiclesQuery.isLoading && <p className={styles.status}>Carregando veículos...</p>}
+            {vehiclesQuery.isError && <p className={styles.status}>Erro ao carregar veículos.</p>}
+
+            <div
+              className={styles.cardsGrid}
+              style={{ ['--cards-cols' as never]: dashboardPageSize } as React.CSSProperties}
+            >
+              {(vehiclesQuery.data?.items ?? []).map((vehicle) => (
+                <VehicleCard
+                  key={vehicle.id}
+                  vehicle={vehicle}
+                  variant="compact"
+                  onViewDetails={() =>
+                    setDetails({
+                      kind: 'vehicle',
+                      id: vehicle.id,
+                      title: vehicle.name,
+                      data: vehicle,
+                    })
+                  }
+                />
+              ))}
+            </div>
+          </div>
+
+          <footer className={styles.panelFooter}>
+            {vehiclesQuery.data?.meta && (
+              <Pagination
+                page={vehiclesPage}
+                totalPages={vehiclesQuery.data.meta.total_pages}
+                onPageChange={setVehiclesPage}
+              />
+            )}
+          </footer>
+        </section>
+
+        <section className={styles.panel}>
+          <header className={styles.panelHeader}>
+            <h2 className={styles.panelTitle}>🧬 Espécies</h2>
+            <div className={styles.panelControls}>
+              <input
+                className={styles.panelInput}
+                value={speciesClassification}
+                onChange={(e) => {
+                  setSpeciesClassification(e.target.value);
+                  setSpeciesPage(1);
+                }}
+                placeholder="Classificação"
+              />
+              <input
+                className={styles.panelInput}
+                value={speciesLanguage}
+                onChange={(e) => {
+                  setSpeciesLanguage(e.target.value);
+                  setSpeciesPage(1);
+                }}
+                placeholder="Idioma"
+              />
+            </div>
+          </header>
+
+          <div className={styles.panelBody}>
+            {speciesQuery.isLoading && <p className={styles.status}>Carregando espécies...</p>}
+            {speciesQuery.isError && <p className={styles.status}>Erro ao carregar espécies.</p>}
+
+            <div
+              className={styles.cardsGrid}
+              style={{ ['--cards-cols' as never]: dashboardPageSize } as React.CSSProperties}
+            >
+              {(speciesQuery.data?.items ?? []).map((species) => (
+                <SpeciesCard
+                  key={species.id}
+                  species={species}
+                  variant="compact"
+                  onViewDetails={() =>
+                    setDetails({
+                      kind: 'species',
+                      id: species.id,
+                      title: species.name,
+                      data: species,
+                    })
+                  }
+                />
+              ))}
+            </div>
+          </div>
+
+          <footer className={styles.panelFooter}>
+            {speciesQuery.data?.meta && (
+              <Pagination
+                page={speciesPage}
+                totalPages={speciesQuery.data.meta.total_pages}
+                onPageChange={setSpeciesPage}
               />
             )}
           </footer>
@@ -634,6 +824,38 @@ export function DashboardPage() {
                             .join(', ') || '—'}
                         </p>
                       </>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {details.kind === 'vehicle' && (
+                <>
+                  <VehicleCard vehicle={vehicleDetailsQuery.data ?? details.data} />
+
+                  <div className={styles.detailsSection}>
+                    <h4 className={styles.detailsSectionTitle}>Dados completos</h4>
+                    {vehicleDetailsQuery.isLoading && (
+                      <p className={styles.detailsLine}>Carregando detalhes do veículo...</p>
+                    )}
+                    {vehicleDetailsQuery.isError && (
+                      <p className={styles.detailsLine}>Erro ao carregar detalhes do veículo.</p>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {details.kind === 'species' && (
+                <>
+                  <SpeciesCard species={speciesDetailsQuery.data ?? details.data} />
+
+                  <div className={styles.detailsSection}>
+                    <h4 className={styles.detailsSectionTitle}>Dados completos</h4>
+                    {speciesDetailsQuery.isLoading && (
+                      <p className={styles.detailsLine}>Carregando detalhes da espécie...</p>
+                    )}
+                    {speciesDetailsQuery.isError && (
+                      <p className={styles.detailsLine}>Erro ao carregar detalhes da espécie.</p>
                     )}
                   </div>
                 </>

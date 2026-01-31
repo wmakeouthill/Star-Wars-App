@@ -56,7 +56,7 @@ function tooltipContent({
 export function DonutChart({ data, height = 260 }: Readonly<{ data: ChartDatum[]; height?: number }>) {
   return (
     <div className={styles.chart} style={{ height }}>
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
         <PieChart>
           <Pie data={data} dataKey="value" nameKey="name" innerRadius="55%" outerRadius="80%" paddingAngle={2}>
             {data.map((_, idx) => (
@@ -84,7 +84,7 @@ export function VerticalBarChart({
 }>) {
   return (
     <div className={styles.chart} style={{ height }}>
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
         <BarChart data={data} margin={{ left: 4, right: 12, top: 6, bottom: 34 }}>
           <CartesianGrid stroke="rgba(110, 231, 255, 0.12)" strokeDasharray="4 4" />
           <XAxis
@@ -123,7 +123,7 @@ export function HorizontalBarChart({
 }>) {
   return (
     <div className={`${styles.chart} ${styles.chartTall}`} style={{ height }}>
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
         <BarChart layout="vertical" data={data} margin={{ left: 12, right: 12, top: 6, bottom: 6 }}>
           <CartesianGrid stroke="rgba(110, 231, 255, 0.12)" strokeDasharray="4 4" />
           <XAxis type="number" stroke="rgba(199, 226, 255, 0.7)" tick={{ fontSize: 12 }} />

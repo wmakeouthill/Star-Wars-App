@@ -25,6 +25,17 @@ export interface ReportsSnapshot {
   films: {
     byDirector: ChartDatum[];
     byYear: ChartDatum[];
+    preview: Array<{
+      id: string;
+      title: string;
+      episode_id: number;
+      release_date: string;
+      director: string;
+      producer: string;
+      characters_count?: number;
+      planets_count?: number;
+      starships_count?: number;
+    }>;
   };
   gamification: {
     totalXp: number;

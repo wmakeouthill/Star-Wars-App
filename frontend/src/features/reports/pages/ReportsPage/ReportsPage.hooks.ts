@@ -179,6 +179,17 @@ export function useReportsPage() {
     const byYear = toTopCounts(filmsItems.map((f) => yearFromDate(f.release_date)), 10).sort((a, b) =>
       a.name.localeCompare(b.name)
     );
+    const filmsPreview = filmsItems.slice(0, 6).map((f) => ({
+      id: f.id,
+      title: f.title,
+      episode_id: f.episode_id,
+      release_date: f.release_date,
+      director: f.director,
+      producer: f.producer,
+      characters_count: f.characters_count,
+      planets_count: f.planets_count,
+      starships_count: f.starships_count,
+    }));
 
     const achievementsUnlocked = achievements.filter((a) => a.unlocked).length;
     const achievementsLocked = Math.max(0, achievements.length - achievementsUnlocked);
@@ -216,6 +227,7 @@ export function useReportsPage() {
       films: {
         byDirector,
         byYear,
+        preview: filmsPreview,
       },
       gamification: {
         totalXp: profile.total_xp,
