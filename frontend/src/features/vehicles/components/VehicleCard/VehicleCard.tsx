@@ -1,7 +1,12 @@
+import { useState } from 'react';
 import { useVehicleCard } from './VehicleCard.hooks';
 import { VehicleCardProps } from './VehicleCard.types';
 import styles from './VehicleCard.module.css';
 import placeholderImage from '@/shared/images/placeholder.svg';
+import { useAuth } from '@/features/auth/context/AuthContext';
+import { useImageEditModeStore } from '@/shared/stores/imageEditMode.store';
+import { canEditImageFallbacks } from '@/shared/utils/imageFallbackAuthorization';
+import { FallbackEditableImage, ImageFallbackEditorModal } from '@/shared/components';
 
 export function VehicleCard({
   vehicle,
@@ -11,6 +16,11 @@ export function VehicleCard({
   const { crewLabel, passengersLabel } = useVehicleCard(vehicle);
   const imageUrl = vehicle.image_url ?? placeholderImage;
   const isCompact = variant === 'compact';
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+
+  const { user } = useAuth();
+  const isImageEditModeEnabled = useImageEditModeStore((state) => state.isEnabled);
+  const canEditImages = canEditImageFallbacks({ userEmail: user?.email, isEditModeEnabled: isImageEditModeEnabled });
 
   const detailsToRender: Array<{ key: string; node: React.ReactNode }> = [
     { key: 'model', node: <>Modelo: {vehicle.model}</> },
@@ -22,18 +32,25 @@ export function VehicleCard({
 
   return (
     <article className={`${styles.card} ${isCompact ? styles.cardCompact : ''}`}>
-      <div className={styles.media} aria-hidden="true">
-        <img
-          className={styles.image}
+      <div className={styles.media} aria-hidden={!canEditImages}>
+        <FallbackEditableImage
+          canEdit={canEditImages}
           src={imageUrl}
           alt={vehicle.name}
-          loading="lazy"
-          decoding="async"
-          onError={(e) => {
-            e.currentTarget.onerror = null;
-            e.currentTarget.src = placeholderImage;
-          }}
+          placeholderSrc={placeholderImage}
+          imgClassName={styles.image}
+          editLabel={`Editar fallback de imagem de ${vehicle.name}`}
+          onEdit={() => setIsEditorOpen(true)}
         />
+        {canEditImages && (
+          <ImageFallbackEditorModal
+            open={isEditorOpen}
+            resource="vehicles"
+            resourceLabel="Veículo"
+            itemName={vehicle.name}
+            onClose={() => setIsEditorOpen(false)}
+          />
+        )}
       </div>
 
       <div className={styles.content}>

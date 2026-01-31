@@ -1,7 +1,7 @@
 import { Film } from '../../types/films.types';
 
 export interface FilmCardProps {
-    film: Film & { image_url?: string | null };
+    film: Film;
     onSelect?: (filmId: string) => void;
     isSelected?: boolean;
     variant?: 'full' | 'compact';

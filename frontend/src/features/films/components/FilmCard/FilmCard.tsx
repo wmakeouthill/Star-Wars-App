@@ -1,7 +1,12 @@
+import { useState } from 'react';
 import { useFilmCard } from './FilmCard.hooks';
 import { FilmCardProps } from './FilmCard.types';
 import styles from './FilmCard.module.css';
 import placeholderImage from '@/shared/images/placeholder.svg';
+import { useAuth } from '@/features/auth/context/AuthContext';
+import { useImageEditModeStore } from '@/shared/stores/imageEditMode.store';
+import { canEditImageFallbacks } from '@/shared/utils/imageFallbackAuthorization';
+import { FallbackEditableImage, ImageFallbackEditorModal } from '@/shared/components';
 
 export function FilmCard({
   film,
@@ -11,8 +16,13 @@ export function FilmCard({
   onViewDetails,
 }: Readonly<FilmCardProps>) {
   const { releaseDate } = useFilmCard(film);
-  const imageUrl = (film as { image_url?: string | null }).image_url ?? placeholderImage;
+  const imageUrl = film.image_url ?? placeholderImage;
   const isCompact = variant === 'compact';
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+
+  const { user } = useAuth();
+  const isImageEditModeEnabled = useImageEditModeStore((state) => state.isEnabled);
+  const canEditImages = canEditImageFallbacks({ userEmail: user?.email, isEditModeEnabled: isImageEditModeEnabled });
 
   const detailsToRender: Array<{ key: string; node: React.ReactNode }> = [
     { key: 'episode', node: <>Episódio: {film.episode_id}</> },
@@ -32,18 +42,25 @@ export function FilmCard({
 
   return (
     <article className={`${styles.card} ${isCompact ? styles.cardCompact : ''}`}>
-      <div className={styles.media} aria-hidden="true">
-        <img
-          className={styles.image}
+      <div className={styles.media} aria-hidden={!canEditImages}>
+        <FallbackEditableImage
+          canEdit={canEditImages}
           src={imageUrl}
           alt={film.title}
-          loading="lazy"
-          decoding="async"
-          onError={(e) => {
-            e.currentTarget.onerror = null;
-            e.currentTarget.src = placeholderImage;
-          }}
+          placeholderSrc={placeholderImage}
+          imgClassName={styles.image}
+          editLabel={`Editar fallback de imagem de ${film.title}`}
+          onEdit={() => setIsEditorOpen(true)}
         />
+        {canEditImages && (
+          <ImageFallbackEditorModal
+            open={isEditorOpen}
+            resource="films"
+            resourceLabel="Filme"
+            itemName={film.title}
+            onClose={() => setIsEditorOpen(false)}
+          />
+        )}
       </div>
 
       <div className={styles.content}>
