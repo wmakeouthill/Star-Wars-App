@@ -14,6 +14,7 @@ const BASE_URL = import.meta.env.DEV
   ? (import.meta.env.VITE_API_BASE_URL?.trim() || 'http://localhost:8000')
   : (globalThis.location?.origin ?? 'http://localhost:8000');
 const USER_ID_HEADER = 'X-User-Id';
+const USER_AUTH_HEADER = 'X-User-Authorization';
 const USER_ID_STORAGE_KEY = 'holocron_user_id';
 const AUTH_REFRESH_PATHNAME = '/api/v1/auth/refresh';
 let accessToken: string | null = null;
@@ -125,7 +126,7 @@ async function fetchWithAuthRetry(input: RequestInfo | URL, init: RequestInit, r
       const next = await refreshAccessToken();
       if (next) {
         const headers = new Headers(init.headers);
-        headers.set('Authorization', `Bearer ${next}`);
+        headers.set(USER_AUTH_HEADER, `Bearer ${next}`);
         return fetch(input, { ...init, headers });
       }
     }
@@ -146,7 +147,7 @@ export async function apiGet<T>(
     params?: Record<string, string | number | boolean | undefined>
 ): Promise<T> {
     const headers: Record<string, string> = { [USER_ID_HEADER]: getUserId() };
-    if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+    if (accessToken) headers[USER_AUTH_HEADER] = `Bearer ${accessToken}`;
 
     const url = buildUrl(path, params);
     const response = await fetchWithAuthRetry(url, {
@@ -169,7 +170,7 @@ export async function apiGet<T>(
 
 export async function apiPost<T>(path: string, body: unknown): Promise<T> {
     const headers: Record<string, string> = { 'Content-Type': 'application/json', [USER_ID_HEADER]: getUserId() };
-    if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+    if (accessToken) headers[USER_AUTH_HEADER] = `Bearer ${accessToken}`;
 
     const response = await fetchWithAuthRetry(buildUrl(path), {
         method: 'POST',

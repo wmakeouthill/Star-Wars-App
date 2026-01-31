@@ -3,13 +3,46 @@
  *
  * Objetivo:
  * - O frontend chama `/api/v1/...` no MESMO domínio (Vercel) e evita CORS.
- * - Esta função encaminha para o backend real definido em `BACKEND_BASE_URL`.
+ * - Esta função encaminha para o backend real (Cloud Run) de forma autenticada (IAM),
+ *   no mesmo padrão do repo `desafio_fullstack`.
  *
  * Variáveis esperadas (Vercel Project Settings -> Environment Variables):
- * - BACKEND_BASE_URL="https://seu-backend.exemplo.com"  (sem barra no final)
+ * - CLOUD_RUN_URL="https://seu-servico-xxxxx.southamerica-east1.run.app" (sem barra no final)
+ *   (fallback: BACKEND_BASE_URL)
+ * - GOOGLE_SERVICE_ACCOUNT_KEY="{...json...}" (cole o JSON inteiro)
  */
 
-const BACKEND_BASE_URL = (process.env.BACKEND_BASE_URL || 'http://localhost:8000').replace(/\/+$/, '');
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+const { GoogleAuth } = require('google-auth-library');
+
+const CLOUD_RUN_URL = (process.env.CLOUD_RUN_URL || process.env.BACKEND_BASE_URL || 'http://localhost:8000').replace(
+  /\/+$/,
+  ''
+);
+
+let tokenCache = { token: null, expiry: 0 };
+
+async function getIdToken() {
+  const now = Date.now();
+
+  // Renova ~5min antes de expirar (tokens duram ~1h)
+  if (tokenCache.token && tokenCache.expiry > now + 300000) return tokenCache.token;
+
+  const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY || '{}');
+  if (!credentials.client_email) {
+    throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY não configurada ou inválida');
+  }
+
+  const auth = new GoogleAuth({ credentials });
+  const client = await auth.getIdTokenClient(CLOUD_RUN_URL);
+  const headers = await client.getRequestHeaders();
+
+  const token = headers.Authorization?.replace('Bearer ', '');
+  tokenCache = { token, expiry: now + 3600000 };
+  return token;
+}
 
 function buildTargetUrl(req) {
   // req.query.path contém os segmentos após /api/
@@ -30,7 +63,7 @@ function buildTargetUrl(req) {
   }
   const queryString = queryParams.toString();
 
-  return `${BACKEND_BASE_URL}${apiPath}${queryString ? `?${queryString}` : ''}`;
+  return `${CLOUD_RUN_URL}${apiPath}${queryString ? `?${queryString}` : ''}`;
 }
 
 export default async function handler(req, res) {
@@ -38,6 +71,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
+    const idToken = await getIdToken();
     const targetUrl = buildTargetUrl(req);
 
     const headers = {};
@@ -45,7 +79,11 @@ export default async function handler(req, res) {
     // Propaga headers relevantes
     if (req.headers['content-type']) headers['Content-Type'] = req.headers['content-type'];
     if (req.headers.accept) headers.Accept = req.headers.accept;
-    if (req.headers.authorization) headers.Authorization = req.headers.authorization;
+    // Cloud Run (IAM): Authorization precisa ser o Identity Token do Google.
+    headers.Authorization = `Bearer ${idToken}`;
+
+    // JWT do usuário do nosso app (para o FastAPI). Não pode usar Authorization (colide com Cloud Run).
+    if (req.headers['x-user-authorization']) headers['X-User-Authorization'] = req.headers['x-user-authorization'];
     if (req.headers['x-user-id']) headers['X-User-Id'] = req.headers['x-user-id'];
     if (req.headers.cookie) headers.Cookie = req.headers.cookie;
 

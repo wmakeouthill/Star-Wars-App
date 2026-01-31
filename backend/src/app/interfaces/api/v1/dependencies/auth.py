@@ -8,16 +8,19 @@ from app.infrastructure.security.jwt_service import decode_token
 
 def get_current_user_id(
     authorization: str | None = Header(default=None, alias="Authorization"),
+    x_user_authorization: str | None = Header(default=None, alias="X-User-Authorization"),
     x_user_id: str | None = Header(default=None, alias="X-User-Id"),
 ) -> str:
     """
     Identificação de usuário (compatível com o MVP atual):
 
-    - Preferência: JWT em `Authorization: Bearer <token>` (sub = user_id).
+    - Preferência: JWT em `X-User-Authorization: Bearer <token>` (sub = user_id).
+    - Fallback: JWT em `Authorization: Bearer <token>` (sub = user_id).
     - Fallback: `X-User-Id` (persistido no frontend) para modo convidado/sem login.
     """
-    if authorization:
-        scheme, param = get_authorization_scheme_param(authorization)
+    raw = x_user_authorization or authorization
+    if raw:
+        scheme, param = get_authorization_scheme_param(raw)
         if scheme.lower() == "bearer" and param:
             try:
                 decoded = decode_token(param, expected_type="access")
@@ -32,10 +35,12 @@ def get_current_user_id(
 
 def require_authenticated_user_id(
     authorization: str | None = Header(default=None, alias="Authorization"),
+    x_user_authorization: str | None = Header(default=None, alias="X-User-Authorization"),
 ) -> str:
-    if not authorization:
+    raw = x_user_authorization or authorization
+    if not raw:
         raise HTTPException(status_code=401, detail="Não autenticado.")
-    scheme, param = get_authorization_scheme_param(authorization)
+    scheme, param = get_authorization_scheme_param(raw)
     if scheme.lower() != "bearer" or not param:
         raise HTTPException(status_code=401, detail="Bearer token ausente.")
     try:

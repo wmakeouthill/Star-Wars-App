@@ -17,6 +17,14 @@
 .direnv/
 
 # ----------------------------
+# Service account keys (never commit)
+# ----------------------------
+vercel-service-account-key.json
+*service-account*key*.json
+*-service-account-key.json
+*-key.json
+
+# ----------------------------
 # Logs
 # ----------------------------
 *.log
