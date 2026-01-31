@@ -274,5 +274,22 @@
   margin-top: 0.35rem;
 }
 
-/* Full-width panel (for Cross Analytics) - handled outside .grid now */
+/* Skeleton grid for stats */
+.statGridSkeleton {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.65rem;
+}
+
+@media (min-width: 480px) {
+  .statGridSkeleton {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 768px) {
+  .statGridSkeleton {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
 

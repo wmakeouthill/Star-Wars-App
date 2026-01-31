@@ -1,0 +1,84 @@
+/* Shimmer animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(110, 231, 255, 0.03) 0%,
+    rgba(110, 231, 255, 0.08) 50%,
+    rgba(110, 231, 255, 0.03) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: inherit;
+}
+
+/* Chart Skeleton */
+.chartSkeleton {
+  position: relative;
+  width: 100%;
+  border-radius: 12px;
+  background: rgba(8, 16, 32, 0.4);
+  border: 1px solid rgba(110, 231, 255, 0.1);
+  overflow: hidden;
+}
+
+/* Stat Skeleton */
+.statSkeleton {
+  position: relative;
+  height: 72px;
+  border-radius: 14px;
+  background: rgba(8, 16, 32, 0.4);
+  border: 1px solid rgba(110, 231, 255, 0.1);
+  overflow: hidden;
+}
+
+/* Panel Skeleton */
+.panelSkeleton {
+  position: relative;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(8, 16, 32, 0.5), rgba(8, 16, 32, 0.3));
+  border: 1px solid rgba(110, 231, 255, 0.12);
+  overflow: hidden;
+}
+
+.panelSkeletonHeader {
+  position: relative;
+  height: 60px;
+  border-bottom: 1px solid rgba(110, 231, 255, 0.1);
+}
+
+.panelSkeletonBody {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.panelSkeletonRow {
+  position: relative;
+  height: 200px;
+  border-radius: 12px;
+  background: rgba(8, 16, 32, 0.3);
+  overflow: hidden;
+}
+
+/* KPI Skeleton */
+.kpiSkeleton {
+  position: relative;
+  width: 100px;
+  height: 40px;
+  border-radius: 999px;
+  background: rgba(8, 16, 32, 0.4);
+  border: 1px solid rgba(110, 231, 255, 0.1);
+  overflow: hidden;
+}

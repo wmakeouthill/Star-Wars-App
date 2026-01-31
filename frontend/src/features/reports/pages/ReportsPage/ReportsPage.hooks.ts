@@ -12,8 +12,13 @@ import {
   fetchGamificationLeaderboard,
   fetchGamificationProfile,
 } from '@/features/gamification/services/gamification.service';
+import type { Character } from '@/features/characters/types/characters.types';
+import type { Film } from '@/features/films/types/films.types';
+import type { Planet } from '@/features/planets/types/planets.types';
+import type { Starship } from '@/features/starships/types/starships.types';
+import type { Species } from '@/features/species/types/species.types';
+import type { Vehicle } from '@/features/vehicles/types/vehicles.types';
 import type { ChartDatum, ScatterDatum, RadarDatum, TreemapDatum, StackedDatum } from '@/features/reports/types/reports.types';
-import type { ReportsSnapshot } from './ReportsPage.types';
 
 const REPORTS_PAGE_SIZE = 100;
 const UNKNOWN_LABEL = 'Desconhecido';
@@ -21,7 +26,9 @@ const OTHER_LABEL = 'Outros';
 
 // Cache times
 const STALE_TIME_SWAPI = 1000 * 60 * 60 * 24; // 24 horas para dados estáticos da SWAPI
+const GC_TIME_SWAPI = 1000 * 60 * 60 * 48; // 48 horas - manter em memória por mais tempo
 const STALE_TIME_USER = 1000 * 60 * 5; // 5 minutos para dados do usuário
+const GC_TIME_USER = 1000 * 60 * 30; // 30 minutos
 
 function normalizeLabel(value: string | null | undefined): string {
   const raw = (value ?? '').trim();
@@ -208,93 +215,115 @@ function normalizeGravity(gravity: string | null | undefined): string {
   return 'Standard (1g)';
 }
 
-async function fetchSwapiData() {
-  const [characters, planets, starships, films, species, vehicles] = await Promise.all([
-    fetchCharacters({ page: 1, pageSize: REPORTS_PAGE_SIZE, sortBy: 'name', sortOrder: 'asc' }),
-    fetchPlanets({ page: 1, pageSize: REPORTS_PAGE_SIZE, sortBy: 'name', sortOrder: 'asc' }),
-    fetchStarships({ page: 1, pageSize: REPORTS_PAGE_SIZE, sortBy: 'name', sortOrder: 'asc' }),
-    fetchFilms({ page: 1, pageSize: REPORTS_PAGE_SIZE, sortBy: 'episode_id', sortOrder: 'asc' }),
-    fetchSpecies({ page: 1, pageSize: REPORTS_PAGE_SIZE, sortBy: 'name', sortOrder: 'asc' }),
-    fetchVehicles({ page: 1, pageSize: REPORTS_PAGE_SIZE, sortBy: 'name', sortOrder: 'asc' }),
-  ]);
-  return { characters, planets, starships, films, species, vehicles };
-}
+// ═══════════════════════════════════════════════════════════════
+// INDIVIDUAL QUERY HOOKS - Para loading progressivo
+// ═══════════════════════════════════════════════════════════════
 
-async function fetchUserData() {
-  const [profile, achievements, leaderboard, dailyChallenge] = await Promise.all([
-    fetchGamificationProfile(),
-    fetchGamificationAchievements(),
-    fetchGamificationLeaderboard(10),
-    fetchDailyChallenge(),
-  ]);
-  return { profile, achievements, leaderboard, dailyChallenge };
-}
-
-export function useReportsPage() {
-  // Dados SWAPI - cache de 24 horas (dados estáticos)
-  const swapiQuery = useQuery({
-    queryKey: ['reports', 'swapi'],
-    queryFn: fetchSwapiData,
+function useCharactersQuery() {
+  return useQuery({
+    queryKey: ['reports', 'characters'],
+    queryFn: () => fetchCharacters({ page: 1, pageSize: REPORTS_PAGE_SIZE, sortBy: 'name', sortOrder: 'asc' }),
     staleTime: STALE_TIME_SWAPI,
+    gcTime: GC_TIME_SWAPI,
   });
+}
 
-  // Dados do usuário - cache de 5 minutos (dados dinâmicos)
-  const userQuery = useQuery({
-    queryKey: ['reports', 'user'],
-    queryFn: fetchUserData,
+function usePlanetsQuery() {
+  return useQuery({
+    queryKey: ['reports', 'planets'],
+    queryFn: () => fetchPlanets({ page: 1, pageSize: REPORTS_PAGE_SIZE, sortBy: 'name', sortOrder: 'asc' }),
+    staleTime: STALE_TIME_SWAPI,
+    gcTime: GC_TIME_SWAPI,
+  });
+}
+
+function useStarshipsQuery() {
+  return useQuery({
+    queryKey: ['reports', 'starships'],
+    queryFn: () => fetchStarships({ page: 1, pageSize: REPORTS_PAGE_SIZE, sortBy: 'name', sortOrder: 'asc' }),
+    staleTime: STALE_TIME_SWAPI,
+    gcTime: GC_TIME_SWAPI,
+  });
+}
+
+function useFilmsQuery() {
+  return useQuery({
+    queryKey: ['reports', 'films'],
+    queryFn: () => fetchFilms({ page: 1, pageSize: REPORTS_PAGE_SIZE, sortBy: 'episode_id', sortOrder: 'asc' }),
+    staleTime: STALE_TIME_SWAPI,
+    gcTime: GC_TIME_SWAPI,
+  });
+}
+
+function useSpeciesQuery() {
+  return useQuery({
+    queryKey: ['reports', 'species'],
+    queryFn: () => fetchSpecies({ page: 1, pageSize: REPORTS_PAGE_SIZE, sortBy: 'name', sortOrder: 'asc' }),
+    staleTime: STALE_TIME_SWAPI,
+    gcTime: GC_TIME_SWAPI,
+  });
+}
+
+function useVehiclesQuery() {
+  return useQuery({
+    queryKey: ['reports', 'vehicles'],
+    queryFn: () => fetchVehicles({ page: 1, pageSize: REPORTS_PAGE_SIZE, sortBy: 'name', sortOrder: 'asc' }),
+    staleTime: STALE_TIME_SWAPI,
+    gcTime: GC_TIME_SWAPI,
+  });
+}
+
+function useGamificationQuery() {
+  return useQuery({
+    queryKey: ['reports', 'gamification'],
+    queryFn: async () => {
+      const [profile, achievements, leaderboard, dailyChallenge] = await Promise.all([
+        fetchGamificationProfile(),
+        fetchGamificationAchievements(),
+        fetchGamificationLeaderboard(10),
+        fetchDailyChallenge(),
+      ]);
+      return { profile, achievements, leaderboard, dailyChallenge };
+    },
     staleTime: STALE_TIME_USER,
+    gcTime: GC_TIME_USER,
   });
+}
 
-  const snapshotQuery = {
-    isLoading: swapiQuery.isLoading || userQuery.isLoading,
-    isError: swapiQuery.isError || userQuery.isError,
-    data: swapiQuery.data && userQuery.data ? { ...swapiQuery.data, ...userQuery.data } : undefined,
-  };
+// ═══════════════════════════════════════════════════════════════
+// PROCESSED DATA HOOKS - Memoized para cada seção
+// ═══════════════════════════════════════════════════════════════
 
-  const report = useMemo<ReportsSnapshot | null>(() => {
-    if (!snapshotQuery.data) return null;
+function useCharactersReport(characters: Character[] | undefined, planets: Planet[] | undefined) {
+  return useMemo(() => {
+    if (!characters?.length) return null;
 
-    const { characters, planets, starships, films, species, vehicles, profile, achievements, leaderboard, dailyChallenge } =
-      snapshotQuery.data;
+    const planetsById = new Map((planets ?? []).map((p) => [p.id, p.name] as const));
 
-    const charactersItems = characters.items ?? [];
-    const planetsItems = planets.items ?? [];
-    const starshipsItems = starships.items ?? [];
-    const filmsItems = films.items ?? [];
-    const speciesItems = species.items ?? [];
-    const vehiclesItems = vehicles.items ?? [];
-
-    // ═══════════════════════════════════════════════════════════════
-    // CHARACTERS
-    // ═══════════════════════════════════════════════════════════════
-    const gender = toTopCounts(charactersItems.map((c) => normalizeLabel(c.gender)), 6);
+    const gender = toTopCounts(characters.map((c) => normalizeLabel(c.gender)), 6);
     const heightBucketsOrder = [UNKNOWN_LABEL, '< 100 cm', '100–149 cm', '150–179 cm', '180–199 cm', '≥ 200 cm'];
-    const heightBuckets = toBuckets(charactersItems, (c) => bucketHeightCm(c.height), heightBucketsOrder);
+    const heightBuckets = toBuckets(characters, (c) => bucketHeightCm(c.height), heightBucketsOrder);
 
-    const hairValues = charactersItems.flatMap((c) => splitMulti(c.hair_color));
+    const hairValues = characters.flatMap((c) => splitMulti(c.hair_color));
     const hairColorsTop = toTopCounts(hairValues, 8);
 
-    const eyeValues = charactersItems.flatMap((c) => splitMulti(c.eye_color));
+    const eyeValues = characters.flatMap((c) => splitMulti(c.eye_color));
     const eyeColorsTop = toTopCounts(eyeValues, 8);
 
-    const skinValues = charactersItems.flatMap((c) => splitMulti(c.skin_color));
+    const skinValues = characters.flatMap((c) => splitMulti(c.skin_color));
     const skinColorsTop = toTopCounts(skinValues, 8);
 
     const massBucketsOrder = [UNKNOWN_LABEL, '< 50 kg', '50–79 kg', '80–99 kg', '100–149 kg', '≥ 150 kg'];
-    const massBuckets = toBuckets(charactersItems, (c) => bucketMassKg(c.mass), massBucketsOrder);
+    const massBuckets = toBuckets(characters, (c) => bucketMassKg(c.mass), massBucketsOrder);
 
-    // No endpoint de listagem, o backend não carrega o objeto homeworld (para evitar N+1).
-    // Para o relatório, usamos `homeworld_id` e fazemos join com a lista de planetas já carregada.
-    const planetsById = new Map(planetsItems.map((p) => [p.id, p.name] as const));
-    const homeworldValues = charactersItems.map((c) => {
+    const homeworldValues = characters.map((c) => {
       if (c.homeworld?.name) return normalizeLabel(c.homeworld.name);
       if (c.homeworld_id) return normalizeLabel(planetsById.get(c.homeworld_id));
       return UNKNOWN_LABEL;
     });
     const homeworldTop = toTopCounts(homeworldValues, 10);
 
-    // Scatter: Height vs Mass
-    const heightVsMass: ScatterDatum[] = charactersItems
+    const heightVsMass: ScatterDatum[] = characters
       .filter((c) => c.height != null && c.mass != null && c.height > 0 && c.mass > 0)
       .map((c) => ({
         name: c.name,
@@ -304,44 +333,57 @@ export function useReportsPage() {
         category: normalizeLabel(c.gender),
       }));
 
-    // Species distribution for characters
-    const speciesValues = charactersItems.flatMap((c) => 
-      c.species && c.species.length > 0 
-        ? c.species.map(s => normalizeLabel(s.name)) 
+    const speciesValues = characters.flatMap((c) =>
+      c.species && c.species.length > 0
+        ? c.species.map(s => normalizeLabel(s.name))
         : ['Humano']
     );
     const speciesDistribution = toTopCounts(speciesValues, 10);
 
-    // ═══════════════════════════════════════════════════════════════
-    // PLANETS
-    // ═══════════════════════════════════════════════════════════════
-    const climateValues = planetsItems.flatMap((p) => splitMulti(p.climate));
+    return {
+      gender,
+      heightBuckets,
+      hairColorsTop,
+      eyeColorsTop,
+      skinColorsTop,
+      massBuckets,
+      homeworldTop,
+      heightVsMass,
+      speciesDistribution,
+    };
+  }, [characters, planets]);
+}
+
+function usePlanetsReport(planets: Planet[] | undefined) {
+  return useMemo(() => {
+    if (!planets?.length) return null;
+
+    const climateValues = planets.flatMap((p) => splitMulti(p.climate));
     const climateTop = toTopCounts(climateValues, 8);
 
-    const terrainValues = planetsItems.flatMap((p) => splitMulti(p.terrain));
+    const terrainValues = planets.flatMap((p) => splitMulti(p.terrain));
     const terrainTop = toTopCounts(terrainValues, 8);
 
     const populationBucketsOrder = [UNKNOWN_LABEL, '0', '1–999', '1K–999K', '1M–999M', '≥ 1B'];
-    const populationBuckets = toBuckets(planetsItems, (p) => bucketPopulation(p.population), populationBucketsOrder);
+    const populationBuckets = toBuckets(planets, (p) => bucketPopulation(p.population), populationBucketsOrder);
 
     const diameterBucketsOrder = [UNKNOWN_LABEL, '< 5.000 km', '5K–10K km', '10K–15K km', '15K–50K km', '≥ 50.000 km'];
-    const diameterBuckets = toBuckets(planetsItems, (p) => bucketDiameter(p.diameter ?? null), diameterBucketsOrder);
+    const diameterBuckets = toBuckets(planets, (p) => bucketDiameter(p.diameter ?? null), diameterBucketsOrder);
 
     const surfaceWaterBucketsOrder = [UNKNOWN_LABEL, '0%', '1–20%', '21–50%', '51–80%', '81–100%'];
-    const surfaceWaterBuckets = toBuckets(planetsItems, (p) => bucketSurfaceWater(p.surface_water ?? null), surfaceWaterBucketsOrder);
+    const surfaceWaterBuckets = toBuckets(planets, (p) => bucketSurfaceWater(p.surface_water ?? null), surfaceWaterBucketsOrder);
 
-    const gravityValues = planetsItems.map((p) => normalizeGravity(p.gravity));
+    const gravityValues = planets.map((p) => normalizeGravity(p.gravity));
     const gravityTypes = toTopCounts(gravityValues, 5);
 
-    const residentsTop = planetsItems
+    const residentsTop = planets
       .filter(p => (p.residents_count ?? 0) > 0)
       .map(p => ({ name: p.name, value: p.residents_count ?? 0 }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 10);
 
-    // Treemap: Climate + Terrain
     const climateTerrainMap = new Map<string, Map<string, number>>();
-    planetsItems.forEach(p => {
+    planets.forEach(p => {
       const climates = splitMulti(p.climate);
       const terrains = splitMulti(p.terrain);
       climates.forEach(climate => {
@@ -369,30 +411,43 @@ export function useReportsPage() {
           })),
       }));
 
-    // ═══════════════════════════════════════════════════════════════
-    // STARSHIPS
-    // ═══════════════════════════════════════════════════════════════
-    const manufacturerValues = starshipsItems.flatMap((s) => splitMulti(s.manufacturer));
+    return {
+      climateTop,
+      terrainTop,
+      populationBuckets,
+      diameterBuckets,
+      surfaceWaterBuckets,
+      gravityTypes,
+      residentsTop,
+      climateTerrainTreemap,
+    };
+  }, [planets]);
+}
+
+function useStarshipsReport(starships: Starship[] | undefined) {
+  return useMemo(() => {
+    if (!starships?.length) return null;
+
+    const manufacturerValues = starships.flatMap((s) => splitMulti(s.manufacturer));
     const manufacturerTop = toTopCounts(manufacturerValues, 10);
 
-    const classTop = toTopCounts(starshipsItems.map((s) => normalizeLabel(s.starship_class)), 8);
+    const classTop = toTopCounts(starships.map((s) => normalizeLabel(s.starship_class)), 8);
     const crewBucketsOrder = [UNKNOWN_LABEL, '0', '1–5', '6–50', '51–500', '≥ 501'];
-    const crewBuckets = toBuckets(starshipsItems, (s) => bucketCrew(s.crew), crewBucketsOrder);
+    const crewBuckets = toBuckets(starships, (s) => bucketCrew(s.crew), crewBucketsOrder);
 
     const costBucketsOrder = [UNKNOWN_LABEL, '< 50K', '50K–200K', '200K–1M', '1M–100M', '≥ 100M'];
-    const costBuckets = toBuckets(starshipsItems, (s) => bucketCostCredits(s.cost_in_credits ?? null), costBucketsOrder);
+    const costBuckets = toBuckets(starships, (s) => bucketCostCredits(s.cost_in_credits ?? null), costBucketsOrder);
 
     const hyperdriveBucketsOrder = [UNKNOWN_LABEL, '≤ 1.0 (Rápido)', '1.1–2.0', '2.1–3.0', '3.1–4.0', '> 4.0 (Lento)'];
-    const hyperdriveBuckets = toBuckets(starshipsItems, (s) => bucketHyperdrive(s.hyperdrive_rating ?? null), hyperdriveBucketsOrder);
+    const hyperdriveBuckets = toBuckets(starships, (s) => bucketHyperdrive(s.hyperdrive_rating ?? null), hyperdriveBucketsOrder);
 
     const lengthBucketsOrder = [UNKNOWN_LABEL, '< 20m', '20–50m', '50–150m', '150–500m', '≥ 500m'];
-    const lengthBuckets = toBuckets(starshipsItems, (s) => bucketLength(s.length ?? null), lengthBucketsOrder);
+    const lengthBuckets = toBuckets(starships, (s) => bucketLength(s.length ?? null), lengthBucketsOrder);
 
     const cargoBucketsOrder = [UNKNOWN_LABEL, '< 100 kg', '100–1K kg', '1K–100K kg', '100K–10M kg', '≥ 10M kg'];
-    const cargoBuckets = toBuckets(starshipsItems, (s) => bucketCargo(s.cargo_capacity ?? null), cargoBucketsOrder);
+    const cargoBuckets = toBuckets(starships, (s) => bucketCargo(s.cargo_capacity ?? null), cargoBucketsOrder);
 
-    // Scatter: Cost vs Length
-    const costVsLength: ScatterDatum[] = starshipsItems
+    const costVsLength: ScatterDatum[] = starships
       .filter((s) => s.cost_in_credits != null && s.length != null && s.cost_in_credits > 0 && s.length > 0)
       .map((s) => ({
         name: s.name,
@@ -402,9 +457,8 @@ export function useReportsPage() {
         category: normalizeLabel(s.starship_class),
       }));
 
-    // Treemap: Manufacturer by Class
     const manufacturerClassMap = new Map<string, Map<string, number>>();
-    starshipsItems.forEach(s => {
+    starships.forEach(s => {
       const manufacturers = splitMulti(s.manufacturer);
       const shipClass = normalizeLabel(s.starship_class);
       manufacturers.forEach(manufacturer => {
@@ -431,12 +485,11 @@ export function useReportsPage() {
       .sort((a, b) => b.value - a.value)
       .slice(0, 6);
 
-    // Radar: Top ships comparison
     const topShipsRadar: RadarDatum[] = (() => {
-      const topShips = starshipsItems
+      const topShips = starships
         .filter(s => s.hyperdrive_rating != null && s.crew != null && s.passengers != null)
         .slice(0, 5);
-      
+
       if (topShips.length === 0) return [];
 
       const maxHyperdrive = Math.max(...topShips.map(s => s.hyperdrive_rating ?? 1));
@@ -454,29 +507,44 @@ export function useReportsPage() {
       ];
     })();
 
-    // ═══════════════════════════════════════════════════════════════
-    // SPECIES
-    // ═══════════════════════════════════════════════════════════════
-    const classificationTop = toTopCounts(speciesItems.map((s) => normalizeLabel(s.classification)), 8);
-    const designationTop = toTopCounts(speciesItems.map((s) => normalizeLabel(s.designation)), 6);
-    const languageTop = toTopCounts(speciesItems.map((s) => normalizeLabel(s.language)), 10);
+    return {
+      manufacturerTop,
+      classTop,
+      crewBuckets,
+      costBuckets,
+      hyperdriveBuckets,
+      lengthBuckets,
+      cargoBuckets,
+      costVsLength,
+      manufacturerByClass,
+      topShipsRadar,
+    };
+  }, [starships]);
+}
+
+function useSpeciesReport(species: Species[] | undefined) {
+  return useMemo(() => {
+    if (!species?.length) return null;
+
+    const classificationTop = toTopCounts(species.map((s) => normalizeLabel(s.classification)), 8);
+    const designationTop = toTopCounts(species.map((s) => normalizeLabel(s.designation)), 6);
+    const languageTop = toTopCounts(species.map((s) => normalizeLabel(s.language)), 10);
 
     const avgHeightBucketsOrder = [UNKNOWN_LABEL, '< 100 cm', '100–149 cm', '150–199 cm', '200–249 cm', '≥ 250 cm'];
-    const avgHeightBuckets = toBuckets(speciesItems, (s) => bucketAvgHeight(s.average_height), avgHeightBucketsOrder);
+    const avgHeightBuckets = toBuckets(species, (s) => bucketAvgHeight(s.average_height), avgHeightBucketsOrder);
 
     const avgLifespanBucketsOrder = [UNKNOWN_LABEL, '< 50 anos', '50–99 anos', '100–199 anos', '200–499 anos', '≥ 500 anos'];
-    const avgLifespanBuckets = toBuckets(speciesItems, (s) => bucketAvgLifespan(s.average_lifespan), avgLifespanBucketsOrder);
+    const avgLifespanBuckets = toBuckets(species, (s) => bucketAvgLifespan(s.average_lifespan), avgLifespanBucketsOrder);
 
-    // Stacked: Classification by Designation
     const classificationByDesignation: StackedDatum[] = (() => {
-      const classifications = Array.from(new Set(speciesItems.map(s => normalizeLabel(s.classification)))).slice(0, 6);
-      const designations = Array.from(new Set(speciesItems.map(s => normalizeLabel(s.designation))));
-      
+      const classifications = Array.from(new Set(species.map(s => normalizeLabel(s.classification)))).slice(0, 6);
+      const designations = Array.from(new Set(species.map(s => normalizeLabel(s.designation))));
+
       return classifications.map(classification => {
         const result: StackedDatum = { name: classification };
         designations.forEach(designation => {
-          const count = speciesItems.filter(s => 
-            normalizeLabel(s.classification) === classification && 
+          const count = species.filter(s =>
+            normalizeLabel(s.classification) === classification &&
             normalizeLabel(s.designation) === designation
           ).length;
           if (count > 0) {
@@ -487,27 +555,49 @@ export function useReportsPage() {
       });
     })();
 
-    // ═══════════════════════════════════════════════════════════════
-    // VEHICLES
-    // ═══════════════════════════════════════════════════════════════
-    const vehicleClassTop = toTopCounts(vehiclesItems.map((v) => normalizeLabel(v.vehicle_class)), 8);
-    const vehicleManufacturerValues = vehiclesItems.flatMap((v) => splitMulti(v.manufacturer));
-    const vehicleManufacturerTop = toTopCounts(vehicleManufacturerValues, 10);
-    
-    const vehicleCrewBucketsOrder = [UNKNOWN_LABEL, '0', '1–5', '6–50', '51–500', '≥ 501'];
-    const vehicleCrewBuckets = toBuckets(vehiclesItems, (v) => bucketCrew(v.crew), vehicleCrewBucketsOrder);
+    return {
+      classificationTop,
+      designationTop,
+      languageTop,
+      avgHeightBuckets,
+      avgLifespanBuckets,
+      classificationByDesignation,
+    };
+  }, [species]);
+}
 
-    const vehiclePassengersBucketsOrder = [UNKNOWN_LABEL, '0', '1–10', '11–100', '101–1000', '≥ 1001'];
-    const vehiclePassengersBuckets = toBuckets(vehiclesItems, (v) => bucketPassengers(v.passengers), vehiclePassengersBucketsOrder);
+function useVehiclesReport(vehicles: Vehicle[] | undefined) {
+  return useMemo(() => {
+    if (!vehicles?.length) return null;
 
-    // ═══════════════════════════════════════════════════════════════
-    // FILMS
-    // ═══════════════════════════════════════════════════════════════
-    const byDirector = toTopCounts(filmsItems.map((f) => normalizeLabel(f.director)), 8);
-    const byYear = toTopCounts(filmsItems.map((f) => yearFromDate(f.release_date)), 10).sort((a, b) =>
+    const classTop = toTopCounts(vehicles.map((v) => normalizeLabel(v.vehicle_class)), 8);
+    const manufacturerValues = vehicles.flatMap((v) => splitMulti(v.manufacturer));
+    const manufacturerTop = toTopCounts(manufacturerValues, 10);
+
+    const crewBucketsOrder = [UNKNOWN_LABEL, '0', '1–5', '6–50', '51–500', '≥ 501'];
+    const crewBuckets = toBuckets(vehicles, (v) => bucketCrew(v.crew), crewBucketsOrder);
+
+    const passengersBucketsOrder = [UNKNOWN_LABEL, '0', '1–10', '11–100', '101–1000', '≥ 1001'];
+    const passengersBuckets = toBuckets(vehicles, (v) => bucketPassengers(v.passengers), passengersBucketsOrder);
+
+    return {
+      classTop,
+      manufacturerTop,
+      crewBuckets,
+      passengersBuckets,
+    };
+  }, [vehicles]);
+}
+
+function useFilmsReport(films: Film[] | undefined) {
+  return useMemo(() => {
+    if (!films?.length) return null;
+
+    const byDirector = toTopCounts(films.map((f) => normalizeLabel(f.director)), 8);
+    const byYear = toTopCounts(films.map((f) => yearFromDate(f.release_date)), 10).sort((a, b) =>
       a.name.localeCompare(b.name)
     );
-    const filmsPreview = filmsItems.slice(0, 6).map((f) => ({
+    const preview = films.slice(0, 6).map((f) => ({
       id: f.id,
       title: f.title,
       episode_id: f.episode_id,
@@ -521,8 +611,7 @@ export function useReportsPage() {
       species_count: f.species_count,
     }));
 
-    // Stacked: Entities per Film
-    const entitiesPerFilm: StackedDatum[] = filmsItems.map(f => ({
+    const entitiesPerFilm: StackedDatum[] = films.map(f => ({
       name: `Ep. ${f.episode_id}`,
       Personagens: f.characters_count ?? 0,
       Planetas: f.planets_count ?? 0,
@@ -531,49 +620,110 @@ export function useReportsPage() {
       Espécies: f.species_count ?? 0,
     }));
 
-    // Radar: Timeline radar showing film scope
-    const timelineRadar: RadarDatum[] = filmsItems.slice(0, 6).map(f => ({
+    const timelineRadar: RadarDatum[] = films.slice(0, 6).map(f => ({
       subject: `Ep. ${f.episode_id}`,
       value: (f.characters_count ?? 0) + (f.planets_count ?? 0) + (f.starships_count ?? 0),
       fullMark: 100,
     }));
 
-    // ═══════════════════════════════════════════════════════════════
-    // CROSS ANALYTICS
-    // ═══════════════════════════════════════════════════════════════
-    const entitiesSummary: RadarDatum[] = [
-      { subject: 'Personagens', value: characters.meta.total, fullMark: 100 },
-      { subject: 'Planetas', value: planets.meta.total, fullMark: 100 },
-      { subject: 'Naves', value: starships.meta.total, fullMark: 100 },
-      { subject: 'Espécies', value: species.meta.total, fullMark: 100 },
-      { subject: 'Veículos', value: vehicles.meta.total, fullMark: 100 },
-      { subject: 'Filmes', value: films.meta.total, fullMark: 100 },
-    ];
+    return {
+      byDirector,
+      byYear,
+      preview,
+      entitiesPerFilm,
+      timelineRadar,
+    };
+  }, [films]);
+}
 
-    const uniqueLanguagesSet = new Set(speciesItems.map(s => normalizeLabel(s.language)).filter(l => l !== UNKNOWN_LABEL));
+// ═══════════════════════════════════════════════════════════════
+// MAIN HOOK
+// ═══════════════════════════════════════════════════════════════
+
+export function useReportsPage() {
+  // Queries individuais para loading progressivo
+  const charactersQuery = useCharactersQuery();
+  const planetsQuery = usePlanetsQuery();
+  const starshipsQuery = useStarshipsQuery();
+  const filmsQuery = useFilmsQuery();
+  const speciesQuery = useSpeciesQuery();
+  const vehiclesQuery = useVehiclesQuery();
+  const gamificationQuery = useGamificationQuery();
+
+  // Dados processados por seção
+  const charactersItems = charactersQuery.data?.items;
+  const planetsItems = planetsQuery.data?.items;
+  const starshipsItems = starshipsQuery.data?.items;
+  const filmsItems = filmsQuery.data?.items;
+  const speciesItems = speciesQuery.data?.items;
+  const vehiclesItems = vehiclesQuery.data?.items;
+
+  const charactersReport = useCharactersReport(charactersItems, planetsItems);
+  const planetsReport = usePlanetsReport(planetsItems);
+  const starshipsReport = useStarshipsReport(starshipsItems);
+  const speciesReport = useSpeciesReport(speciesItems);
+  const vehiclesReport = useVehiclesReport(vehiclesItems);
+  const filmsReport = useFilmsReport(filmsItems);
+
+  // Totais
+  const totals = useMemo(() => ({
+    characters: charactersQuery.data?.meta.total ?? 0,
+    planets: planetsQuery.data?.meta.total ?? 0,
+    starships: starshipsQuery.data?.meta.total ?? 0,
+    films: filmsQuery.data?.meta.total ?? 0,
+    species: speciesQuery.data?.meta.total ?? 0,
+    vehicles: vehiclesQuery.data?.meta.total ?? 0,
+  }), [charactersQuery.data, planetsQuery.data, starshipsQuery.data, filmsQuery.data, speciesQuery.data, vehiclesQuery.data]);
+
+  // Cross Analytics
+  const crossAnalytics = useMemo(() => {
+    const uniqueLanguagesSet = new Set((speciesItems ?? []).map(s => normalizeLabel(s.language)).filter(l => l !== UNKNOWN_LABEL));
     const uniqueManufacturersSet = new Set([
-      ...starshipsItems.flatMap(s => splitMulti(s.manufacturer)),
-      ...vehiclesItems.flatMap(v => splitMulti(v.manufacturer)),
+      ...(starshipsItems ?? []).flatMap(s => splitMulti(s.manufacturer)),
+      ...(vehiclesItems ?? []).flatMap(v => splitMulti(v.manufacturer)),
     ].filter(m => m !== UNKNOWN_LABEL));
 
     const diversityScore = Math.round(
-      (uniqueLanguagesSet.size * 2) + 
-      (uniqueManufacturersSet.size) + 
-      (speciesItems.length * 3) +
-      (new Set(planetsItems.flatMap(p => splitMulti(p.climate))).size)
+      (uniqueLanguagesSet.size * 2) +
+      (uniqueManufacturersSet.size) +
+      ((speciesItems?.length ?? 0) * 3) +
+      (new Set((planetsItems ?? []).flatMap(p => splitMulti(p.climate))).size)
     );
 
-    const avgCharactersPerFilm = filmsItems.length > 0 
-      ? Math.round(filmsItems.reduce((acc, f) => acc + (f.characters_count ?? 0), 0) / filmsItems.length)
+    const avgCharactersPerFilm = (filmsItems?.length ?? 0) > 0
+      ? Math.round((filmsItems ?? []).reduce((acc, f) => acc + (f.characters_count ?? 0), 0) / (filmsItems?.length ?? 1))
       : 0;
 
-    const avgPlanetsPerFilm = filmsItems.length > 0
-      ? Math.round(filmsItems.reduce((acc, f) => acc + (f.planets_count ?? 0), 0) / filmsItems.length)
+    const avgPlanetsPerFilm = (filmsItems?.length ?? 0) > 0
+      ? Math.round((filmsItems ?? []).reduce((acc, f) => acc + (f.planets_count ?? 0), 0) / (filmsItems?.length ?? 1))
       : 0;
 
-    // ═══════════════════════════════════════════════════════════════
-    // GAMIFICATION
-    // ═══════════════════════════════════════════════════════════════
+    const entitiesSummary: RadarDatum[] = [
+      { subject: 'Personagens', value: totals.characters, fullMark: 100 },
+      { subject: 'Planetas', value: totals.planets, fullMark: 100 },
+      { subject: 'Naves', value: totals.starships, fullMark: 100 },
+      { subject: 'Espécies', value: totals.species, fullMark: 100 },
+      { subject: 'Veículos', value: totals.vehicles, fullMark: 100 },
+      { subject: 'Filmes', value: totals.films, fullMark: 100 },
+    ];
+
+    return {
+      entitiesSummary,
+      diversityScore,
+      avgCharactersPerFilm,
+      avgPlanetsPerFilm,
+      uniqueLanguages: uniqueLanguagesSet.size,
+      uniqueManufacturers: uniqueManufacturersSet.size,
+    };
+  }, [speciesItems, starshipsItems, vehiclesItems, planetsItems, filmsItems, totals]);
+
+  // Gamification
+  const gamificationReport = useMemo(() => {
+    const data = gamificationQuery.data;
+    if (!data) return null;
+
+    const { profile, achievements, leaderboard, dailyChallenge } = data;
+
     const achievementsUnlocked = achievements.filter((a) => a.unlocked).length;
     const achievementsLocked = Math.max(0, achievements.length - achievementsUnlocked);
 
@@ -586,137 +736,108 @@ export function useReportsPage() {
     const leaderboardTop = leaderboard.map((l) => ({ user_id: l.user_id, total_xp: l.total_xp }));
 
     return {
-      totals: {
-        characters: characters.meta.total,
-        planets: planets.meta.total,
-        starships: starships.meta.total,
-        films: films.meta.total,
-        species: species.meta.total,
-        vehicles: vehicles.meta.total,
-      },
-      characters: {
-        gender,
-        heightBuckets,
-        hairColorsTop,
-        eyeColorsTop,
-        skinColorsTop,
-        massBuckets,
-        homeworldTop,
-        heightVsMass,
-        speciesDistribution,
-      },
-      planets: {
-        climateTop,
-        terrainTop,
-        populationBuckets,
-        diameterBuckets,
-        surfaceWaterBuckets,
-        gravityTypes,
-        residentsTop,
-        climateTerrainTreemap,
-      },
-      starships: {
-        manufacturerTop,
-        classTop,
-        crewBuckets,
-        costBuckets,
-        hyperdriveBuckets,
-        lengthBuckets,
-        cargoBuckets,
-        costVsLength,
-        manufacturerByClass,
-        topShipsRadar,
-      },
-      species: {
-        classificationTop,
-        designationTop,
-        languageTop,
-        avgHeightBuckets,
-        avgLifespanBuckets,
-        classificationByDesignation,
-      },
-      vehicles: {
-        classTop: vehicleClassTop,
-        manufacturerTop: vehicleManufacturerTop,
-        crewBuckets: vehicleCrewBuckets,
-        passengersBuckets: vehiclePassengersBuckets,
-      },
-      films: {
-        byDirector,
-        byYear,
-        preview: filmsPreview,
-        entitiesPerFilm,
-        timelineRadar,
-      },
-      crossAnalytics: {
-        entitiesSummary,
-        diversityScore,
-        avgCharactersPerFilm,
-        avgPlanetsPerFilm,
-        uniqueLanguages: uniqueLanguagesSet.size,
-        uniqueManufacturers: uniqueManufacturersSet.size,
-      },
-      gamification: {
-        totalXp: profile.total_xp,
-        jediRank: profile.jedi_rank,
-        totalQueries: profile.total_queries,
-        chatMessages: profile.chat_messages,
-        achievementsUnlocked,
-        achievementsLocked,
-        achievementsRewardsTop,
-        leaderboardTop,
-        dailyChallenge: {
-          title: dailyChallenge.title,
-          xp_reward: dailyChallenge.xp_reward,
-          completed: dailyChallenge.completed,
-          progress_current: dailyChallenge.progress_current ?? null,
-          progress_target: dailyChallenge.progress_target ?? null,
-        },
+      totalXp: profile.total_xp,
+      jediRank: profile.jedi_rank,
+      totalQueries: profile.total_queries,
+      chatMessages: profile.chat_messages,
+      achievementsUnlocked,
+      achievementsLocked,
+      achievementsRewardsTop,
+      leaderboardTop,
+      dailyChallenge: {
+        title: dailyChallenge.title,
+        xp_reward: dailyChallenge.xp_reward,
+        completed: dailyChallenge.completed,
+        progress_current: dailyChallenge.progress_current ?? null,
+        progress_target: dailyChallenge.progress_target ?? null,
       },
     };
-  }, [snapshotQuery.data]);
+  }, [gamificationQuery.data]);
 
   const achievementsDonut = useMemo<ChartDatum[]>(
     () =>
-      report
+      gamificationReport
         ? [
-          { name: 'Desbloqueadas', value: report.gamification.achievementsUnlocked },
-          { name: 'Bloqueadas', value: report.gamification.achievementsLocked },
+          { name: 'Desbloqueadas', value: gamificationReport.achievementsUnlocked },
+          { name: 'Bloqueadas', value: gamificationReport.achievementsLocked },
         ]
         : [],
-    [report]
+    [gamificationReport]
   );
 
   const chatVsQueries = useMemo<ChartDatum[]>(
     () =>
-      report
+      gamificationReport
         ? [
-          { name: 'Consultas', value: report.gamification.totalQueries },
-          { name: 'Mensagens no chat', value: report.gamification.chatMessages },
+          { name: 'Consultas', value: gamificationReport.totalQueries },
+          { name: 'Mensagens no chat', value: gamificationReport.chatMessages },
         ]
         : [],
-    [report]
+    [gamificationReport]
   );
 
   const leaderboardData = useMemo<ChartDatum[]>(
     () =>
-      report
-        ? report.gamification.leaderboardTop.map((entry) => ({ name: entry.user_id, value: entry.total_xp }))
+      gamificationReport
+        ? gamificationReport.leaderboardTop.map((entry) => ({ name: entry.user_id, value: entry.total_xp }))
         : [],
-    [report]
+    [gamificationReport]
   );
 
   const challengeProgress = useMemo(() => {
-    const current = report?.gamification.dailyChallenge?.progress_current ?? null;
-    const target = report?.gamification.dailyChallenge?.progress_target ?? null;
+    const current = gamificationReport?.dailyChallenge?.progress_current ?? null;
+    const target = gamificationReport?.dailyChallenge?.progress_target ?? null;
     if (current == null || target == null || target <= 0) return null;
     const ratio = Math.max(0, Math.min(1, current / target));
     return { current, target, ratio };
-  }, [report]);
+  }, [gamificationReport]);
+
+  // Loading states por seção
+  const loading = {
+    characters: charactersQuery.isLoading,
+    planets: planetsQuery.isLoading,
+    starships: starshipsQuery.isLoading,
+    films: filmsQuery.isLoading,
+    species: speciesQuery.isLoading,
+    vehicles: vehiclesQuery.isLoading,
+    gamification: gamificationQuery.isLoading,
+    any: charactersQuery.isLoading || planetsQuery.isLoading || starshipsQuery.isLoading ||
+         filmsQuery.isLoading || speciesQuery.isLoading || vehiclesQuery.isLoading || gamificationQuery.isLoading,
+    all: charactersQuery.isLoading && planetsQuery.isLoading && starshipsQuery.isLoading &&
+         filmsQuery.isLoading && speciesQuery.isLoading && vehiclesQuery.isLoading && gamificationQuery.isLoading,
+  };
+
+  const errors = {
+    characters: charactersQuery.isError,
+    planets: planetsQuery.isError,
+    starships: starshipsQuery.isError,
+    films: filmsQuery.isError,
+    species: speciesQuery.isError,
+    vehicles: vehiclesQuery.isError,
+    gamification: gamificationQuery.isError,
+    any: charactersQuery.isError || planetsQuery.isError || starshipsQuery.isError ||
+         filmsQuery.isError || speciesQuery.isError || vehiclesQuery.isError || gamificationQuery.isError,
+  };
 
   return {
-    snapshotQuery,
-    report,
+    // Loading states
+    loading,
+    errors,
+
+    // Totals (for KPIs)
+    totals,
+
+    // Section reports (null while loading)
+    charactersReport,
+    planetsReport,
+    starshipsReport,
+    speciesReport,
+    vehiclesReport,
+    filmsReport,
+    crossAnalytics,
+
+    // Gamification
+    gamificationReport,
     achievementsDonut,
     chatVsQueries,
     leaderboard: leaderboardData,
