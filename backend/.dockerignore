@@ -13,3 +13,8 @@ dist
 build
 .DS_Store
 
+# Nunca enviar secrets para build de imagem
+.env
+.env.*
+!.env.example
+

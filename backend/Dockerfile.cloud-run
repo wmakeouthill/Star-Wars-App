@@ -1,0 +1,34 @@
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    POETRY_VIRTUALENVS_CREATE=false \
+    PYTHONPATH=/app/src
+
+WORKDIR /app
+
+# Dependências mínimas de runtime (certificados TLS)
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates curl \
+  && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir poetry
+
+# Cache de dependências
+COPY pyproject.toml ./
+RUN poetry install --no-interaction --no-ansi --no-root --only main
+
+# Copiar código
+COPY src ./src
+COPY alembic ./alembic
+COPY alembic.ini ./alembic.ini
+
+# Cloud Run injeta a porta em $PORT
+ENV PORT=8080
+EXPOSE 8080
+
+# Start: aplica migrations (idempotente) e sobe API
+# Obs: com max-instances=1 isso evita corrida de migration.
+CMD ["sh","-c","poetry run alembic upgrade head && poetry run uvicorn app.main:app --host 0.0.0.0 --port ${PORT}"]
+

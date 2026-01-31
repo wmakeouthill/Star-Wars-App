@@ -17,6 +17,7 @@ import { AuthLoadingPage } from '@/features/auth/pages/AuthLoadingPage';
 import { UserMenu } from '@/features/auth/components/UserMenu/UserMenu';
 import { PageLayout } from '@/shared/components/PageLayout';
 import { StarfieldEvents } from '@/shared/components/StarfieldEvents';
+import { usePrefetchAllData } from '@/shared/hooks/usePrefetchAllData';
 import { useAppNavigation } from './App.hooks';
 import styles from './App.module.css';
 
@@ -24,6 +25,10 @@ function AppShell() {
   const { activeSection, navigationItems, setActiveSection } = useAppNavigation();
   const [language, setLanguage] = useState<'en' | 'pt-BR'>('en');
   const { status } = useAuth();
+
+  // Prefetch de todos os dados em background após autenticação
+  // Isso garante navegação rápida e dados disponíveis para o quiz
+  usePrefetchAllData();
 
   if (status === 'loading') {
     return <AuthLoadingPage />;
