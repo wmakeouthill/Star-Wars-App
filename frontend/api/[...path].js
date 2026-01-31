@@ -1,25 +1,21 @@
 /**
- * Vercel Function (proxy universal) para TODAS as rotas /api/*
+ * Vercel Serverless Function - Proxy Universal para todas as rotas /api/*
  *
- * Objetivo:
- * - O frontend chama `/api/v1/...` no MESMO domínio (Vercel) e evita CORS.
- * - Esta função encaminha para o backend real (Cloud Run) de forma autenticada (IAM),
- *   no mesmo padrão do repo `desafio_fullstack`.
+ * Importante:
+ * - Este arquivo roda como CommonJS (ver `frontend/api/package.json`) para evitar
+ *   problemas com `"type": "module"` do frontend.
+ * - Cloud Run privado: usa Identity Token (IAM) via Service Account.
  *
- * Variáveis esperadas (Vercel Project Settings -> Environment Variables):
- * - CLOUD_RUN_URL="https://seu-servico-xxxxx.southamerica-east1.run.app" (sem barra no final)
- *   (fallback: BACKEND_BASE_URL)
+ * Env vars (Vercel):
+ * - CLOUD_RUN_URL="https://star-wars-backend-....run.app" (sem barra final)
  * - GOOGLE_SERVICE_ACCOUNT_KEY="{...json...}" (cole o JSON inteiro)
  */
 
-import { createRequire } from 'module';
-
-const require = createRequire(import.meta.url);
 const { GoogleAuth } = require('google-auth-library');
 
 const CLOUD_RUN_URL = (process.env.CLOUD_RUN_URL || process.env.BACKEND_BASE_URL || 'http://localhost:8000').replace(
-  /\/+$/,
-  ''
+    /\/+$/,
+    ''
 );
 
 let tokenCache = { token: null, expiry: 0 };
@@ -66,7 +62,7 @@ function buildTargetUrl(req) {
   return `${CLOUD_RUN_URL}${apiPath}${queryString ? `?${queryString}` : ''}`;
 }
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   // (Opcional) responde OPTIONS caso algum cliente chame de fora.
   if (req.method === 'OPTIONS') return res.status(200).end();
 
@@ -148,5 +144,5 @@ export default async function handler(req, res) {
       timestamp: new Date().toISOString(),
     });
   }
-}
+};
 

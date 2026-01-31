@@ -5,11 +5,17 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "functions": {
-    "api/[...path].js": {
+    "api/**/*.js": {
       "memory": 256,
       "maxDuration": 30
     }
   },
+  "rewrites": [
+    {
+      "source": "/((?!api/|assets/|.*\\..*).*)",
+      "destination": "/index.html"
+    }
+  ],
   "headers": [
     {
       "source": "/assets/(.*)",
