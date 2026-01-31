@@ -108,6 +108,104 @@ export function ReportsPage() {
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* GAMIFICAÇÃO + ATIVIDADE DO USUÁRIO - Side by Side */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      <div className={styles.sideBySide}>
+        {/* GAMIFICAÇÃO */}
+        {loading.gamification ? (
+          <PanelSkeleton rows={3} />
+        ) : gamificationReport && (
+          <ReportPanel
+            title="🏆 Gamificação"
+            subtitle="Progresso do usuário (XP) + conquistas + ranking."
+            rightSlot={
+              gamificationReport.dailyChallenge ? (
+                <div className={styles.challenge}>
+                  <div className={styles.challengeTitleRow}>
+                    <div className={styles.challengeTitle}>{gamificationReport.dailyChallenge.title}</div>
+                    <div className={styles.challengeXp}>+{gamificationReport.dailyChallenge.xp_reward} XP</div>
+                  </div>
+                  <div className={styles.progressTrack}>
+                    <div
+                      className={styles.progressFill}
+                      style={{ width: `${Math.round((challengeProgress?.ratio ?? (gamificationReport.dailyChallenge.completed ? 1 : 0)) * 100)}%` }}
+                    />
+                  </div>
+                  <div className={styles.challengeMeta}>
+                    {gamificationReport.dailyChallenge.completed
+                      ? 'Concluído'
+                      : challengeProgress
+                        ? `${challengeProgress.current}/${challengeProgress.target}`
+                        : 'Em andamento'}
+                  </div>
+                </div>
+              ) : null
+            }
+          >
+            <div className={styles.panelStack}>
+              <div className={styles.panelGrid}>
+                <div className={styles.chartSection}>
+                  <div className={styles.chartSectionTitle}>Conquistas</div>
+                  <DonutChart data={achievementsDonut} height={240} />
+                </div>
+                <div className={styles.chartSection}>
+                  <div className={styles.chartSectionTitle}>Top Recompensas XP</div>
+                  <HorizontalBarChart
+                    data={gamificationReport.achievementsRewardsTop}
+                    height={Math.min(320, 100 + gamificationReport.achievementsRewardsTop.length * 26)}
+                  />
+                </div>
+              </div>
+              <div className={styles.chartSection}>
+                <div className={styles.chartSectionTitle}>Leaderboard Global</div>
+                <Leaderboard
+                  data={leaderboardFull}
+                  currentUserId={currentUserId}
+                  currentUserName={currentUserName}
+                />
+              </div>
+            </div>
+          </ReportPanel>
+        )}
+
+        {/* ATIVIDADE DO USUÁRIO */}
+        {loading.gamification ? (
+          <PanelSkeleton rows={2} />
+        ) : gamificationReport && (
+          <ReportPanel title="💬 Atividade do Usuário" subtitle="Consultas à API e mensagens no chat.">
+            <div className={styles.panelStack}>
+              <StatGrid>
+                <MiniStat
+                  icon="🔍"
+                  label="Total de Consultas"
+                  value={gamificationReport.totalQueries}
+                />
+                <MiniStat
+                  icon="💬"
+                  label="Mensagens Chat"
+                  value={gamificationReport.chatMessages}
+                />
+                <MiniStat
+                  icon="⭐"
+                  label="Total XP"
+                  value={gamificationReport.totalXp}
+                />
+                <MiniStat
+                  icon="🎖️"
+                  label="Conquistas"
+                  value={`${gamificationReport.achievementsUnlocked}/${gamificationReport.achievementsUnlocked + gamificationReport.achievementsLocked}`}
+                />
+              </StatGrid>
+              <div className={styles.chartSection}>
+                <div className={styles.chartSectionTitle}>Consultas vs Mensagens</div>
+                <VerticalBarChart data={chatVsQueries} height={280} />
+              </div>
+            </div>
+          </ReportPanel>
+        )}
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════ */}
       {/* CROSS ANALYTICS - Visão Geral da Galáxia */}
       {/* ═══════════════════════════════════════════════════════════════ */}
       <ReportPanel
@@ -510,102 +608,6 @@ export function ReportsPage() {
           </ReportPanel>
         )}
 
-        {/* ═══════════════════════════════════════════════════════════════ */}
-        {/* GAMIFICAÇÃO */}
-        {/* ═══════════════════════════════════════════════════════════════ */}
-        {loading.gamification ? (
-          <PanelSkeleton rows={3} />
-        ) : gamificationReport && (
-          <ReportPanel
-            title="🏆 Gamificação"
-            subtitle="Progresso do usuário (XP) + estado de conquistas + top ranking."
-            rightSlot={
-              gamificationReport.dailyChallenge ? (
-                <div className={styles.challenge}>
-                  <div className={styles.challengeTitleRow}>
-                    <div className={styles.challengeTitle}>{gamificationReport.dailyChallenge.title}</div>
-                    <div className={styles.challengeXp}>+{gamificationReport.dailyChallenge.xp_reward} XP</div>
-                  </div>
-                  <div className={styles.progressTrack}>
-                    <div
-                      className={styles.progressFill}
-                      style={{ width: `${Math.round((challengeProgress?.ratio ?? (gamificationReport.dailyChallenge.completed ? 1 : 0)) * 100)}%` }}
-                    />
-                  </div>
-                  <div className={styles.challengeMeta}>
-                    {gamificationReport.dailyChallenge.completed
-                      ? 'Concluído'
-                      : challengeProgress
-                        ? `${challengeProgress.current}/${challengeProgress.target}`
-                        : 'Em andamento'}
-                  </div>
-                </div>
-              ) : null
-            }
-          >
-            <div className={styles.panelStack}>
-              <div className={styles.panelGrid}>
-                <div className={styles.chartSection}>
-                  <div className={styles.chartSectionTitle}>Conquistas</div>
-                  <DonutChart data={achievementsDonut} height={280} />
-                </div>
-                <div className={styles.chartSection}>
-                  <div className={styles.chartSectionTitle}>Top Recompensas XP</div>
-                  <HorizontalBarChart
-                    data={gamificationReport.achievementsRewardsTop}
-                    height={Math.min(400, 140 + gamificationReport.achievementsRewardsTop.length * 28)}
-                  />
-                </div>
-              </div>
-              <div className={styles.chartSection}>
-                <div className={styles.chartSectionTitle}>Leaderboard Global</div>
-                <Leaderboard
-                  data={leaderboardFull}
-                  currentUserId={currentUserId}
-                  currentUserName={currentUserName}
-                />
-              </div>
-            </div>
-          </ReportPanel>
-        )}
-
-        {/* ═══════════════════════════════════════════════════════════════ */}
-        {/* CHAT / ATIVIDADE */}
-        {/* ═══════════════════════════════════════════════════════════════ */}
-        {loading.gamification ? (
-          <PanelSkeleton rows={2} />
-        ) : gamificationReport && (
-          <ReportPanel title="💬 Atividade do Usuário" subtitle="Comparação entre consultas à API e mensagens no chat.">
-            <div className={styles.panelStack}>
-              <StatGrid>
-                <MiniStat
-                  icon="🔍"
-                  label="Total de Consultas"
-                  value={gamificationReport.totalQueries}
-                />
-                <MiniStat
-                  icon="💬"
-                  label="Mensagens Chat"
-                  value={gamificationReport.chatMessages}
-                />
-                <MiniStat
-                  icon="⭐"
-                  label="Total XP"
-                  value={gamificationReport.totalXp}
-                />
-                <MiniStat
-                  icon="🎖️"
-                  label="Conquistas"
-                  value={`${gamificationReport.achievementsUnlocked}/${gamificationReport.achievementsUnlocked + gamificationReport.achievementsLocked}`}
-                />
-              </StatGrid>
-              <div className={styles.chartSection}>
-                <div className={styles.chartSectionTitle}>Consultas vs Mensagens</div>
-                <VerticalBarChart data={chatVsQueries} height={280} />
-              </div>
-            </div>
-          </ReportPanel>
-        )}
       </div>
     </section>
   );

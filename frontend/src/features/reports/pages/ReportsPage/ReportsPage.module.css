@@ -293,3 +293,20 @@
   }
 }
 
+/* Side-by-side layout for gamification panels */
+.sideBySide {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 1100px) {
+  .sideBySide {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.sideBySide > * {
+  min-width: 0;
+}
+
