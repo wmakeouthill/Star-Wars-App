@@ -269,24 +269,47 @@ IMPORTANT_WORDS = {
 # Mapeia variações sem acento/erradas para forma correta
 PT_CORRECTIONS = {
     # ==========================================
-    # ROBÔS / DROIDES
+    # ROBÔS / DROIDES (inclui erros de digitação comuns)
     # ==========================================
     "robo": "robô",
     "robos": "robôs",
+    "roobs": "robôs",  # Erro comum de digitação
+    "robs": "robôs",
+    "robô": "robô",
+    "robôs": "robôs",
     "androide": "andróide",
     "androides": "andróides",
-    "droide": "droide",  # Mantém
-    "droides": "droides",  # Mantém
+    "droide": "droide",
+    "droides": "droides",
+    "droid": "droide",
+    "droids": "droides",
     "astromech": "astromech",
-    "bb8": "bb-8",
+    # R2-D2 - todas as variações
+    "r2": "r2-d2",
     "r2d2": "r2-d2",
-    "c3po": "c-3po",
-    "ig88": "ig-88",
-    "ig11": "ig-11",
-    "k2so": "k-2so",
+    "r2 d2": "r2-d2",
+    "r2-d2": "r2-d2",
     "artoo": "r2-d2",
     "arturito": "r2-d2",
+    "artu": "r2-d2",
+    # C-3PO - todas as variações
+    "c3": "c-3po",
+    "c3po": "c-3po",
+    "c3 po": "c-3po",
+    "c-3po": "c-3po",
     "threepio": "c-3po",
+    "3po": "c-3po",
+    # BB-8
+    "bb8": "bb-8",
+    "bb 8": "bb-8",
+    "bb-8": "bb-8",
+    # Outros droides
+    "ig88": "ig-88",
+    "ig 88": "ig-88",
+    "ig11": "ig-11",
+    "ig 11": "ig-11",
+    "k2so": "k-2so",
+    "k2 so": "k-2so",
     
     # ==========================================
     # JEDI / FORÇA
@@ -477,6 +500,86 @@ PT_SYNONYMS = {
 }
 
 
+# ============================================================================
+# PADRÕES DE DROIDES - Detectados ANTES de qualquer processamento
+# ============================================================================
+# Regex para detectar nomes de droides (evita confusão com personagens como "Roos Tarpals")
+DROID_PATTERNS = [
+    # R2-D2 e variações
+    (r'\br2[\s\-]?d2\b', 'R2-D2'),
+    (r'\bartoo\b', 'R2-D2'),
+    (r'\barturito\b', 'R2-D2'),
+    (r'\bartu\b', 'R2-D2'),
+    # C-3PO e variações
+    (r'\bc[\s\-]?3[\s\-]?po\b', 'C-3PO'),
+    (r'\bthreepio\b', 'C-3PO'),
+    (r'\b3po\b', 'C-3PO'),
+    # BB-8 e variações
+    (r'\bbb[\s\-]?8\b', 'BB-8'),
+    # K-2SO
+    (r'\bk[\s\-]?2[\s\-]?so\b', 'K-2SO'),
+    # IG-88
+    (r'\big[\s\-]?88\b', 'IG-88'),
+    # IG-11
+    (r'\big[\s\-]?11\b', 'IG-11'),
+    # Padrão genérico para droides tipo letra-número
+    (r'\b([a-z])[\s\-]?(\d+)[\s\-]?([a-z]+)?\b', None),  # Captura genérica
+]
+
+# Termos que indicam que o usuário está falando sobre robôs/droides em geral
+ROBOT_CATEGORY_TERMS = {
+    "robo", "robô", "robos", "robôs", "roobs", "robs", "robot", "robots",
+    "droide", "droides", "droid", "droids",
+    "androide", "androides", "andróide", "andróides",
+    "maquina", "máquina", "maquinas", "máquinas",
+    "astromech", "astromechs",
+}
+
+
+def preprocess_droid_names(text: str) -> str:
+    """
+    Pré-processa o texto para identificar e normalizar nomes de droides.
+    
+    Isso é CRUCIAL para evitar que "r2 d2" seja confundido com "Roos Tarpals"
+    através de fuzzy matching incorreto.
+    
+    Exemplos:
+        "me fale sobre o r2 d2" -> "me fale sobre o R2-D2"
+        "conhece o bb 8?" -> "conhece o BB-8?"
+        "c3po e r2d2" -> "C-3PO e R2-D2"
+    """
+    if not text:
+        return text
+    
+    result = text
+    
+    # Aplica padrões conhecidos de droides
+    for pattern, replacement in DROID_PATTERNS:
+        if replacement:  # Padrões com substituição fixa
+            result = re.sub(pattern, replacement, result, flags=re.IGNORECASE)
+    
+    return result
+
+
+def is_robot_query(text: str) -> bool:
+    """
+    Verifica se o texto é uma consulta sobre robôs/droides em geral.
+    
+    Isso evita que "roobs" ou "robos" façam fuzzy match com personagens.
+    """
+    normalized = normalize_text(text)
+    words = normalized.split()
+    
+    for word in words:
+        if word in ROBOT_CATEGORY_TERMS:
+            return True
+        # Também verifica com stemming básico
+        if word.rstrip('s') in ROBOT_CATEGORY_TERMS:
+            return True
+    
+    return False
+
+
 def normalize_text(text: str) -> str:
     """Remove acentos, converte para minúsculas e normaliza espaços."""
     if not text:
@@ -529,15 +632,35 @@ def extract_keywords(text: str) -> List[str]:
         "o que você acha do r2d2" -> ["r2d2"]
         "ele é um robô?" -> ["robô"]  (ou resolve pronome do contexto)
         "conhece os jedis?" -> ["jedis"]
+        "me fale sobre o r2 d2" -> ["r2-d2"]
     """
     if not text:
         return []
     
-    # Normaliza o texto
-    normalized = normalize_text(text)
+    # IMPORTANTE: Pré-processa para detectar nomes de droides primeiro
+    # Isso evita que "r2 d2" seja quebrado em "r2" e "d2" separadamente
+    preprocessed = preprocess_droid_names(text)
+    
+    # Verifica se é uma query sobre robôs/droides em geral
+    if is_robot_query(text):
+        # Retorna termos relacionados a robôs
+        normalized = normalize_text(text)
+        for term in ROBOT_CATEGORY_TERMS:
+            if term in normalized:
+                return [term]
+        return ["droide", "robô"]  # Fallback
+    
+    # Normaliza o texto (já pré-processado)
+    normalized = normalize_text(preprocessed)
     words = normalized.split()
     
     keywords = []
+    
+    # Primeiro, verifica se há droides no texto pré-processado
+    for pattern, replacement in DROID_PATTERNS:
+        if replacement:
+            if re.search(pattern, preprocessed, re.IGNORECASE):
+                keywords.append(normalize_text(replacement))
     
     for word in words:
         # Ignora palavras muito curtas (exceto se forem importantes)
@@ -546,12 +669,14 @@ def extract_keywords(text: str) -> List[str]:
         
         # Sempre mantém palavras importantes (mesmo se parecem stopwords)
         if word in IMPORTANT_WORDS:
-            keywords.append(word)
+            if word not in keywords:  # Evita duplicatas
+                keywords.append(word)
             continue
         
         # Verifica se é uma correção conhecida (provavelmente importante)
         if word in PT_CORRECTIONS:
-            keywords.append(word)
+            if word not in keywords:
+                keywords.append(word)
             continue
         
         # Remove stopwords
@@ -560,7 +685,8 @@ def extract_keywords(text: str) -> List[str]:
         
         # Palavras com 3+ caracteres que não são stopwords são candidatas
         if len(word) >= 3:
-            keywords.append(word)
+            if word not in keywords:
+                keywords.append(word)
     
     return keywords
 

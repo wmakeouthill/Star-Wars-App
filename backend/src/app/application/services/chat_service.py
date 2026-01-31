@@ -14,6 +14,8 @@ from app.application.services.rag_search import (
     stem_text,
     extract_keywords,
     extract_search_query,
+    preprocess_droid_names,
+    is_robot_query,
     rag_search,
 )
 from app.domain.repositories.swapi_client import ISWAPIClient
@@ -384,11 +386,13 @@ class ChatService:
             return routed
 
         # Busca contexto RAG para mensagens não roteadas
-        rag_context = self._get_rag_context(message)
+        # Também considera o contexto da conversa para melhor relevância
+        rag_context = self._get_rag_context_with_history(message, request.context)
         rag_snippet = rag_context.to_context_string(max_results=5) if rag_context.results else None
 
         ai_message = await self._ai_response(persona, message, request.context, rag_snippet)
-        fallback_message = self._persona_freestyle_fallback(persona, message)
+        # Passa o contexto para o fallback para manter coerência
+        fallback_message = self._persona_freestyle_fallback(persona, message, request.context)
         return ChatResponse(
             message=ai_message or fallback_message,
             suggested_actions=[
@@ -500,6 +504,97 @@ class ChatService:
             min_score=0.35,
             max_results=5,
         )
+
+    def _get_rag_context_with_history(self, message: str, context: List) -> RAGContext:
+        """
+        Busca contexto RAG considerando também o histórico da conversa.
+        
+        Isso permite que perguntas como "o que você acha dele?" ou "me fale mais"
+        busquem contexto relevante baseado na última entidade mencionada.
+        """
+        # Primeiro tenta a busca normal
+        rag_ctx = self._get_rag_context(message)
+        
+        # Se não encontrou nada relevante, verifica se há referência ao contexto anterior
+        if not rag_ctx.results or rag_ctx.results[0].score < 0.5:
+            # Verifica se a mensagem tem pronomes ou referências vagas
+            lowered = message.lower()
+            has_reference = any(w in lowered for w in [
+                "ele", "ela", "dele", "dela", "isso", "esse", "essa",
+                "mais", "sobre isso", "continue", "explique", "detalhe",
+                "como assim", "por que", "porque", "o que mais"
+            ])
+            
+            if has_reference and context:
+                # Tenta encontrar a última entidade mencionada
+                last_entity = self._last_entity_from_context(context)
+                if last_entity and last_entity.get("name"):
+                    entity_name = last_entity["name"]
+                    entity_type = last_entity.get("type", "character")
+                    
+                    # Busca RAG pela última entidade
+                    entity_ctx = self._rag.search(
+                        query=entity_name,
+                        entity_types=[entity_type] if entity_type else None,
+                        min_score=0.3,
+                        max_results=5,
+                    )
+                    if entity_ctx.results:
+                        return entity_ctx
+            
+            # Também tenta extrair tema das últimas mensagens do assistente
+            for item in reversed(context or [])[:3]:
+                if getattr(item, "role", "") == "assistant":
+                    content = getattr(item, "content", "")
+                    # Extrai nomes/temas mencionados na resposta
+                    theme_ctx = self._extract_theme_from_content(content)
+                    if theme_ctx:
+                        theme_rag = self._rag.search(query=theme_ctx, min_score=0.3, max_results=3)
+                        if theme_rag.results:
+                            # Combina com o contexto original se houver
+                            if rag_ctx.results:
+                                combined_results = rag_ctx.results + theme_rag.results
+                                return RAGContext(
+                                    query=message,
+                                    results=sorted(combined_results, key=lambda x: x.score, reverse=True)[:5],
+                                    total_matches=len(combined_results),
+                                )
+                            return theme_rag
+                    break
+        
+        return rag_ctx
+
+    def _extract_theme_from_content(self, content: str) -> str | None:
+        """Extrai tema/entidade principal de uma resposta do assistente."""
+        if not content:
+            return None
+        
+        # Procura por nomes conhecidos de Star Wars na resposta
+        content_lower = content.lower()
+        
+        # Verifica aliases de personagens
+        for alias, canonical in CHARACTER_ALIASES.items():
+            if alias in content_lower or self._normalize_text(canonical) in content_lower:
+                return canonical
+        
+        # Verifica aliases de planetas
+        for alias, canonical in PLANET_ALIASES.items():
+            if alias in content_lower:
+                return canonical
+        
+        # Verifica categorias mencionadas
+        category_keywords = {
+            "droide": "droide R2-D2 C-3PO",
+            "jedi": "jedi Luke Obi-Wan Yoda",
+            "sith": "sith Vader Palpatine",
+            "nave": "nave Millennium Falcon X-Wing",
+            "planeta": "planeta Tatooine Coruscant",
+        }
+        for keyword, search_terms in category_keywords.items():
+            if keyword in content_lower:
+                return search_terms
+        
+        return None
 
     async def _route_structured_intent(self, persona: str, message: str, context: List) -> ChatResponse | None:
         # Perguntas de opinião com pronomes ("dele/dela/ele/ela/isso") devem usar o último alvo mencionado.
@@ -978,6 +1073,7 @@ class ChatService:
         - "quero falar sobre o luke skywalker"
         - "me fala do tatooine"
         - "vamos conversar sobre o episódio 4"
+        - "me fale sobre o r2 d2" (detecta droides corretamente)
         """
         raw = (message or "").strip()
         if not raw:
@@ -985,11 +1081,19 @@ class ChatService:
 
         lowered = raw.lower()
         
-        # Verifica se é uma pergunta sobre CATEGORIA (robôs, droides, jedis, etc.)
-        # em vez de um personagem específico - retorna None para deixar o RAG/IA responder
-        category_query = self._is_category_query(lowered)
-        if category_query:
+        # IMPORTANTE: Verifica primeiro se é sobre robôs/droides em geral
+        # Isso evita que "roobs" ou "robos" sejam tratados como nome de personagem
+        if is_robot_query(lowered):
+            return None  # Deixa o fluxo de categoria responder
+        
+        # Verifica se é uma pergunta sobre CATEGORIA (jedis, siths, etc.)
+        # em vez de um personagem específico
+        if self._is_category_query(lowered):
             return None  # Deixa o fluxo padrão com RAG responder sobre a categoria
+        
+        # IMPORTANTE: Pré-processa para detectar nomes de droides
+        # "r2 d2" -> "R2-D2", "c3 po" -> "C-3PO"
+        preprocessed = preprocess_droid_names(raw)
 
         # Captura o trecho depois de "sobre", "do/da/de" em frases típicas.
         m = re.search(r"\b(?:falar|conversar)\s+sobre\s+(?:o|a|os|as)?\s*(.+)$", lowered)
@@ -1000,7 +1104,9 @@ class ChatService:
         if not m:
             return None
 
-        tail = raw[m.start(1) :].strip(" .!?;:")
+        # Usa o texto pré-processado para extrair o nome
+        tail_start = m.start(1)
+        tail = preprocessed[tail_start:].strip(" .!?;:")
         if not tail:
             return None
         
@@ -1028,9 +1134,14 @@ class ChatService:
         
         Ex: "robôs", "droides", "jedis", "siths", "naves", etc.
         """
+        # Primeiro, usa a função especializada para robôs/droides
+        if is_robot_query(text):
+            return True
+        
         category_words = [
-            # Robôs/Droides
-            "robos", "robôs", "robo", "robô", "droides", "droide", "droid", "droids",
+            # Robôs/Droides - já cobertos por is_robot_query, mas mantém para compatibilidade
+            "robos", "robôs", "robo", "robô", "roobs", "robs", "robot", "robots",
+            "droides", "droide", "droid", "droids",
             "maquinas", "máquinas", "androides", "andróides", "astromech", "astromechs",
             # Jedis
             "jedis", "jedi", "cavaleiros jedi", "mestres jedi", "padawans", "padawan",
@@ -1565,33 +1676,103 @@ class ChatService:
         seed = zlib.adler32((message or "").encode("utf-8"))
         return breaths[seed % len(breaths)]
 
-    def _persona_freestyle_fallback(self, persona: str, user_message: str) -> str:
+    def _persona_freestyle_fallback(self, persona: str, user_message: str, context: List = None) -> str:
         """
         Resposta "in-character" quando a IA está desabilitada/indisponível.
         Deve ser conversacional e desenvolver o assunto, não pedir mais detalhes.
+        
+        Agora usa o contexto da conversa para manter coerência.
         """
         msg = (user_message or "").strip().lower()
         seed = zlib.adler32(f"{persona}|{msg}".encode("utf-8"))
+        
+        # ============================================================
+        # CONTEXTO DA CONVERSA - Mantém coerência com mensagens anteriores
+        # ============================================================
+        context_theme = None
+        context_entity = None
+        
+        if context:
+            # Tenta extrair o tema/entidade da conversa anterior
+            last_entity = self._last_entity_from_context(context)
+            if last_entity:
+                context_entity = last_entity.get("name")
+                context_theme = last_entity.get("type")
+            
+            # Também verifica as últimas mensagens para detectar o tema
+            for item in reversed(context or [])[:5]:
+                content = getattr(item, "content", "").lower()
+                if not content:
+                    continue
+                
+                # Detecta temas mencionados nas mensagens anteriores
+                if any(w in content for w in ["robo", "robô", "droide", "r2", "c3po"]):
+                    context_theme = context_theme or "droids"
+                elif any(w in content for w in ["jedi", "cavaleiro", "mestre jedi"]):
+                    context_theme = context_theme or "jedi"
+                elif any(w in content for w in ["sith", "lado negro", "darth"]):
+                    context_theme = context_theme or "sith"
+                elif any(w in content for w in ["nave", "falcon", "x-wing"]):
+                    context_theme = context_theme or "ships"
+                elif any(w in content for w in ["planeta", "tatooine", "coruscant"]):
+                    context_theme = context_theme or "planets"
+                
+                if context_theme:
+                    break
 
         # Detecta temas na mensagem para responder de forma relevante
-        is_about_droids = any(w in msg for w in ["robo", "robô", "robos", "robôs", "droide", "droides", "droid", "r2", "c3po", "bb8", "astromech"])
+        # Se a mensagem é vaga mas temos contexto, usa o tema do contexto
+        is_about_droids = any(w in msg for w in ["robo", "robô", "robos", "robôs", "droide", "droides", "droid", "r2", "c3po", "bb8", "astromech"]) or context_theme == "droids"
         is_about_force = any(w in msg for w in ["força", "forca", "force", "lado negro", "lado luminoso", "lado sombrio", "poderes", "midi-chlorian"])
-        is_about_jedi = any(w in msg for w in ["jedi", "jedis", "cavaleiro", "padawan", "ordem jedi", "sabre de luz", "lightsaber"])
-        is_about_sith = any(w in msg for w in ["sith", "siths", "lado negro", "darth", "lord sith"])
+        is_about_jedi = any(w in msg for w in ["jedi", "jedis", "cavaleiro", "padawan", "ordem jedi", "sabre de luz", "lightsaber"]) or context_theme == "jedi"
+        is_about_sith = any(w in msg for w in ["sith", "siths", "lado negro", "darth", "lord sith"]) or context_theme == "sith"
         is_about_war = any(w in msg for w in ["guerra", "batalha", "luta", "conflito", "clone wars", "guerras clonicas"])
         is_about_empire = any(w in msg for w in ["império", "imperio", "imperial", "imperiais", "stormtrooper", "estrela da morte"])
         is_about_rebels = any(w in msg for w in ["rebelde", "rebeldes", "aliança", "resistencia", "resistência"])
         is_about_bounty = any(w in msg for w in ["caçador", "cacador", "bounty", "mercenario", "mercenário", "boba", "jango"])
-        is_about_ships = any(w in msg for w in ["nave", "naves", "falcon", "x-wing", "tie", "destroyer", "starship"])
-        is_about_planets = any(w in msg for w in ["planeta", "planetas", "mundo", "tatooine", "coruscant", "naboo", "hoth", "dagobah"])
+        is_about_ships = any(w in msg for w in ["nave", "naves", "falcon", "x-wing", "tie", "destroyer", "starship"]) or context_theme == "ships"
+        is_about_planets = any(w in msg for w in ["planeta", "planetas", "mundo", "tatooine", "coruscant", "naboo", "hoth", "dagobah"]) or context_theme == "planets"
         is_about_films = any(w in msg for w in ["filme", "filmes", "trilogia", "saga", "episodio", "episódio", "prequels", "sequels"])
         is_greeting = any(w in msg for w in ["oi", "olá", "ola", "eai", "bom dia", "boa tarde", "boa noite", "tudo bem", "opa", "hey", "ei"])
         is_about_destiny = any(w in msg for w in ["destino", "futuro", "escolha", "caminho", "profecia"])
         is_about_love = any(w in msg for w in ["amor", "amizade", "familia", "família", "relacionamento", "casamento"])
         is_about_death = any(w in msg for w in ["morte", "morrer", "matar", "perda", "luto", "sacrificio", "sacrifício"])
+        
+        # Detecta se é uma pergunta de continuidade/referência ao contexto
+        is_continuation = any(w in msg for w in [
+            "ele", "ela", "dele", "dela", "isso", "esse", "essa", "desse", "dessa",
+            "mais", "continue", "explique", "detalhe", "como assim", "por que", "porque",
+            "o que mais", "e sobre", "conte mais", "fale mais"
+        ])
 
         if persona == "vader":
             breath = self._vader_breath(msg)
+            
+            # CONTINUIDADE: Se é uma referência ao contexto anterior, responde sobre a entidade
+            if is_continuation and context_entity:
+                entity_lower = context_entity.lower()
+                # Gera resposta sobre a entidade do contexto
+                if any(w in entity_lower for w in ["r2", "c3po", "bb", "droide", "ig-"]):
+                    templates = [
+                        f"{breath} {context_entity}... já falamos sobre droides. Máquinas são previsíveis, ao contrário de pessoas. Há algo específico que deseja saber sobre esse modelo?",
+                        f"{breath} Continuando sobre {context_entity}... droides têm sua utilidade. Mas não confie demais neles. Máquinas falham. A Força nunca falha.",
+                    ]
+                elif any(w in entity_lower for w in ["luke", "obi", "yoda", "jedi", "mace", "qui-gon"]):
+                    templates = [
+                        f"{breath} {context_entity}... um nome que me traz memórias. Os Jedi sempre foram cegos para a verdade que estava diante deles. Continue sua pergunta.",
+                        f"{breath} Ainda sobre {context_entity}? Os caminhos da Força são complexos. O que mais deseja saber?",
+                    ]
+                elif any(w in entity_lower for w in ["palpatine", "sidious", "maul", "sith", "dooku"]):
+                    templates = [
+                        f"{breath} {context_entity}... o Lado Negro conecta todos nós. O poder flui de formas que poucos compreendem. Continue sua pergunta.",
+                        f"{breath} Ainda sobre {context_entity}? Os Sith têm segredos que duraram milênios. O que mais deseja descobrir?",
+                    ]
+                else:
+                    templates = [
+                        f"{breath} {context_entity}... lembro do que falamos. Continue sua pergunta. Minha paciência é limitada, mas estou ouvindo.",
+                        f"{breath} Você ainda quer falar sobre {context_entity}? Muito bem. O que mais deseja saber?",
+                    ]
+                return templates[seed % len(templates)]
             
             if is_about_droids:
                 templates = [
@@ -1674,6 +1855,32 @@ class ChatService:
             return templates[seed % len(templates)]
 
         # Yoda
+        # CONTINUIDADE: Se é uma referência ao contexto anterior, responde sobre a entidade
+        if is_continuation and context_entity:
+            entity_lower = context_entity.lower()
+            # Gera resposta sobre a entidade do contexto
+            if any(w in entity_lower for w in ["r2", "c3po", "bb", "droide", "ig-"]):
+                templates = [
+                    f"Sobre {context_entity}, ainda falar deseja? Hmm. Droides, aliados valiosos são. Mais perguntas, fazer você pode.",
+                    f"{context_entity}, hmm... interessado ainda você está. Contar mais, eu posso. O que saber você deseja?",
+                ]
+            elif any(w in entity_lower for w in ["luke", "obi", "mace", "qui-gon", "anakin"]):
+                templates = [
+                    f"Sobre {context_entity}, lembranças muitas tenho. Jedi importante, ele foi. Perguntar mais, você pode.",
+                    f"{context_entity}... nome que memórias traz. Continuar a conversa, prazer meu é. O que mais saber você deseja?",
+                ]
+            elif any(w in entity_lower for w in ["vader", "palpatine", "sidious", "maul", "sith", "dooku"]):
+                templates = [
+                    f"Sobre {context_entity}, hmm... lado negro, dor isso traz. Mas discutir, importante é. O que mais perguntar você quer?",
+                    f"{context_entity}... escuridão, esse nome representa. Mas entender o mal, evitá-lo nos ajuda. Continuar, podemos.",
+                ]
+            else:
+                templates = [
+                    f"Sobre {context_entity}, mais falar deseja? Hmm. Ouvindo, estou. Sua pergunta, fazer você pode.",
+                    f"{context_entity}... interessante assunto, é. Continuar, podemos. O que mais saber você deseja? Hmmm.",
+                ]
+            return templates[seed % len(templates)]
+        
         if is_about_droids:
             templates = [
                 "Droides, hmm... subestimá-los, erro grande é! R2-D2, leal companheiro de muitas aventuras foi. Sem ele, fracassado muitas missões teriam. C-3PO, preocupado sempre está, mas útil sua tradução é. A Força neles não flui, mas importantes na galáxia são.",
