@@ -493,9 +493,98 @@ interface TreemapContentProps {
   depth?: number;
 }
 
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function wrapToLines(rawText: string, maxCharsPerLine: number, maxLines: number): string[] {
+  const text = (rawText ?? '').trim();
+  if (!text) return [];
+  if (maxCharsPerLine <= 0 || maxLines <= 0) return [];
+
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let current = '';
+
+  const pushCurrent = () => {
+    if (!current) return;
+    lines.push(current);
+    current = '';
+  };
+
+  for (const word of words) {
+    if (lines.length >= maxLines) break;
+
+    // Se a palavra é maior que a linha e não temos nada, truncar direto.
+    if (!current && word.length > maxCharsPerLine) {
+      lines.push(truncateLabel(word, maxCharsPerLine));
+      continue;
+    }
+
+    const candidate = current ? `${current} ${word}` : word;
+    if (candidate.length <= maxCharsPerLine) {
+      current = candidate;
+      continue;
+    }
+
+    // Fecha linha atual e tenta colocar a palavra na próxima.
+    pushCurrent();
+    if (lines.length >= maxLines) break;
+
+    if (word.length > maxCharsPerLine) {
+      lines.push(truncateLabel(word, maxCharsPerLine));
+    } else {
+      current = word;
+    }
+  }
+
+  pushCurrent();
+
+  // Garante que a última linha caiba (com reticências).
+  if (lines.length > 0) {
+    const lastIndex = Math.min(lines.length, maxLines) - 1;
+    const trimmed = lines.slice(0, maxLines);
+    trimmed[lastIndex] = truncateLabel(trimmed[lastIndex], maxCharsPerLine);
+    return trimmed;
+  }
+
+  return lines.slice(0, maxLines);
+}
+
 function TreemapContent({ x = 0, y = 0, width = 0, height = 0, name = '', index = 0, depth = 0 }: TreemapContentProps) {
-  const showLabel = width > 50 && height > 24;
+  const padding = 6;
+  const isNarrowTall = width < 86 && height >= 72;
+  const showLabel =
+    (isNarrowTall && width > 30 && height > 60) ||
+    (!isNarrowTall && width > 60 && height > 32);
+
   const color = COLORS[index % COLORS.length];
+  const cx = x + width / 2;
+  const cy = y + height / 2;
+
+  const mode: 'horizontal' | 'vertical' = isNarrowTall ? 'vertical' : 'horizontal';
+  const availableW = Math.max(0, width - padding * 2);
+  const availableH = Math.max(0, height - padding * 2);
+
+  const fontFamily = 'var(--font-ui)';
+  const fontFill = 'rgba(255, 255, 255, 0.95)';
+  const fontStroke = 'rgba(5, 7, 13, 0.72)';
+
+  const fontSize =
+    mode === 'vertical'
+      ? clamp(Math.min(16, availableW * 0.55, availableH / 7.5), 11, 16)
+      : clamp(Math.min(16, availableW / 10, availableH / 4.2), 12, 16);
+
+  const lineHeight = fontSize * 1.12;
+  const maxLines = clamp(Math.floor(availableH / lineHeight), 1, 3);
+  const approxCharWidth = fontSize * 0.62;
+  const maxCharsPerLine =
+    mode === 'vertical'
+      // Quando rotaciona, o “comprimento” disponível vem da altura do retângulo.
+      ? Math.max(4, Math.floor(availableH / approxCharWidth))
+      : Math.max(6, Math.floor(availableW / approxCharWidth));
+
+  const lines = wrapToLines(name, maxCharsPerLine, mode === 'vertical' ? Math.min(2, maxLines) : maxLines);
 
   return (
     <g>
@@ -512,16 +601,38 @@ function TreemapContent({ x = 0, y = 0, width = 0, height = 0, name = '', index 
       />
       {showLabel && (
         <text
-          x={x + width / 2}
-          y={y + height / 2}
+          x={cx}
+          y={cy}
           textAnchor="middle"
           dominantBaseline="middle"
-          fill="rgba(255, 255, 255, 0.95)"
-          fontSize={Math.min(12, width / 8)}
-          fontFamily="var(--font-pixel)"
-          style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}
+          fill={fontFill}
+          fontSize={fontSize}
+          fontFamily={fontFamily}
+          fontWeight={600}
+          paintOrder="stroke"
+          stroke={fontStroke}
+          strokeWidth={3}
+          strokeLinejoin="round"
+          style={{
+            letterSpacing: '0.02em',
+            // Se o retângulo é estreito, rotaciona para “verticalizar” o texto.
+            transform: mode === 'vertical' ? `rotate(-90deg)` : undefined,
+            transformOrigin: mode === 'vertical' ? `${cx}px ${cy}px` : undefined,
+          }}
         >
-          {truncateLabel(name, Math.floor(width / 7))}
+          {lines.length <= 1 ? (
+            lines[0] ?? ''
+          ) : (
+            lines.map((line, i) => (
+              <tspan
+                key={`${line}-${i}`}
+                x={cx}
+                dy={i === 0 ? -((lines.length - 1) * lineHeight) / 2 : lineHeight}
+              >
+                {line}
+              </tspan>
+            ))
+          )}
         </text>
       )}
     </g>
