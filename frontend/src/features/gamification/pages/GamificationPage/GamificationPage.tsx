@@ -32,12 +32,14 @@ export function GamificationPage() {
   const achievements = achievementsQuery.data!;
   const leaderboard = leaderboardQuery.data!;
   const daily = dailyQuery.data!;
+  const profileDisplayName = profile.name?.trim() ? profile.name : 'Visitante';
 
   return (
     <div className={styles.container}>
       <div className={styles.grid}>
         <section className={styles.card}>
           <h3 className={styles.cardTitle}>Seu perfil Jedi</h3>
+          <div className={styles.mono}>Usuário: {profileDisplayName}</div>
           <div className={styles.row}>
             <div className={styles.stat}>
               <div className={styles.statLabel}>Rank</div>
@@ -56,7 +58,6 @@ export function GamificationPage() {
               <div className={styles.statValue}>{profile.chat_messages}</div>
             </div>
           </div>
-          <div className={styles.mono}>user_id: {profile.user_id}</div>
         </section>
 
         <section className={styles.card}>
@@ -137,7 +138,7 @@ export function GamificationPage() {
                 <div>
                   <strong>#{index + 1}</strong> {entry.jedi_rank} — {entry.total_xp} XP
                 </div>
-                <div className={styles.mono}>{entry.user_id}</div>
+                <div className={styles.mono}>{entry.name?.trim() ? entry.name : entry.user_id}</div>
               </li>
             ))}
           </ul>

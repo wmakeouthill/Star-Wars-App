@@ -18,6 +18,8 @@ class AchievementStatusSchema(AchievementSchema):
 
 class UserGamificationSchema(BaseModel):
     user_id: str
+    name: Optional[str] = None
+    picture: Optional[str] = None
     total_xp: int = 0
     jedi_rank: JediRank = JediRank.YOUNGLING
     total_queries: int = 0

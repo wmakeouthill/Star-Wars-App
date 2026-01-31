@@ -11,6 +11,8 @@ export interface AchievementStatus extends Achievement {
 
 export interface UserGamification {
   user_id: string;
+  name?: string | null;
+  picture?: string | null;
   total_xp: number;
   jedi_rank: string;
   total_queries: number;

@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi import APIRouter, Depends
 
 from sqlalchemy import desc, select
@@ -27,8 +29,24 @@ def get_profile(
     db: Session = Depends(get_db),
 ):
     user = service.get_user_profile(user_id, db)
+
+    # Enriquecimento: nome/foto do usuário autenticado (Google), quando existir.
+    name = None
+    picture = None
+    try:
+        user_uuid = uuid.UUID(str(user.user_id))
+        u = db.get(User, user_uuid)
+        if u:
+            name = u.name
+            picture = u.picture
+    except Exception:
+        # usuário guest / sem UUID
+        pass
+
     return UserGamificationSchema(
         user_id=user.user_id,
+        name=name,
+        picture=picture,
         total_xp=user.total_xp,
         jedi_rank=user.jedi_rank,
         total_queries=user.total_queries,
