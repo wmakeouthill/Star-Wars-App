@@ -42,6 +42,26 @@
   border-radius: 999px;
   border: 1px solid rgba(110, 231, 255, 0.22);
   background: rgba(5, 7, 13, 0.22);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.kpi:hover {
+  border-color: rgba(110, 231, 255, 0.35);
+  box-shadow: 0 0 12px rgba(53, 230, 255, 0.1);
+}
+
+.kpiHighlight {
+  border-color: rgba(255, 212, 74, 0.35);
+  background: rgba(255, 212, 74, 0.08);
+}
+
+.kpiHighlight:hover {
+  border-color: rgba(255, 212, 74, 0.5);
+  box-shadow: 0 0 14px rgba(255, 212, 74, 0.15);
+}
+
+.kpiHighlight .kpiValue {
+  color: var(--neon-amber);
 }
 
 .kpiLabel {
@@ -214,5 +234,41 @@
 .challengeMeta {
   color: var(--muted);
   font-size: 0.85rem;
+}
+
+/* Chart Sections */
+.chartSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.chartSectionTitle {
+  font-family: var(--font-pixel);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(199, 226, 255, 0.75);
+  padding-left: 0.25rem;
+}
+
+/* Film count badges */
+.filmCountBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 6px;
+  background: rgba(110, 231, 255, 0.08);
+  border: 1px solid rgba(110, 231, 255, 0.15);
+  font-size: 0.75rem;
+  color: rgba(199, 226, 255, 0.85);
+  margin-right: 0.35rem;
+  margin-top: 0.35rem;
+}
+
+/* Full-width panel (for Cross Analytics) */
+.grid > *:first-child {
+  grid-column: 1 / -1;
 }
 

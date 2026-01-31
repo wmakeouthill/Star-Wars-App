@@ -38,3 +38,127 @@
   line-height: 1.25;
 }
 
+/* Gauge Chart */
+.gaugeContainer {
+  width: 100%;
+  position: relative;
+}
+
+.gaugeWrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.gaugeCenter {
+  position: absolute;
+  top: 55%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.gaugeValue {
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  color: var(--neon-cyan);
+  line-height: 1;
+}
+
+.gaugeLabel {
+  font-family: var(--font-pixel);
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(199, 226, 255, 0.75);
+  margin-top: 0.25rem;
+}
+
+/* Mini Stats */
+.miniStat {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 14px;
+  border: 1px solid rgba(110, 231, 255, 0.18);
+  background: linear-gradient(135deg, rgba(8, 16, 32, 0.45), rgba(8, 16, 32, 0.2));
+  box-shadow: 0 0 12px rgba(53, 230, 255, 0.04);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.miniStat:hover {
+  border-color: rgba(110, 231, 255, 0.32);
+  box-shadow: 0 0 18px rgba(53, 230, 255, 0.08);
+}
+
+.miniStatIcon {
+  font-size: 1.35rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.miniStatContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.miniStatLabel {
+  font-family: var(--font-pixel);
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(199, 226, 255, 0.75);
+}
+
+.miniStatValue {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  color: var(--neon-cyan);
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
+.miniStatTrend {
+  font-size: 0.85rem;
+}
+
+.trendUp {
+  color: var(--neon-lime);
+}
+
+.trendDown {
+  color: var(--neon-magenta);
+}
+
+.trendNeutral {
+  color: var(--muted);
+}
+
+.miniStatSub {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+/* Stat Grid */
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.65rem;
+}
+
+@media (min-width: 480px) {
+  .statGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 768px) {
+  .statGrid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
