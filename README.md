@@ -1,4 +1,4 @@
-# 🌌 HOLOCRON ANALYTICS
+﻿# 🌌 HOLOCRON ANALYTICS
 
 > **"Onde a Força dos Dados se Encontra com a Sabedoria da Galáxia"**
 
@@ -17,23 +17,23 @@
 ## 📑 Índice
 
 - [📜 Visão Geral](#-visão-geral)
-- [🎯 Principais Funcionalidades](#-principais-funcionalidades)
-- [🏗️ Arquitetura do Sistema](#️-arquitetura-do-sistema)
 - [📂 Estrutura do Projeto](#-estrutura-do-projeto)
-- [💻 Stack Tecnológico](#-stack-tecnológico)
-- [🚀 Como Executar](#-como-executar)
-- [🔌 API Reference](#-api-reference)
-- [🎨 Frontend Architecture](#-frontend-architecture)
-- [🤖 Sistema de IA & NLP](#-sistema-de-ia--nlp)
-- [🎮 Sistema de Gamificação](#-sistema-de-gamificação)
-- [📊 Sistema de Relatórios](#-sistema-de-relatórios)
-- [🔐 Autenticação & Segurança](#-autenticação--segurança)
-- [⚡ Performance & Cache](#-performance--cache)
-- [📱 Responsividade & UX](#-responsividade--ux)
-- [🧪 Testes](#-testes)
-- [🚢 Deploy em Produção](#-deploy-em-produção)
+- [🏗️ Arquitetura e Engenharia de Performance](#️-arquitetura-e-engenharia-de-performance)
+- [🛠️ Bastidores da Engenharia (Deep Dive)](#️-bastidores-da-engenharia-deep-dive)
+- [🗺️ Navegação e Funcionalidades](#️-navegação-e-funcionalidades)
+- [🔗 Integração & Protocolos de Dados](#-integração--protocolos-de-dados-end-to-end)
+- [📚 Documentação Técnica (Deep Dive)](#-documentação-técnica-deep-dive)
+  - [🤖 Engenharia de IA & NLP](#-engenharia-de-ia--nlp)
+  - [🎮 Mecânicas de Gamificação](#-mecânicas-de-gamificação)
+  - [🚀 Guia de Deploy em Produção](#-guia-de-deploy-em-produção)
+  - [🎨 UX & Frontend Architecture](#-ux--frontend-architecture)
+  - [📐 Quality Assurance & Data Architecture](#-quality-assurance--data-architecture)
+- [🛡️ Infraestrutura & Segurança (DevSecOps)](#️-infraestrutura--segurança-devsecops)
+- [🔌 API Reference (Endpoints)](#-api-reference-endpoints)
+- [🎨 Design System](#-design-system)
 - [📋 Variáveis de Ambiente](#-variáveis-de-ambiente)
-- [🛡️ Segurança & Compliance](#️-segurança--compliance)
+- [💻 Stack Tecnológico Detalhado](#-stack-tecnológico-detalhado)
+- [🚀 Como Executar](#-como-executar)
 - [👨‍💻 Desenvolvedor](#-desenvolvedor)
 
 ---
@@ -233,6 +233,7 @@ O que diferencia o **Holocron Analytics** é a atenção aos detalhes técnicos 
 ### 1. 🔍 Otimização de Busca (NLP & RAG)
 
 O sistema de busca (`rag_search.py`) implementa um motor de **Retrieval-Augmented Generation** que entende português nativo.
+
 - **Fuzzy Search Híbrida**: Utiliza `rapidfuzz` (Levenshtein Distance) para corrigir erros de digitação ("Anakin Skywaler" -> Encontra "Anakin Skywalker").
 - **Stemming PT-BR**: Algoritmo customizado que remove sufixos (-inho, -mente, -ão) para entender a intenção da busca.
 - **Detecção de Entidades**: Heurísticas inteligentes diferenciam quando o usuário busca um droide ("R2") vs. um termo genérico, evitando falsos positivos.
@@ -241,6 +242,7 @@ O sistema de busca (`rag_search.py`) implementa um motor de **Retrieval-Augmente
 ### 2. 🧙 Engenharia de Persona (Prompting)
 
 O **Mestre Yoda AI** não é apenas um chatbot padrão.
+
 - **Contexto Dinâmico**: O sistema injeta snippets de dados oficiais da SWAPI no contexto do modelo para garantir que as respostas sejam factuais (Grounding), reduzindo alucinações.
 - **Inversão Sintática**: O prompt do sistema instrui a IA a mimetizar a gramática única do Yoda (Objeto-Sujeito-Verbo).
 - **Múltiplas Personas**: A arquitetura suporta troca de personas, permitindo conversar também com uma versão "Darth Vader", que responde com hostilidade e emojis proibidos.
@@ -248,6 +250,7 @@ O **Mestre Yoda AI** não é apenas um chatbot padrão.
 ### 3. ✨ Frontend Cinematográfico
 
 A interface foi construída para imersão total:
+
 - **Starfield Dinâmico**: O fundo de estrelas (`StarfieldEvents.tsx`) não é um vídeo em loop. É um sistema de partículas gerado proceduralmente que simula "tráfego espacial", com meteoros variando em velocidade, ângulo e profundidade.
 - **Acessibilidade**: O sistema detecta a preferência `prefers-reduced-motion` do sistema operacional e desativa automaticamente animações pesadas para usuários sensíveis à cinética.
 
@@ -258,6 +261,7 @@ A interface foi construída para imersão total:
 ### 1. 🔍 Holocron (Exploração de Dados)
 
 Páginas dedicadas para cada entidade do universo Star Wars, com cards ricos e interativos.
+
 - **Páginas**: `Personagens`, `Filmes`, `Naves`, `Planetas`, `Espécies`, `Veículos`.
 - **Filtros Avançados**:
   - Filtragem por Nome, Gênero, Clima (Planetas), Classe (Naves), e muito mais.
@@ -267,6 +271,7 @@ Páginas dedicadas para cada entidade do universo Star Wars, com cards ricos e i
 ### 2. 📊 Relatórios e Analytics
 
 Localizado na pasta `reports`, esta seção oferece insights visuais através de gráficos interativos.
+
 - **Distribuição de Espécies**: Gráficos de pizza/barras mostrando a diversidade da galáxia.
 - **Comparativo de Naves**: Gráficos de dispersão comparando velocidade vs. custo.
 - **Cronologia**: Linha do tempo visual dos filmes e eventos.
@@ -274,6 +279,7 @@ Localizado na pasta `reports`, esta seção oferece insights visuais através de
 ### 3. ⚔️ Gamificação Completa
 
 O sistema mantém os usuários engajados através de um sistema de níveis e recompensas.
+
 - **Jedi Trials**: Quizzes gerados por IA que testam conhecimento.
 - **Barra de XP**: Ganhe experiência explorando o sistema, completando quizzes e descobrindo "easter eggs".
 - **Rankings**: Comece como *Youngling*, torne-se *Padawan*, *Cavaleiro* e, finalmente, *Mestre Jedi*.
@@ -295,6 +301,7 @@ Para garantir uma experiência "instantânea", o frontend (`usePrefetchAllData.t
 ### 5. 🛡️ Middleware de Cache Inteligente
 
 O backend não confia apenas no browser. Implementamos um **ETag Middleware Global** (`etag_middleware.py`) que:
+
 - Intercepta todas as respostas JSON.
 - Gera um hash **SHA-256** do conteúdo.
 - Compara com o header `If-None-Match` da requisição.
@@ -312,6 +319,7 @@ A SWAPI oficial não entrega imagens. O `ImageLookupService` implementa uma estr
 
 A SWAPI força paginação de 10 itens. O frontend precisa de grids de 12, 8 ou 100 itens.
 O módulo `swapi_pagination.py` resolve isso com **Virtual Slicing**:
+
 - Calcula matematicamente quais páginas da SWAPI (ex: pág 3 e 4) contêm os itens do slice desejado (ex: itens 25 a 36).
 - Busca **apenas** as páginas necessárias em paralelo (`asyncio.gather`).
 - Combina os resultados e corta o array exato para o cliente.
@@ -320,19 +328,21 @@ O módulo `swapi_pagination.py` resolve isso com **Virtual Slicing**:
 ### 8. 🎮 Gamification Engine (Jedi Trials)
 
 O sistema de engajamento (`gamification_service.py`) não é apenas um contador de pontos.
+
 - **Behavioral Achievements**: Conquistas como "Amigo de Yoda" ou "Lacaio de Vader" são desbloqueadas analisando o histórico de interações com personas específicas (`chat_stats_by_persona`).
 - **Live XP & Ranks**: O cálculo de nível é instantâneo, utilizando uma curva de progressão baseada no XP acumulado (Youngling $\to$ Padawan $\to$ Knight $\to$ Master).
 - **Leaderboard Aggregation**: Consultas SQL otimizadas agregam estatísticas complexas em tempo real, calculando precisão (% de acertos) e melhores sessões de quiz para o ranking global.
 
 ---
 
-## � Integração & Protocolos de Dados (End-to-End)
+## 🔗 Integração & Protocolos de Dados (End-to-End)
 
 A arquitetura de comunicação com a SWAPI foi desenhada para ser resiliente e invisível ao usuário final. Abaixo, detalho o fluxo completo de uma requisição.
 
 ### 1. Protocolo de Cliente (SWAPIClient)
 
 O `SWAPIClient` (`src/app/infrastructure/external/swapi/client.py`) atua como um gateway inteligente:
+
 - **Http Keep-Alive**: Utiliza `httpx.AsyncClient` para manter conexões persistentes, reduzindo o *overhead* de handshake TCP/TLS em múltiplas requisições.
 - **Transparent Pagination**: O método `_paginate_all` abstrai a lógica de cursores `next` da API, iterando automaticamente até consumir todos os dados quando necessário (ex: para relatórios).
 - **Url Normalization**: O cliente normaliza URLs e IDs automaticamente, garantindo que `https://swapi.dev/api/people/1/` e `https://swapi.dev/api/people/1` sejam tratados como o mesmo recurso no cache.
@@ -372,6 +382,7 @@ sequenceDiagram
 
 A SWAPI retorna dados "sujos" para os padrões modernos (strings para números, snake_case misto).
 O `StarWarsApp` implementa uma camada de **Data Sanitization**:
+
 - **Number Parsing**: O utilitário `parse_swapi_number` converte strings complexas como `"unknown"`, `"n/a"`, ou ranges `"30-165"` em tipos numéricos seguros (`Optional[float]`) para permitir ordenação e gráficos corretos.
 - **Date Standardization**: Todas as datas são convertidas para ISO-8601 estrito.
 - **Cross-Reference Resolving**: URLs de relacionamento (ex: `pilots: [...]`) são mantidas como referência mas preparadas para *lazy loading* no frontend.
@@ -379,6 +390,7 @@ O `StarWarsApp` implementa uma camada de **Data Sanitization**:
 ### 4. 🔐 Protocolo de Autenticação Segura (JWT + Cookie)
 
 Implementamos o padrão **Silent Refresh** para segurança máxima:
+
 - **Access Token**: Curta duração (15min), armazenado em memória (JavaScript), usado como Bearer Token.
 - **Refresh Token**: Longa duração (7 dias), armazenado em **Cookie HttpOnly (Secure, SameSite)**, inacessível via JS.
 - **Token Rotation**: A cada refresh, o token anterior é invalidado e um novo é emitido, prevenindo replay attacks.
@@ -415,6 +427,7 @@ sequenceDiagram
 ### 5. 🤖 Motor de Chat Contextual (ChatService)
 
 O `chat_service.py` é o cérebro da aplicação, orquestrando mais de 2.000 linhas de lógica condicional e IA.
+
 - **Intent Routing**: Antes de chamar a LLM, o sistema analisa a intenção com heurísticas regex. Ex: "Quem é Luke?" consulta diretamente o banco local/SWAPI, economizando tokens e latência.
 - **RAG Pipeline**:
     1. **Extract Entities**: Identifica "Luke", "Tatooine" na frase.
@@ -517,13 +530,15 @@ O `YodaAIService` gerencia a personalidade da resposta. O "System Prompt" é tro
 
 #### Mestre Yoda (`persona="yoda"`)
 
-* **Instrução**: "Responda em português do Brasil no estilo do Yoda, invertendo a ordem das frases quando possível."
+- **Instrução**: "Responda em português do Brasil no estilo do Yoda, invertendo a ordem das frases quando possível."
+
 - **Permissões**: Pode usar emojis (🌟, ⚔️).
 - **Tom**: Sábio, calmo, levemente humorado.
 
 #### Darth Vader (`persona="vader"`)
 
-* **Instrução**: "Voz fria, autoritária e intimidadora. Use onomatopeias de respiração (*pshhh... khhh*)."
+- **Instrução**: "Voz fria, autoritária e intimidadora. Use onomatopeias de respiração (*pshhh... khhh*)."
+
 - **Restrições**: **PROIBIDO** usar emojis.
 - **Tom**: Hostil, impaciente, superior.
 
@@ -613,6 +628,7 @@ O sistema também calcula a **Precisão (Accuracy)**:
 ### 🎲 Geração de Desafios Diários (Daily)
 
 Atualmente, o desafio diário é gerado deterministicamente baseado na data:
+
 - **ID**: `daily_chat_{YYYY-MM-DD}`
 - **Meta**: Enviar 3 mensagens.
 - **Reset**: A contagem reinicia à meia-noite (UTC).
@@ -654,6 +670,7 @@ Verifica se `gcloud` e `docker` estão acessíveis e define o `PROJECT_ID` alvo.
 #### Passo 2: Habilitar APIs
 
 Ativa os serviços necessários no projeto GCP:
+
 - `run.googleapis.com` (Cloud Run)
 - `secretmanager.googleapis.com` (Secrets)
 - `artifactregistry.googleapis.com` (Docker Repo)
@@ -662,6 +679,7 @@ Ativa os serviços necessários no projeto GCP:
 #### Passo 3: Service Account de Runtime
 
 Cria uma identidade dedicada para o backend rodar (`star-wars-cloudrun-runtime`).
+
 - **Por que?** Para não usar a conta "Default Compute" que tem permissões demais.
 - **Permissões**: Atribui `roles/secretmanager.secretAccessor` para que o backend possa ler a senha do banco e chaves de API.
 
@@ -680,6 +698,7 @@ Cria uma identidade dedicada para o backend rodar (`star-wars-cloudrun-runtime`)
 #### Passo 6: Deploy no Cloud Run
 
 Sobe o serviço com as seguintes configurações de produção:
+
 - **Memória**: 512Mi (Otimizado para Free Tier).
 - **CPU**: 1 vCPU.
 - **Auto-scaling**: 0 a 1 instância (para evitar custos quando ocioso, "scale to zero").
@@ -702,12 +721,13 @@ printf "senha-do-banco" | gcloud secrets create holocron-db-password --data-file
 
 ### Segredos Obrigatórios
 
-* `holocron-jwt-secret-key`: Para assinar tokens de autenticação.
+- `holocron-jwt-secret-key`: Para assinar tokens de autenticação.
+
 - `holocron-db-password`: Senha do PostgreSQL.
 
 ### Segredos Opcionais
 
-* `holocron-openai-api-key`: Se `AI_ENABLED=true`.
+- `holocron-openai-api-key`: Se `AI_ENABLED=true`.
 
 ---
 
@@ -823,12 +843,14 @@ A segurança não é um "add-on", mas parte do design da infraestrutura cloud-na
 ### 1. 🔑 Gestão de Segredos (Secrets Management)
 
 Adotamos uma estratégia de **Zero Hardcoded Secrets**.
+
 - **Frontend (Vercel)**: As chaves públicas (Google Client ID) e URLs de API são injetadas em tempo de build via variáveis de ambiente da Vercel. Nenhuma chave privada toca o bundle do cliente.
 - **Backend (Google Cloud Run)**: Segredos críticos (DB Password, JWT Secret, OpenAI Key) são gerenciados pelo **GCP Secret Manager**. Eles são montados no container como variáveis de ambiente em tempo de execução, garantindo que nem mesmo o Dockerfile tenha acesso a eles.
 
 ### 2. 🐳 Pipeline de Conteinerização Segura
 
 O `Dockerfile.cloud-run` segue as melhores práticas de hardening:
+
 - **Minimal Base Image**: Baseado em `python:3.12-slim` para reduzir drasticamente a superfície de ataque (menos binários vulneráveis).
 - **Stateless by Design**: O container não retém dados. Uploads e persistência são delegados para serviços externos (Storage/PostgreSQL).
 - **Auto-Migrations**: O comando de entrypoint executa `alembic upgrade head` a cada deploy, garantindo que o esquema do banco esteja sempre sincronizado com o código da aplicação (Infrastructure as Code).
@@ -836,6 +858,7 @@ O `Dockerfile.cloud-run` segue as melhores práticas de hardening:
 ### 3. 💾 Persistência e Resiliência
 
 Embora a aplicação seja altamente dependente de cache, o **PostgreSQL** serve como fonte da verdade para dados críticos:
+
 - **Perfis de Usuário**: Dados sensíveis e progresso de gamificação.
 - **Fallback de Imagens**: Nossa tabela `image_fallbacks` atua como um sistema de failover. Se o CDN de imagens externo falhar, o sistema reverte automaticamente para ativos curados armazenados no banco.
 
@@ -876,7 +899,8 @@ O projeto foi auditado seguindo princípios rigorosos de segurança de software,
 
 #### 9.1 Acesso e Identidade (RBAC & Invoker)
 
-* **Cloud Run Invoker**: O backend não é público. Ele opera em modo `authenticated-only`, aceitando apenas requisições com um token OIDC válido assinado pelo Google (via Service Account da Vercel). Ninguém consegue acessar a API diretamente sem passar pelo frontend.
+- **Cloud Run Invoker**: O backend não é público. Ele opera em modo `authenticated-only`, aceitando apenas requisições com um token OIDC válido assinado pelo Google (via Service Account da Vercel). Ninguém consegue acessar a API diretamente sem passar pelo frontend.
+
 - **RBAC (Role-Based Access Control)**: Internamente, endpoints administrativos validam o token JWT. Apenas usuários autenticados (`require_authenticated_user_id`) podem persistir dados ou gerar relatórios complexos.
 
 #### 9.2 Prevenção de Vulnerabilidades (OWASP)
@@ -941,7 +965,7 @@ flowchart LR
 
 ---
 
-## � API Reference (Endpoints)
+## 🔌 API Reference (Endpoints)
 
 A API REST segue os padrões OpenAPI 3.0. Documentação interativa disponível em `/docs` (Swagger UI).
 
@@ -1162,23 +1186,46 @@ VITE_APP_TITLE=Holocron Analytics
 
 ---
 
-## �💻 Stack Tecnológico
+## 💻 Stack Tecnológico Detalhado
 
-### Backend (Python)
+### Backend (Python 3.12)
 
-* **Framework**: FastAPI (Alta performance, async nativo).
-- **Data**: SQLAlchemy 2.0, Alembic, Pydantic v2.
-- **Database**: PostgreSQL 9.5.
-- **Cache**: In-Memory (cachetools/TTLCache).
-- **AI**: OpenAI SDK (GPT-4o).
-- **NLP**: Rapidfuzz, NLTK (custom implementation).
+| Categoria     | Tecnologia                     | Versão  | Uso                                      |
+| :------------ | :----------------------------- | :------ | :--------------------------------------- |
+| **Framework** | FastAPI                        | 0.109   | API REST async de alta performance       |
+| **ORM**       | SQLAlchemy                     | 2.0     | Mapeamento objeto-relacional             |
+| **Migrations**| Alembic                        | 1.13    | Versionamento de schema do banco         |
+| **Validation**| Pydantic                       | 2.9     | Validação de dados e schemas             |
+| **Database**  | PostgreSQL                     | 9.5+    | Banco relacional principal               |
+| **Cache**     | cachetools (TTLCache)          | 5.5     | Cache em memória com TTL                 |
+| **AI**        | OpenAI SDK                     | 1.66    | Integração com GPT-4o                    |
+| **NLP**       | rapidfuzz                      | 3.10    | Fuzzy matching (Levenshtein)             |
+| **HTTP**      | httpx                          | 0.27    | Cliente HTTP async                       |
+| **Auth**      | python-jose                    | 3.3     | JWT encoding/decoding                    |
+| **Security**  | passlib + bcrypt               | 1.7     | Hashing de senhas                        |
 
-### Frontend (React)
+### Frontend (Node.js 20+)
 
-* **Core**: React 19, TypeScript, Vite.
-- **State**: Zustand + React Query (TanStack).
-- **Charts**: Recharts (para os relatórios visuais).
-- **Styling**: CSS Modules e Design Tokens para uma UI imersiva.
+| Categoria     | Tecnologia                     | Versão  | Uso                                      |
+| :------------ | :----------------------------- | :------ | :--------------------------------------- |
+| **Framework** | React                          | 19.0    | Biblioteca de UI declarativa             |
+| **Language**  | TypeScript                     | 5.6     | Tipagem estática                         |
+| **Bundler**   | Vite                           | 6.0     | Build tool ultra-rápido                  |
+| **State**     | Zustand                        | 5.0     | Estado global leve                       |
+| **Data**      | TanStack Query                 | 5.62    | Cache e fetching de dados servidor       |
+| **Charts**    | Recharts                       | 3.7     | Gráficos SVG responsivos                 |
+| **Styling**   | CSS Modules                    | -       | Estilos com escopo local                 |
+| **Routing**   | React Router                   | 7.1     | Navegação SPA                            |
+
+### Infraestrutura
+
+| Categoria     | Tecnologia                     | Uso                                      |
+| :------------ | :----------------------------- | :--------------------------------------- |
+| **Container** | Docker + Docker Compose        | Desenvolvimento e produção               |
+| **Backend**   | Google Cloud Run               | Hospedagem serverless do backend         |
+| **Frontend**  | Vercel                         | Hospedagem e CDN do frontend             |
+| **Secrets**   | GCP Secret Manager             | Gestão segura de credenciais             |
+| **Registry**  | Google Artifact Registry       | Repositório de imagens Docker            |
 
 ---
 
@@ -1186,7 +1233,7 @@ VITE_APP_TITLE=Holocron Analytics
 
 ### Pré-requisitos
 
-* Docker & Docker Compose (Recomendado)
+- Docker & Docker Compose (Recomendado)
 
 ### Executando com Docker
 
