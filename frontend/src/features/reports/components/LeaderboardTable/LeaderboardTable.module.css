@@ -1,6 +1,25 @@
 .container {
   width: 100%;
-  overflow-x: auto;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.container::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 10px;
+}
+
+.container::-webkit-scrollbar-thumb {
+  background: rgba(53, 230, 255, 0.3);
+  border-radius: 10px;
+}
+
+.container::-webkit-scrollbar-thumb:hover {
+  background: rgba(53, 230, 255, 0.5);
 }
 
 .table {
@@ -10,7 +29,10 @@
 }
 
 .thead {
-  background: rgba(5, 7, 13, 0.45);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: rgba(5, 7, 13, 0.95);
   border-bottom: 2px solid rgba(110, 231, 255, 0.2);
 }
 
@@ -35,7 +57,7 @@
 }
 
 .thStat {
-  width: 100px;
+  width: 90px;
   text-align: right;
 }
 

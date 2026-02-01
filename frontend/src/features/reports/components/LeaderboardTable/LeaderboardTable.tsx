@@ -7,6 +7,7 @@ interface LeaderboardTableProps {
   readonly currentUserName?: string | null;
   readonly isLoading?: boolean;
   readonly isError?: boolean;
+  readonly searchQuery?: string;
 }
 
 function shortUserId(userId: string) {
@@ -22,7 +23,9 @@ export function LeaderboardTable({
   currentUserName,
   isLoading,
   isError,
+  searchQuery = '',
 }: LeaderboardTableProps) {
+
   if (isLoading) {
     return <div className={styles.loading}>Carregando ranking...</div>;
   }
@@ -35,6 +38,16 @@ export function LeaderboardTable({
     return <div className={styles.empty}>Nenhum dado de ranking disponível.</div>;
   }
 
+  // Filtra os dados pelo nome
+  const filteredData = searchQuery.trim()
+    ? data.filter((entry) => {
+        const name = entry.name?.toLowerCase() || '';
+        const userId = entry.user_id?.toLowerCase() || '';
+        const query = searchQuery.toLowerCase();
+        return name.includes(query) || userId.includes(query);
+      })
+    : data;
+
   return (
     <div className={styles.container}>
       <table className={styles.table}>
@@ -45,12 +58,13 @@ export function LeaderboardTable({
             <th className={`${styles.th} ${styles.thStat}`}>XP</th>
             <th className={`${styles.th} ${styles.thStat}`}>Consultas</th>
             <th className={`${styles.th} ${styles.thStat}`}>Conversas</th>
-            <th className={`${styles.th} ${styles.thStat}`}>Conquistas</th>
-            <th className={`${styles.th} ${styles.thStat}`}>Quizzes</th>
-          </tr>
-        </thead>
+              <th className={`${styles.th} ${styles.thStat}`}>Conquistas</th>
+              <th className={`${styles.th} ${styles.thStat}`}>Quizzes</th>
+            </tr>
+          </thead>
         <tbody className={styles.tbody}>
-          {data.map((entry, index) => {
+          {filteredData.map((entry) => {
+            const originalIndex = data.findIndex((e) => e.user_id === entry.user_id);
             const isMe = !!currentUserId && entry.user_id === currentUserId;
             const displayName = (isMe && currentUserName) || entry.name || shortUserId(entry.user_id);
             const initials = displayName
@@ -63,7 +77,7 @@ export function LeaderboardTable({
             return (
               <tr key={entry.user_id} className={`${styles.tr} ${isMe ? styles.trCurrent : ''}`}>
                 <td className={`${styles.td} ${styles.rankCell}`}>
-                  <div className={styles.rank}>#{index + 1}</div>
+                  <div className={styles.rank}>#{originalIndex + 1}</div>
                 </td>
                 <td className={styles.td}>
                   <div className={styles.playerCell}>

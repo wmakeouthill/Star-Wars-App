@@ -18,6 +18,7 @@ export function GamificationPage() {
   const { persona, setPersona } = useChatContext();
   const [quizOpen, setQuizOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [rankingSearch, setRankingSearch] = useState('');
 
   const isLoading =
     profileQuery.isLoading ||
@@ -156,9 +157,26 @@ export function GamificationPage() {
         </section>
 
         <section className={styles.card}>
-          <h3 className={styles.cardTitle}>Ranking</h3>
-          <ul className={styles.list}>
-            {leaderboard.map((entry, index) => (
+          <div className={styles.rankingHeader}>
+            <h3 className={styles.cardTitle}>Ranking</h3>
+            <input
+              type="text"
+              className={styles.rankingSearch}
+              placeholder="Buscar..."
+              value={rankingSearch}
+              onChange={(e) => setRankingSearch(e.target.value)}
+            />
+          </div>
+          <ul className={styles.rankingList}>
+            {leaderboard
+              .filter((entry) => {
+                if (!rankingSearch.trim()) return true;
+                const name = entry.name?.toLowerCase() || '';
+                const userId = entry.user_id?.toLowerCase() || '';
+                const query = rankingSearch.toLowerCase();
+                return name.includes(query) || userId.includes(query);
+              })
+              .map((entry, index) => (
               <li key={`${entry.user_id}-${index}`} className={`${styles.stat} ${styles.leaderboardItem}`}>
                 <div className={styles.leaderboardLeft}>
                   {entry.picture?.trim() ? (

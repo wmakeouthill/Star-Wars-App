@@ -79,6 +79,31 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════ */
+/* LEADERBOARD SEARCH */
+/* ═══════════════════════════════════════════════════════════════ */
+
+.leaderboardSearch {
+  padding: 0.4rem 0.7rem;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  color: var(--text);
+  font-size: 0.8rem;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  width: 160px;
+}
+
+.leaderboardSearch::placeholder {
+  color: var(--muted);
+}
+
+.leaderboardSearch:focus {
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 8px rgba(53, 230, 255, 0.3);
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
 /* FILTRO GLOBAL */
 /* ═══════════════════════════════════════════════════════════════ */
 

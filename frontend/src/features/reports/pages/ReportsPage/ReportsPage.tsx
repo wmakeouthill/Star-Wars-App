@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useState } from 'react';
 import {
   ChartSkeleton,
   DonutChart,
@@ -22,6 +23,7 @@ import styles from './ReportsPage.module.css';
 
 export function ReportsPage() {
   const [globalFilmId, setGlobalFilmId] = React.useState('');
+  const [leaderboardSearch, setLeaderboardSearch] = useState('');
   const {
     loading,
     errors,
@@ -209,6 +211,15 @@ export function ReportsPage() {
         <ReportPanel
           title="🏆 Leaderboard Global"
           subtitle="Ranking completo de jogadores com estatísticas detalhadas."
+          rightSlot={
+            <input
+              type="text"
+              className={styles.leaderboardSearch}
+              placeholder="Buscar jogador..."
+              value={leaderboardSearch}
+              onChange={(e) => setLeaderboardSearch(e.target.value)}
+            />
+          }
         >
           <LeaderboardTable
             data={leaderboardDetailed}
@@ -216,6 +227,7 @@ export function ReportsPage() {
             currentUserName={currentUserName}
             isLoading={loading.leaderboardDetailed}
             isError={errors.leaderboardDetailed}
+            searchQuery={leaderboardSearch}
           />
         </ReportPanel>
       )}
