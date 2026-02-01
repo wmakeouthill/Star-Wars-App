@@ -42,6 +42,8 @@ class ImageLookupService:
         O Databank pode expor 'starships' diretamente, mas no MVP anterior as imagens
         de naves eram obtidas via catálogo 'vehicles'. Para não regredir, fazemos fallback
         para 'vehicles' quando 'starships' não retornar nada.
+
+        Banco de dados tem precedência sobre o Databank.
         """
         cache_key = "images:index:starships"
         cached = await self._cache.get(cache_key)
@@ -53,8 +55,9 @@ class ImageLookupService:
             databank_index = await self._get_index("vehicles")
 
         fallback_index = await self._get_image_fallback_index("starships")
-        merged: Dict[str, str] = dict(fallback_index)
-        merged.update(databank_index)
+        # Banco de dados tem precedência: começa com databank, fallback sobrescreve
+        merged: Dict[str, str] = dict(databank_index)
+        merged.update(fallback_index)
         await self._cache.set(cache_key, merged)
         return merged
 
@@ -89,8 +92,8 @@ class ImageLookupService:
         """
         Cache do índice final (databank + fallback DB por recurso).
 
-        Regra: o Databank sempre tem precedência; o fallback do banco só entra quando
-        a chave não existir no índice do Databank.
+        Regra: o fallback do banco SEMPRE tem precedência; o Databank só entra quando
+        a chave não existir no índice do banco.
         """
         resource = resource.strip().strip("/")
         cache_key = f"images:index:{resource}"
@@ -106,8 +109,9 @@ class ImageLookupService:
             merged_fallback.update(fallback_index)
             fallback_index = merged_fallback
 
-        merged: Dict[str, str] = dict(fallback_index)
-        merged.update(databank_index)
+        # Banco de dados tem precedência: começa com databank, fallback sobrescreve
+        merged: Dict[str, str] = dict(databank_index)
+        merged.update(fallback_index)
 
         await self._cache.set(cache_key, merged)
         return merged
