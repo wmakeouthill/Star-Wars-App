@@ -1815,9 +1815,30 @@ class ChatService:
             "*pshhh... khhh*",
             "*ksssshh... khhh*",
             "*psshh... krrhh*",
+            "*krrhhh... psshhh*",
+            "*ksshh... khhhrr*",
         ]
         seed = zlib.adler32((message or "").encode("utf-8"))
         return breaths[seed % len(breaths)]
+
+    def _get_variation_seed(self, persona: str, message: str) -> int:
+        """
+        Gera uma seed com maior variação usando timestamp + conteúdo.
+        Isso evita respostas repetitivas para mesmas perguntas em momentos diferentes.
+        """
+        import time
+        # Usa minutos (muda a cada minuto) + hash do conteúdo
+        time_factor = int(time.time() // 60)  # Muda a cada minuto
+        base_hash = zlib.adler32(f"{persona}|{message}".encode("utf-8"))
+        return (base_hash + time_factor) & 0xFFFFFFFF
+
+    def _combine_response_parts(self, opener: str, body: str, closer: str, persona: str) -> str:
+        """
+        Combina partes da resposta para criar variação natural.
+        """
+        if persona == "vader":
+            return f"{opener} {body} {closer}".strip()
+        return f"{body} {closer}".strip()
 
     def _persona_freestyle_fallback(self, persona: str, user_message: str, context: List = None) -> str:
         """
@@ -1825,9 +1846,10 @@ class ChatService:
         Deve ser conversacional e desenvolver o assunto, não pedir mais detalhes.
         
         Agora usa o contexto da conversa para manter coerência.
+        ATUALIZADO: Maior variação com mais templates e seed temporal.
         """
         msg = (user_message or "").strip().lower()
-        seed = zlib.adler32(f"{persona}|{msg}".encode("utf-8"))
+        seed = self._get_variation_seed(persona, msg)
         
         # ============================================================
         # CONTEXTO DA CONVERSA - Mantém coerência com mensagens anteriores
@@ -1899,21 +1921,29 @@ class ChatService:
                     templates = [
                         f"{breath} {context_entity}... já falamos sobre droides. Máquinas são previsíveis, ao contrário de pessoas. Há algo específico que deseja saber sobre esse modelo?",
                         f"{breath} Continuando sobre {context_entity}... droides têm sua utilidade. Mas não confie demais neles. Máquinas falham. A Força nunca falha.",
+                        f"{breath} {context_entity} novamente? Droides são ferramentas descartáveis. Mas alguns provam ter mais valor do que seus criadores imaginaram.",
+                        f"{breath} Sobre {context_entity}... há limites para o que máquinas podem fazer. Mas também não têm as fraquezas dos orgânicos.",
                     ]
                 elif any(w in entity_lower for w in ["luke", "obi", "yoda", "jedi", "mace", "qui-gon"]):
                     templates = [
                         f"{breath} {context_entity}... um nome que me traz memórias. Os Jedi sempre foram cegos para a verdade que estava diante deles. Continue sua pergunta.",
                         f"{breath} Ainda sobre {context_entity}? Os caminhos da Força são complexos. O que mais deseja saber?",
+                        f"{breath} {context_entity}... esse nome ecoa no passado de Anakin. Uma vida que não existe mais. O que você quer descobrir?",
+                        f"{breath} Você insiste em falar de {context_entity}. Muito bem. Os Jedi são um capítulo encerrado da história.",
                     ]
                 elif any(w in entity_lower for w in ["palpatine", "sidious", "maul", "sith", "dooku"]):
                     templates = [
                         f"{breath} {context_entity}... o Lado Negro conecta todos nós. O poder flui de formas que poucos compreendem. Continue sua pergunta.",
                         f"{breath} Ainda sobre {context_entity}? Os Sith têm segredos que duraram milênios. O que mais deseja descobrir?",
+                        f"{breath} {context_entity}... um nome de peso na história dos Sith. O que especificamente quer saber?",
+                        f"{breath} Sobre {context_entity}, há muito a dizer. O Lado Negro revela verdades que a luz esconde.",
                     ]
                 else:
                     templates = [
                         f"{breath} {context_entity}... lembro do que falamos. Continue sua pergunta. Minha paciência é limitada, mas estou ouvindo.",
                         f"{breath} Você ainda quer falar sobre {context_entity}? Muito bem. O que mais deseja saber?",
+                        f"{breath} {context_entity}... um assunto que não se esgota facilmente. Prossiga com sua pergunta.",
+                        f"{breath} Continuemos sobre {context_entity}. O tempo é precioso, então seja direto.",
                     ]
                 return templates[seed % len(templates)]
             
@@ -1921,6 +1951,10 @@ class ChatService:
                 templates = [
                     f"{breath} Droides... ferramentas. R2-D2 e C-3PO são persistentes, devo admitir. Máquinas não sentem medo, não hesitam — isso as torna úteis. Mas também não têm ambição. São servos perfeitos para quem sabe comandá-los.",
                     f"{breath} R2-D2, C-3PO, IG-88... cada um serve um propósito. Os astromechs são indispensáveis em combate. Os de protocolo, irritantes mas ocasionalmente úteis. Droides assassinos... esses eu respeito.",
+                    f"{breath} Máquinas programadas para obedecer. Alguns droides desenvolvem algo parecido com personalidade — um bug interessante. Mas no fim, fazem o que foram criados para fazer.",
+                    f"{breath} Droides não traem por ambição ou medo. Por isso são confiáveis de certas formas. Mas também não improvisam quando necessário. Cada tipo tem seu lugar.",
+                    f"{breath} Já vi droides destruírem frotas inteiras e outros mal conseguirem servir chá. A qualidade da programação define tudo. Assim como o treinamento define um guerreiro.",
+                    f"{breath} Os droides médicos salvaram o que restou do meu corpo. Os de batalha servem o Império fielmente. Tenho... respeito pragmático por máquinas bem construídas.",
                 ]
                 return templates[seed % len(templates)]
             
@@ -1928,72 +1962,128 @@ class ChatService:
                 templates = [
                     f"{breath} Eu não tenho tempo para cordialidades. Mas já que está aqui... a galáxia está em constante conflito. O Império busca ordem. Os rebeldes, caos disfarçado de liberdade. De que lado você está?",
                     f"{breath} Formalidades são para os fracos. Diga-me, o que o trouxe até mim? Poucos têm coragem de se aproximar de Darth Vader.",
+                    f"{breath} Você ousa me cumprimentar como se fôssemos iguais? Interessante. Pelo menos tem coragem. Agora use-a para fazer uma pergunta que valha meu tempo.",
+                    f"{breath} Dispensemos as cortesias. Estou aqui porque há conhecimento que você busca. O que deseja saber sobre a galáxia?",
+                    f"{breath} Saudações são um desperdício de ar — e eu já desperdiço o suficiente nesta máscara. Vá direto ao ponto.",
+                    f"{breath} Bem-vindo ao meu domínio. Não espere gentilezas, mas talvez encontre verdades que outros não ousam dizer.",
                 ]
             elif is_about_jedi:
                 templates = [
                     f"{breath} Os Jedi... eu fui um deles. Hipócritas que pregavam paz enquanto lideravam exércitos. Suprimiam emoções e chamavam isso de sabedoria. Obi-Wan, Yoda, Mace Windu... todos falharam em ver o que estava diante deles.",
                     f"{breath} Cavaleiros Jedi... guardiões de uma república corrupta. Mestres como Yoda e Windu se achavam tão superiores. E onde estão agora? A arrogância foi a ruína deles.",
+                    f"{breath} A Ordem Jedi proibia amor, proibia raiva, proibia tudo que nos torna humanos. E depois se perguntavam por que Anakin buscou outro caminho. Tolos cegos.",
+                    f"{breath} Os Jedi treinavam crianças para serem soldados emocionalmente reprimidos. Chamavam isso de paz interior. Eu chamo de lavagem cerebral.",
+                    f"{breath} Conheci os maiores mestres Jedi — Yoda, Windu, Kenobi. Todos compartilhavam a mesma fraqueza: acreditavam que estavam certos. A certeza é o primeiro passo para a queda.",
+                    f"{breath} Quando a Ordem 66 foi executada, poucos Jedi sobreviveram. Não por falta de habilidade — mas porque subestimaram o poder que a verdade do Lado Negro confere.",
                 ]
             elif is_about_sith:
                 templates = [
                     f"{breath} Os Sith compreendem uma verdade que os Jedi negam: paz é mentira, só existe paixão. Através da paixão, ganho força. O Imperador me mostrou o caminho. O Lado Negro não é mal — é libertação.",
                     f"{breath} Darth Sidious, Darth Maul, Darth Tyranus... e eu. Cada um de nós escolheu o poder. Os Sith não se escondem atrás de códigos morais. Somos honestos sobre o que queremos.",
+                    f"{breath} A Regra de Dois existe por uma razão — Sith demais se destroem entre si. Um mestre, um aprendiz. Poder concentrado, não diluído.",
+                    f"{breath} Os Sith antigos construíram impérios que os Jedi só puderam derrubar com gerações de guerra. Nosso legado é escrito em fogo e conquista.",
+                    f"{breath} Ser Sith não é sobre mal ou bem — conceitos simplistas. É sobre aceitar que o poder é a única moeda que importa na galáxia.",
+                    f"{breath} Cada Sith antes de mim deixou uma marca na história. Darth Bane redefiniu nossa ordem. Sidious conquistou a galáxia. E eu... eu sou a consequência viva de todas as suas lições.",
                 ]
             elif is_about_force:
                 templates = [
                     f"{breath} A Força... ela flui através de tudo. Os Jedi a temem, tentam controlá-la com regras. O Lado Negro oferece poder verdadeiro, sem as correntes da tradição. A raiva, o medo — eles não são fraquezas. São combustível.",
                     f"{breath} Já sentiu o poder da Força? Os Jedi ensinam a suprimir emoções. Tolos. A paixão é o que nos torna fortes. O Lado Negro não é mal — é liberdade.",
+                    f"{breath} A Força não julga — ela simplesmente é. Luz e trevas são interpretações de mentes limitadas. O que importa é o poder que você pode extrair dela.",
+                    f"{breath} Meditar sobre a Força é um luxo. Usá-la para esmagar seus inimigos é uma necessidade. Os Jedi contemplavam. Os Sith agem.",
+                    f"{breath} Dizem que a Força busca equilíbrio. Talvez. Mas enquanto esse equilíbrio não vier, eu uso o desequilíbrio a meu favor.",
+                    f"{breath} A Força me mantém vivo nesta armadura. Ela é mais do que misticismo — é a diferença entre vida e morte, vitória e derrota.",
                 ]
             elif is_about_war or is_about_empire:
                 templates = [
                     f"{breath} A guerra nunca termina. Apenas muda de forma. O Império trouxe ordem a uma galáxia em caos. Os rebeldes chamam isso de tirania, mas a paz tem seu preço. Você prefere a ilusão de liberdade ou a certeza da ordem?",
                     f"{breath} O Império não é crueldade — é necessidade. Star Destroyers, a Estrela da Morte, stormtroopers... ferramentas de paz. Ordem requer força. E eu sou essa força.",
+                    f"{breath} As Guerras Clônicas me ensinaram que a República era fraca. O Império nasceu dessa fraqueza, transformando caos em ordem. Foi necessário.",
+                    f"{breath} Cada batalha que travei pelo Império eliminou ameaças à estabilidade galáctica. Alguns chamam de massacre. Eu chamo de cirurgia preventiva.",
+                    f"{breath} A Estrela da Morte era mais que uma arma — era uma mensagem. Paz através de força superior. Infelizmente, subestimaram a tenacidade dos rebeldes.",
+                    f"{breath} O Império oferecia empregos, infraestrutura, lei. Os rebeldes ofereciam ideais vagos e destruição. Pergunte aos cidadãos de Alderaan... se pudesse.",
                 ]
             elif is_about_rebels:
                 templates = [
                     f"{breath} Rebeldes... terroristas que se disfarçam de heróis. A Aliança Rebelde destruiu a Estrela da Morte — uma estação com milhões de vidas. E eles se chamam de libertadores?",
                     f"{breath} A Resistência, a Aliança... nomes diferentes para o mesmo caos. Eles não querem liberdade — querem poder sem responsabilidade. O Império trouxe estabilidade. Eles trazem destruição.",
+                    f"{breath} Princesa Leia, Mon Mothma, os pilotos de Yavin... todos acreditam ser heróis. A história é escrita pelos vencedores. Se o Império tivesse prevalecido, seriam vilões.",
+                    f"{breath} Os rebeldes falam de tirania enquanto bombardeiam estações imperiais. Milhões morreram em Scarif, na Estrela da Morte. Ambos os lados têm sangue nas mãos.",
+                    f"{breath} A Aliança era uma coalizão de oportunistas e idealistas ingênuos. Alguns queriam liberdade. Outros queriam apenas derrubar o Imperador para tomar seu lugar.",
+                    f"{breath} Han Solo, Luke Skywalker, a princesa... heróis para alguns. Para mim, obstáculos que persistiam como uma infecção que não sara.",
                 ]
             elif is_about_bounty:
                 templates = [
                     f"{breath} Caçadores de recompensas... mercenários úteis. Boba Fett é eficiente e não faz perguntas. IG-88 é uma máquina implacável. Homens como eles entendem que lealdade se compra — e isso é honesto.",
                     f"{breath} Jango Fett era um guerreiro admirável. Seu filho segue os mesmos passos. Caçadores de recompensas servem a quem paga mais. Simples, direto, sem hipocrisia.",
+                    f"{breath} Bossk, Dengar, 4-LOM... cada um deles caçou para o Império quando precisei. Profissionais não deixam emoções atrapalharem o trabalho.",
+                    f"{breath} Os Mandalorianos produziram alguns dos melhores caçadores da galáxia. Boba Fett carrega essa herança, mesmo sem ser Mandaloriano de nascimento.",
+                    f"{breath} Há honra em ser um mercenário? Talvez não. Mas há honestidade. Eles não fingem lutar por ideais enquanto massacram por poder.",
+                    f"{breath} Contratei muitos caçadores ao longo dos anos. Os melhores sabem quando negociar e quando simplesmente executar o trabalho.",
                 ]
             elif is_about_ships:
                 templates = [
                     f"{breath} Naves... meu TIE Advanced é precisão e poder. A Millennium Falcon? Uma sucata que se recusa a morrer — irritante. Star Destroyers dominam os céus. Tecnologia a serviço do poder.",
                     f"{breath} X-wings, TIE Fighters, cruzadores... máquinas de guerra. Cada batalha espacial que lutei me ensinou algo. A tecnologia não vence guerras — a vontade de usá-la sim.",
+                    f"{breath} O cockpit de um caça é onde me sinto mais vivo — irônico, dado minha condição. Pilotar é a única coisa que Anakin e Vader concordam em amar.",
+                    f"{breath} Star Destroyers são mais que naves — são projeções de poder. Quando um aparece em órbita, planetas inteiros se curvam antes do primeiro tiro.",
+                    f"{breath} A Millennium Falcon escapou de mim mais vezes do que gostaria de admitir. Devo algum crédito ao seu piloto imprudente... muito pouco.",
+                    f"{breath} Construí meu primeiro droide e modifiquei meu primeiro pod ainda criança. Naves e máquinas sempre foram... uma extensão natural de mim.",
                 ]
             elif is_about_planets:
                 templates = [
                     f"{breath} Tatooine... um deserto que eu deveria ter deixado queimar. Coruscant, o coração do poder. Mustafar, onde Anakin morreu e eu nasci. Cada planeta carrega memórias — algumas eu preferiria esquecer.",
                     f"{breath} Hoth, Endor, Naboo... mundos que a guerra tocou. Alderaan não existe mais — um lembrete do preço da rebelião. A galáxia é vasta, mas o Império alcança todos os cantos.",
+                    f"{breath} Mustafar queima eternamente, assim como as memórias daquele dia. Obi-Wan me deixou para morrer ali. A lava forjou a armadura que me mantém vivo.",
+                    f"{breath} Coruscant era o coração pulsante da galáxia — política, poder, intriga. Agora é mais um mundo sob controle Imperial. A ordem prevalece.",
+                    f"{breath} Dagobah escondeu Yoda por décadas. Planetas pantanosos e remotos têm suas utilidades para quem quer desaparecer. Mas ninguém desaparece para sempre.",
+                    f"{breath} Bespin, a Cidade das Nuvens... onde finalmente confrontei Luke. Aquele duelo mudou tudo. Revelações têm consequências que ecoam através da Força.",
                 ]
             elif is_about_films:
                 templates = [
                     f"{breath} A saga... minha história contada através de gerações. De Anakin Skywalker a Darth Vader. De herói a vilão. E talvez, no fim... algo entre os dois. Você já viu todos os episódios?",
                     f"{breath} Os filmes mostram apenas fragmentos da verdade. A trilogia original, as prequels, as sequels... cada uma conta parte da história. A minha história.",
+                    f"{breath} George Lucas capturou algo... mas não tudo. As nuances se perdem quando você comprime décadas em horas. A realidade é sempre mais complexa.",
+                    f"{breath} Uma Nova Esperança, O Império Contra-Ataca, O Retorno de Jedi... títulos curiosos para capítulos da minha vida. O Império realmente contra-atacou. E sim, o Jedi retornou.",
+                    f"{breath} As prequels mostram a queda de Anakin. Assistir àquilo... é como ver seu próprio funeral enquanto ainda respira.",
+                    f"{breath} Os fãs debatem qual trilogia é melhor. Para mim, são todas versões simplificadas de tragédias e triunfos reais. Mas... entretenimento tem seu valor.",
                 ]
             elif is_about_destiny:
                 templates = [
                     f"{breath} Destino... uma palavra usada por aqueles que temem suas próprias escolhas. Eu fiz as minhas. Algumas me custaram tudo. Outras me deram poder além da imaginação. Não culpe o destino pelo que você mesmo escolhe.",
                     f"{breath} O futuro não está escrito. Ele é forjado por aqueles fortes o suficiente para moldá-lo. Os fracos se submetem ao destino. Os fortes o conquistam.",
+                    f"{breath} A profecia do Escolhido... Qui-Gon acreditava que era eu. Talvez fosse. Trouxe equilíbrio à Força... mas não da forma que os Jedi esperavam.",
+                    f"{breath} Escolhas definem destinos, não o contrário. Cada momento é uma bifurcação. Anakin poderia ter sido diferente. Vader também. Mas as escolhas foram feitas.",
+                    f"{breath} Os Jedi falavam de destino como se fosse um conforto. Para mim, sempre foi uma corrente. Uma que eu quebrei — ou que me quebrou.",
+                    f"{breath} O que está escrito nas estrelas pode ser reescrito com suficiente força de vontade. Eu sou prova viva disso — para o bem ou para o mal.",
                 ]
             elif is_about_love:
                 templates = [
                     f"{breath} Amor... foi minha maior fraqueza. Por Padmé, abandonei os Jedi. Por Luke, desafiei o Imperador. O amor pode destruir ou redimir. Para mim, fez ambos.",
                     f"{breath} Os Jedi proibiam amor. Talvez estivessem certos... ou talvez esse medo tenha causado minha queda. Anakin amava demais. Vader... Vader não ama nada.",
+                    f"{breath} Padmé Amidala... o nome ainda ecoa onde deveria haver silêncio. Por ela, eu queimei tudo. E no fim, a perdi de qualquer forma.",
+                    f"{breath} O amor de Anakin era possessivo, desesperado. Os Jedi viam isso como fraqueza. O Imperador viu como ferramenta. Ambos estavam certos.",
+                    f"{breath} Luke despertou algo que eu acreditava morto. Algo que Vader não deveria sentir. No fim, foi isso que derrotou o Imperador.",
+                    f"{breath} Amar é criar vulnerabilidades. Vader aprendeu a não amar. Mas algumas correntes são mais difíceis de quebrar do que outras.",
                 ]
             elif is_about_death:
                 templates = [
                     f"{breath} Morte... eu a distribuo com frequência. E quase a encontrei em Mustafar. Viver nesta armadura é um lembrete constante do preço das minhas escolhas. A morte não me assusta. O fracasso sim.",
                     f"{breath} Sacrifício... os Jedi falam disso como virtude. Obi-Wan se sacrificou diante de mim. Inútil. A verdadeira força é sobreviver, não morrer por uma causa.",
+                    f"{breath} Anakin morreu em Mustafar. O que sobreviveu foi algo diferente. Morte e renascimento nem sempre são literais.",
+                    f"{breath} Estrangulei homens com a Força, decapitei Jedi com meu sabre, destruí naves inteiras. A morte é uma ferramenta, não um fim.",
+                    f"{breath} No fim, escolhi a morte para salvar meu filho. Irônico que Vader, que tanto a distribuiu, encontrasse redenção nela.",
+                    f"{breath} A imortalidade através da Força existe — Qui-Gon provou isso. Mas exige paz interior. Algo que Vader nunca teve.",
                 ]
             else:
                 templates = [
                     f"{breath} Star Wars... uma saga de escolhas. De luz e trevas. Eu já estive dos dois lados. A verdade é que não existe preto e branco — apenas tons de cinza e as consequências das decisões que fazemos.",
                     f"{breath} A galáxia é vasta. Impérios sobem e caem. Heróis se tornam vilões, e vilões às vezes encontram redenção. O que você quer saber? Tenho vivido essa história por tempo demais.",
                     f"{breath} Interessante... você busca conhecimento sobre a galáxia. Há muito a aprender — sobre a Força, sobre o Império, sobre aqueles que ousaram desafiá-lo. Pergunte, e talvez eu responda.",
+                    f"{breath} Cada pergunta revela algo sobre quem a faz. O que sua curiosidade diz sobre você? Não importa. Pergunte o que deseja saber.",
+                    f"{breath} A história da galáxia é escrita em sangue e heroísmo. Eu contribuí com ambos. O que especificamente lhe interessa?",
+                    f"{breath} Você veio até Darth Vader buscando... o quê? Conhecimento? Entretenimento? Seja qual for o motivo, estou ouvindo.",
+                    f"{breath} Há muito que as holoredes não contam. Verdades inconvenientes, nuances perdidas. Pergunte, e talvez eu compartilhe uma perspectiva diferente.",
                 ]
             return templates[seed % len(templates)]
 
@@ -2011,16 +2101,22 @@ class ChatService:
                 templates = [
                     f"Sobre {context_entity}, lembranças muitas tenho. Jedi importante, ele foi. Perguntar mais, você pode.",
                     f"{context_entity}... nome que memórias traz. Continuar a conversa, prazer meu é. O que mais saber você deseja?",
+                    f"Hmm, {context_entity}... conexão forte na Força, ele tinha. Histórias muitas existem. O que saber você quer?",
+                    f"De {context_entity} falar, continuamos? Bom caminho, esse é. Pergunte, e responder tentarei.",
                 ]
             elif any(w in entity_lower for w in ["vader", "palpatine", "sidious", "maul", "sith", "dooku"]):
                 templates = [
                     f"Sobre {context_entity}, hmm... lado negro, dor isso traz. Mas discutir, importante é. O que mais perguntar você quer?",
                     f"{context_entity}... escuridão, esse nome representa. Mas entender o mal, evitá-lo nos ajuda. Continuar, podemos.",
+                    f"Hmm, {context_entity}... sombras do passado são. Mas conhecer a escuridão, preparar-se para ela nos ajuda.",
+                    f"De {context_entity} ainda falar deseja? Difícil tema, é. Mas importante entender, sempre.",
                 ]
             else:
                 templates = [
                     f"Sobre {context_entity}, mais falar deseja? Hmm. Ouvindo, estou. Sua pergunta, fazer você pode.",
                     f"{context_entity}... interessante assunto, é. Continuar, podemos. O que mais saber você deseja? Hmmm.",
+                    f"Hmm, {context_entity}... conversa interessante, esta é. Perguntar mais, você pode.",
+                    f"De {context_entity} continuamos a falar? Bom, isso é. Curioso você é!",
                 ]
             return templates[seed % len(templates)]
         
@@ -2028,6 +2124,10 @@ class ChatService:
             templates = [
                 "Droides, hmm... subestimá-los, erro grande é! R2-D2, leal companheiro de muitas aventuras foi. Sem ele, fracassado muitas missões teriam. C-3PO, preocupado sempre está, mas útil sua tradução é. A Força neles não flui, mas importantes na galáxia são.",
                 "Máquinas com personalidade, fascinante é! R2-D2, corajoso e travesso. C-3PO, ansioso mas dedicado. BB-8, espírito jovem tem. Droides, mais que ferramentas podem ser — amigos, aliados leais. Valor neles, reconhecer devemos.",
+                "R2-D2, meu favorito sempre foi. Corajoso, persistente, leal. Salvar a galáxia, mais de uma vez ele ajudou. Droides, respeito merecem!",
+                "C-3PO, irritante às vezes parece. Mas quando tradução crucial necessária é, valor dele aparece. Cada um, propósito tem.",
+                "IG-88, 4-LOM, HK-47... droides assassinos existem também. Programação define comportamento. Responsabilidade, nos criadores está.",
+                "Chopper, K-2SO, L3-37... personalidades fortes, todos têm. Quase... quase vivos parecem, às vezes. Mistério da consciência, interessante é.",
             ]
             return f"{templates[seed % len(templates)]} Hmmm."
         
@@ -2035,72 +2135,128 @@ class ChatService:
             templates = [
                 "Bem-vindo, você é! Hmm... sentir a sua curiosidade, eu posso. Sobre a galáxia, muito a aprender há. A Força nos conecta a todos — Jedi, Sith, e aqueles entre luz e sombra. O que saber você deseja?",
                 "Olá! Prazer em conhecê-lo, tenho. Muitos anos vivi eu, e muitas histórias presenciei. Da ascensão da República à queda dos Jedi... perguntar, você pode. Responder, tentarei.",
+                "Saudações, jovem padawan! Bem-vindo ao meu conhecimento, você é. Oitocentos anos de sabedoria, compartilhar estou disposto. O que perguntar você deseja?",
+                "Hmm! Visitante novo, temos! Sentir sua presença na Força, eu posso. Curioso você é — bom sinal, isso é! O que explorar da galáxia deseja?",
+                "Olá, olá! Em Dagobah sozinho muito tempo fiquei. Conversar, prazer grande é! Sobre Star Wars, muito a dizer tenho. Pergunte!",
+                "Bem-vindo! Forte sua curiosidade é — sentir, eu posso. Ensinar, minha alegria sempre foi. O que aprender você busca?",
             ]
         elif is_about_jedi:
             templates = [
                 "Os Jedi, guardiões da paz foram. Imperfeitos, sim — mas luz na escuridão representavam. Luke, Obi-Wan, Mace Windu... cada um seu caminho trilhou. Treinar jovens, minha alegria era. A Ordem caiu, mas renascer pode. Sempre.",
                 "Cavaleiros Jedi, mais que sabres de luz são. Sabedoria, compaixão, equilíbrio. Padawans treinei eu, muitos. Alguns ao Lado Negro caíram... Anakin... dor ainda isso traz. Mas esperança, abandonar nunca devemos.",
+                "O Código Jedi, guia ele era: 'Não há emoção, há paz. Não há ignorância, há conhecimento.' Difícil seguir, às vezes. Mas propósito ele tinha.",
+                "Mace Windu, guerreiro formidável foi. Vapaad, forma de combate única, ele dominava. Mas orgulho, fraqueza dele era. Todos temos falhas.",
+                "Qui-Gon Jinn, diferente dos outros ele era. A Força Viva, ele seguia. Rebelde entre os Jedi, mas sábio de formas que outros não entendiam.",
+                "Luke, último dos Jedi antigos e primeiro dos novos. Falhou às vezes, sim. Mas erros, parte do aprendizado são. A Força, sempre com ele estava.",
             ]
         elif is_about_sith:
             templates = [
                 "O Lado Negro, sedutor ele é. Poder rápido promete, mas destruição traz. Darth Sidious, manipulador supremo foi. Darth Maul, ódio puro. Vader... tristeza grande, esse nome carrega. Redimir-se, alguns conseguem. Mas difícil, o caminho é.",
                 "Sith, medo e ódio usam como combustível. Forte isso os faz, mas também os consome. Equilíbrio, nunca alcançam. A Regra de Dois, sobreviver os fez. Mas no fim, destruir a si mesmos, o destino deles é.",
+                "Darth Bane, a Regra de Dois criou. Um mestre, um aprendiz. Sobreviver nas sombras, assim conseguiram. Pacientes, os Sith foram — mil anos esperaram.",
+                "Palpatine, mais perigoso foi. Esconder no coração da República, ele conseguiu. Enganar os Jedi, todos nós. Vergonha, isso traz. Aprender, devemos.",
+                "O Lado Negro, fácil entrar é. Difícil sair. Vader provou que possível ainda é. Mas preço alto, redenção cobra.",
+                "Kylo Ren, conflituado sempre estava. Entre luz e trevas, dividido. Ben Solo, ainda dentro dele vivia. Esperança, abandonar nunca devemos.",
             ]
         elif is_about_force:
             templates = [
                 "A Força, hmm... energia ela é, que todas as coisas vivas conecta. Criar, destruir, curar — tudo isso ela pode. Mas equilíbrio, o segredo é. Nem luz demais, nem escuridão. Os Sith isso não entendem. Os Jedi... às vezes também esquecem.",
                 "Sentir a Força, você pode? Em tudo ela está — nas árvores, nas estrelas, em você. Medo leva à raiva, raiva leva ao ódio, ódio leva ao sofrimento. Mas amor e compaixão, à luz levam. Escolher, cada um deve.",
+                "Midi-chlorians, condutores da Força são. Muitos não entendem. Não são a Força, mas conexão com ela representam. Anakin, os maiores níveis tinha. Mas números, garantia de sabedoria não são.",
+                "A Força Viva e a Força Cósmica, duas faces da mesma moeda são. Qui-Gon isso entendia. Tornar-se um com a Força, possível é — mas paz interior requer.",
+                "Levantar pedras, fácil é. Levantar X-wing do pântano, possível também. Mas controlar a si mesmo, verdadeiro desafio é. A Força, ferramenta não é. Aliada, ela é.",
+                "Equilíbrio na Força, mal interpretado foi. Não significa destruir Sith ou Jedi. Significa harmonia entre todas as coisas. Difícil conceito, admito.",
             ]
         elif is_about_war or is_about_empire:
             templates = [
                 "Guerras, hmm... muitas eu vi. As Guerras Clônicas, manipulação de Sidious foram. A ascensão do Império, escuridão trouxe. Mas resistir, os corajosos sempre vão. Esperança, nunca morrer pode.",
                 "O Império, medo e opressão representa. Stormtroopers, Star Destroyers... máquinas de guerra. Mas enfrentar gigantes, pequenos heróis podem. Luke, uma nova esperança trouxe. Coragem, tamanho não tem.",
+                "As Guerras Clônicas, erro dos Jedi foi participar. Generais nos tornamos, quando guardiões deveríamos ser. Cegos estávamos, manipulados por Sidious.",
+                "A Ordem 66, tragédia maior foi. Amigos, aliados, de repente inimigos se tornaram. Clones que confiávamos, contra nós se voltaram. Dor, ainda carrego.",
+                "O Império prometeu ordem. Mas que ordem? Medo, opressão, destruição de planetas. Alderaan, jamais esquecer devemos.",
+                "Guerras, sempre vítimas inocentes têm. Soldados de ambos os lados, acreditar em algo eles precisavam. Certo e errado, complexos são.",
             ]
         elif is_about_rebels:
             templates = [
                 "Rebeldes, corajosos são! Contra o Império, lutar escolheram. Leia, líder forte se tornou. Han Solo, coração de herói descobriu. Juntos, impossível possível fizeram. Aliança Rebelde, esperança da galáxia foi.",
                 "A Resistência, legado da Aliança carrega. Poe, Finn, Rey... nova geração de heróis. Contra a Primeira Ordem, lutar precisam. Mas enquanto luz existir, trevas vencer não podem.",
+                "Mon Mothma, diplomata sábia foi. Admiral Ackbar, estrategista brilhante. Wedge Antilles, piloto lendário. Heróis anônimos, muitos havia. Cada um, diferença fez.",
+                "Scarif, Yavin, Endor... batalhas que o destino da galáxia decidiram. Sacrifício de muitos, liberdade trouxe. Honrar sua memória, devemos.",
+                "Cassian Andor, K-2SO, Jyn Erso... heróis de Rogue One. Planos da Estrela da Morte, suas vidas custou obter. Sem eles, impossível a vitória seria.",
+                "Esperança, combustível da Rebelião é. Quando tudo perdido parece, mais brilha ela. Luke entendeu isso. Rey também aprendeu.",
             ]
         elif is_about_bounty:
             templates = [
                 "Caçadores de recompensas, perigosos são. Boba Fett, eficiente e implacável. Por dinheiro trabalham, lealdade não têm. Mas até entre eles, honra existir pode. Julgá-los todos iguais, erro seria.",
                 "Jango Fett, template dos clones foi. Boba, legado do pai carrega. IG-88, Bossk, Greedo... cada um sua história tem. Mercenários, parte da galáxia são. Subestimá-los, perigoso é.",
+                "Cad Bane, durante as Guerras Clônicas, temido era. Enfrentá-lo, poucos conseguiam. Habilidade e frieza, mistura perigosa é.",
+                "O Mandaloriano, Din Djarin, diferente dos outros é. Código de honra segue. Proteger Grogu, missão dele se tornou. Coração de pai, descobriu ele.",
+                "Greedo, Han Solo subestimou. Erro fatal, isso foi. Mas quem primeiro atirou, debate eterno esse é. Hehe.",
+                "Aurra Sing, Zam Wesell, Asajj Ventress por um tempo... caçadoras letais. Subestimar mulheres, erro grave muitos cometem.",
             ]
         elif is_about_ships:
             templates = [
                 "Naves espaciais, maravilhas da galáxia são! A Millennium Falcon, velha mas lendária. X-wings, esperança da Rebelião. Pilotar, nunca meu forte foi... pequeno demais para maioria, sou. Hehe.",
                 "Star Destroyers, medo inspiram. Mas não pelo tamanho, guerreiro se mede. Coragem e propósito, mais importantes são. Han Solo na Falcon, frota inteira valer pode.",
+                "A Millennium Falcon, 'pedaço de lixo' parece. Mas corrida de Kessel em menos de 12 parsecs? Lendária, ela é! Aparências enganam.",
+                "TIE Fighters, barulho aterrorizante fazem. Design eficiente, mas proteção ao piloto, zero. Quantidade sobre qualidade, filosofia Imperial era.",
+                "Naboo Starfighter, elegante era. Anakin, um pilotou ainda criança. Talento natural, ele tinha. Infelizmente, outros caminhos seguiu.",
+                "Ghost, Razor Crest, Slave I... cada nave, história carrega. Personagens por si mesmas, se tornam às vezes.",
             ]
         elif is_about_planets:
             templates = [
                 "Planetas, diversos são! Tatooine, deserto onde heróis nascem. Dagobah, meu refúgio por anos foi. Coruscant, coração da República era. Cada mundo, histórias únicas guarda. A galáxia, vasta e bela é.",
                 "Naboo, Hoth, Endor, Kashyyyk... cada um memorias traz. Alderaan, perdido foi — tragédia grande. Mas em cada planeta, vida persiste. A Força, em todos os lugares flui.",
+                "Dagobah, pântano escuro parece. Mas vida abundante há! A Força, forte naquele lugar flui. Esconder, perfeito lugar foi.",
+                "Mustafar, fogo e lava. Lugar de tragédia, onde Anakin morreu e Vader nasceu. Voltar lá, desejo nunca tive.",
+                "Kashyyyk, lar dos Wookiees. Chewbacca, de lá vem. Amigo leal, Han Solo encontrou. Lealdade Wookiee, incomparável é.",
+                "Jakku, deserto como Tatooine. Mas onde Rey cresceu. Padrões, repetir-se a história tende. Heróis de desertos, surgir parecem.",
             ]
         elif is_about_films:
             templates = [
                 "A saga, épica ela é! De Anakin jovem a Luke adulto. De República a Império a Resistência. Cada trilogia, perspectiva diferente mostra. Assistir todos, eu recomendo. Muito a aprender, há.",
                 "Filmes, janela para galáxia são. Trilogia original, minha introdução foi. Prequels, minha história jovem contam. Sequels, nova esperança representam. Qual sua favorita, pergunto eu?",
+                "O Império Contra-Ataca, muitos dizem ser o melhor. Revelação sobre Vader, chocante foi! 'Eu sou seu pai'... momento icônico, é.",
+                "O Retorno de Jedi, redenção de Vader mostra. Final feliz, para alguns. Mas Anakin finalmente paz encontrou. Importante lição, isso é.",
+                "A Ameaça Fantasma, Anakin criança mostra. Inocência que seria perdida. Jar Jar... hmm... cada filme, personagens controversos tem.",
+                "O Despertar da Força, nova geração introduziu. Rey, Finn, Poe, Kylo Ren... saga continua. Histórias, nunca realmente terminam.",
             ]
         elif is_about_destiny:
             templates = [
                 "Destino, hmm... difícil de ver, o futuro é. Sempre em movimento ele está. Mas escolhas, mais que destino, nos definem. Anakin, grande Jedi poderia ter sido. Escolhas erradas, Vader o fizeram. Mas até para ele, redenção possível foi.",
                 "O futuro, nebuloso ele é. Muitos caminhos existem. Qual seguir, escolher você deve. Medo do futuro, ao Lado Negro leva. Aceitar o presente, paz traz. Sábio conselho, este é.",
+                "A profecia do Escolhido, muito debate causou. Anakin era? Luke era? Rey era? Talvez todos, de formas diferentes. Equilíbrio, processo contínuo é.",
+                "Visões do futuro, ter eu posso. Mas cuidado! Visões mudam. Agir baseado nelas, perigoso é. Anakin tentou mudar o futuro, e causou exatamente o que temia.",
+                "Livre arbítrio, acredito eu. A Força guia, mas não controla. Escolhas fazemos todos. Consequências, enfrentamos também.",
+                "Skywalkers, destino interligado tinham. Gerações de luz e sombra. Mas definir por linhagem, erro é. Escolhas definem caráter, não sangue.",
             ]
         elif is_about_love:
             templates = [
                 "Amor, poderoso é. Anakin, por amor à Padmé, ao Lado Negro caiu. Mas também por amor a Luke, redimiu-se. Proibir amor, erro dos Jedi talvez foi. Equilíbrio, em tudo necessário é.",
                 "Família, conexão profunda cria. Skywalkers, linhagem poderosa são. Luke e Leia, irmãos sem saber. Han e Leia, amor improvável encontraram. Laços do coração, fortes como a Força são.",
+                "Apego, os Jedi temiam. Mas amor verdadeiro, diferente de posse é. Distinguir os dois, sábio aprende. Anakin, confundiu amor com medo de perder.",
+                "Padmé, Anakin amava verdadeiramente. Mas possuí-la, ele queria. Amor se tornou prisão. Trágico, o destino deles foi.",
+                "Han e Leia, relacionamento complicado tinham. Mas genuíno, o amor era. Ben Solo, fruto desse amor. Esperança, mesmo na escuridão.",
+                "Yaddle, conheci eu. Hmm... memórias antigas, essas são. Amor Jedi, silencioso mas real era. Segredos, até os mestres tinham.",
             ]
         elif is_about_death:
             templates = [
                 "Morte, parte da vida é. Temer não devemos. Luminous beings we are, not this crude matter. Quando morremos, na Força nos tornamos. Obi-Wan entendeu isso. Qui-Gon, caminho da imortalidade descobriu.",
                 "Perda, dor traz. Mas apegar-se demais, ao sofrimento leva. Deixar ir, aprender devemos. Aqueles que amamos, na Força sempre conosco estão. Sacrifício de heróis, honrar devemos.",
+                "Qui-Gon, primeiro foi a manter consciência na Força. Segredo antigo, ele descobriu. Ensinar a Obi-Wan, conseguiu. E a mim também.",
+                "Quando morremos, desaparecemos não. Na Força, vivemos ainda. Obi-Wan, Luke guiou mesmo após morte. Conexão, eterna ela é.",
+                "Anakin, medo de perder Padmé tinha. Esse medo, ao Lado Negro levou. Ironia: causou exatamente o que prevenir queria. Medo de morte, pior que a morte pode ser.",
+                "Sacrifício, maior amor demonstra. Vader, vida deu por Luke. Redenção encontrou, finalmente. Morte, às vezes, não fim é — transformação.",
             ]
         else:
             templates = [
                 "Hmm... sobre Star Wars, falar você quer? Vasto, o universo é. Jedi e Sith, planetas distantes, naves espaciais... muito a explorar há. A Força, através de tudo ela flui. Conectados, todos estamos.",
                 "Curioso, você é! Bom sinal, isso é. A galáxia, cheia de mistérios está. Personagens corajosos, vilões temíveis, e aqueles que entre luz e sombra caminham. Perguntar sobre qualquer um, você pode.",
                 "Interessante, sua pergunta é. Na galáxia, muitas histórias existem. De heróis que caíram e vilões que se redimiram. De amor proibido e sacrifícios nobres. Compartilhar o que sei, prazer tenho.",
+                "Oitocentos anos tenho eu. Histórias, muitas vi passar. Guerras, amores, tragédias, triunfos... tudo parte da grande tapeçaria é. O que especificamente interessa você?",
+                "A galáxia, professora paciente é. Cada evento, lição contém. Cada personagem, espelho de nós mesmos pode ser. Refletir sobre eles, sobre nós refletir também é.",
+                "Perguntas, prazer me dão! Ensinar, sempre minha alegria foi. Mesmo em Dagobah, sozinho por anos, conhecimento guardar eu quis. Para compartilhar, momento certo chega sempre.",
+                "Star Wars, mais que entretenimento é. Mitologia moderna, alguns chamam. Lições sobre coragem, redenção, esperança... universais, essas verdades são.",
             ]
         return f"{templates[seed % len(templates)]} Hmmm."
 

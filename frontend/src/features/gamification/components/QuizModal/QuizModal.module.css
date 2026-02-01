@@ -142,12 +142,39 @@
   background: linear-gradient(135deg, rgba(53, 230, 255, 0.14), rgba(255, 61, 242, 0.06));
 }
 
+.categoryCardEmpty {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.categoryCardEmpty:hover {
+  transform: none;
+  box-shadow: none;
+}
+
 .categoryTitle {
   display: flex;
   align-items: center;
   gap: 10px;
   font-weight: 900;
   letter-spacing: 0.02em;
+}
+
+.categoryBadge {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(53, 230, 255, 0.15);
+  border: 1px solid rgba(53, 230, 255, 0.3);
+  color: rgba(53, 230, 255, 0.9);
+}
+
+.categoryBadge[data-empty='true'] {
+  background: rgba(255, 61, 242, 0.1);
+  border-color: rgba(255, 61, 242, 0.25);
+  color: rgba(255, 150, 240, 0.7);
 }
 
 .categoryCheckbox {
@@ -173,6 +200,14 @@
   color: rgba(199, 226, 255, 0.72);
   font-size: 13px;
   line-height: 1.35;
+}
+
+.setupStats {
+  text-align: center;
+  color: rgba(199, 226, 255, 0.7);
+  font-size: 13px;
+  padding: 8px;
+  border-top: 1px solid rgba(110, 231, 255, 0.1);
 }
 
 .setupError {

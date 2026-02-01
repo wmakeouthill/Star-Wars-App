@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { DetailsModal } from '@/shared/components';
 import { useAuth } from '@/features/auth/context/AuthContext';
@@ -174,34 +174,75 @@ const QUIZ_CATEGORIES: QuizCategory[] = [
   {
     id: 'characters',
     label: 'Personagens',
-    description: 'Gênero e planeta natal (quando disponível).',
+    description: 'Gênero, planeta natal, cor dos olhos, cabelo e pele.',
   },
   {
     id: 'planets',
     label: 'Planetas',
-    description: 'Climas e características.',
+    description: 'Climas, terrenos e características.',
   },
   {
     id: 'films',
     label: 'Filmes',
-    description: 'Diretores e dados do episódio.',
+    description: 'Diretores, produtores e episódios.',
   },
   {
     id: 'starships',
     label: 'Naves',
-    description: 'Fabricantes e detalhes técnicos.',
+    description: 'Fabricantes, classes e modelos.',
   },
   {
     id: 'vehicles',
     label: 'Veículos',
-    description: 'Classes e fabricantes.',
+    description: 'Classes, fabricantes e modelos.',
   },
   {
     id: 'species',
     label: 'Espécies',
-    description: 'Idiomas e classificação.',
+    description: 'Idiomas, classificação e designação.',
   },
 ];
+
+// Retorna estatísticas do cache para cada categoria
+function getCacheStats(queryClient: ReturnType<typeof useQueryClient>): Record<QuizCategoryId, number> {
+  const characters = getCachedPaginatedItems<Character>(queryClient, 'characters');
+  const planets = getCachedPaginatedItems<Planet>(queryClient, 'planets');
+  const films = getCachedPaginatedItems<Film>(queryClient, 'films');
+  const starships = getCachedPaginatedItems<Starship>(queryClient, 'starships');
+  const vehicles = getCachedPaginatedItems<Vehicle>(queryClient, 'vehicles');
+  const species = getCachedPaginatedItems<Species>(queryClient, 'species');
+
+  return {
+    characters: characters.length,
+    planets: planets.length,
+    films: films.length,
+    starships: starships.length,
+    vehicles: vehicles.length,
+    species: species.length,
+  };
+}
+
+// Calcula quantas perguntas podem ser geradas com os dados disponíveis
+function estimateMaxQuestions(
+  queryClient: ReturnType<typeof useQueryClient>,
+  enabledCategories: QuizCategoryId[]
+): number {
+  const stats = getCacheStats(queryClient);
+  let total = 0;
+  for (const cat of enabledCategories) {
+    // Cada categoria pode gerar aproximadamente N perguntas (com múltiplos tipos)
+    const count = stats[cat];
+    if (count > 0) {
+      // Multiplica por quantidade de tipos de perguntas por categoria
+      let multiplier = 2;
+      if (cat === 'characters') multiplier = 5;
+      else if (cat === 'films') multiplier = 3;
+      else if (cat === 'planets') multiplier = 3;
+      total += Math.min(count * multiplier, 20); // Cap por categoria
+    }
+  }
+  return total;
+}
 
 function buildQuizFromCache(params: {
   queryClient: ReturnType<typeof useQueryClient>;
@@ -223,16 +264,30 @@ function buildQuizFromCache(params: {
 
   const planetNames = uniqueStrings(planets.map((p) => p.name));
   const filmDirectors = uniqueStrings(films.map((f) => f.director));
+  const filmProducers = uniqueStrings(films.flatMap((f) => splitCsv(f.producer)));
+  const filmTitles = uniqueStrings(films.map((f) => f.title));
   const planetClimates = uniqueStrings(planets.flatMap((p) => splitCsv(p.climate)));
+  const planetTerrains = uniqueStrings(planets.flatMap((p) => splitCsv(p.terrain)));
   const starshipManufacturers = uniqueStrings(starships.flatMap((s) => splitCsv(s.manufacturer)));
+  const starshipClasses = uniqueStrings(starships.map((s) => s.starship_class));
+  const starshipModels = uniqueStrings(starships.map((s) => s.model));
   const vehicleClasses = uniqueStrings(vehicles.map((v) => v.vehicle_class));
+  const vehicleManufacturers = uniqueStrings(vehicles.flatMap((v) => splitCsv(v.manufacturer)));
+  const vehicleModels = uniqueStrings(vehicles.map((v) => v.model));
   const speciesLanguages = uniqueStrings(species.map((s) => s.language));
+  const speciesClassifications = uniqueStrings(species.map((s) => s.classification));
+  const speciesDesignations = uniqueStrings(species.map((s) => s.designation));
   const characterGenders = uniqueStrings(characters.map((c) => c.gender));
+  const characterEyeColors = uniqueStrings(characters.flatMap((c) => splitCsv(c.eye_color)));
+  const characterHairColors = uniqueStrings(characters.flatMap((c) => splitCsv(c.hair_color)));
+  const characterSkinColors = uniqueStrings(characters.flatMap((c) => splitCsv(c.skin_color)));
+  const characterNames = uniqueStrings(characters.map((c) => c.name));
 
   const generatorDefs: Array<{
     category: QuizCategoryId;
     generate: () => QuizQuestion | null;
   }> = [
+    // ===== FILMES (3 tipos de pergunta) =====
     {
       category: 'films',
       generate: () => {
@@ -240,8 +295,8 @@ function buildQuizFromCache(params: {
         const picked = eligible[Math.floor(rng() * eligible.length)];
         if (!picked) return null;
         return createQuestion({
-          id: `film-director-${picked.id}`,
-          prompt: `Quem dirigiu o filme “${picked.title}”?`,
+          id: `film-director-${picked.id}-${Math.floor(rng() * 10000)}`,
+          prompt: `Quem dirigiu o filme "${picked.title}"?`,
           correctLabel: picked.director,
           pool: filmDirectors,
           optionsCount,
@@ -249,6 +304,43 @@ function buildQuizFromCache(params: {
         });
       },
     },
+    {
+      category: 'films',
+      generate: () => {
+        const eligible = films.filter((f) => splitCsv(f.producer).length > 0 && normalizeText(f.title));
+        const picked = eligible[Math.floor(rng() * eligible.length)];
+        if (!picked) return null;
+        const producers = splitCsv(picked.producer);
+        const correct = producers[Math.floor(rng() * producers.length)];
+        if (!correct) return null;
+        return createQuestion({
+          id: `film-producer-${picked.id}-${Math.floor(rng() * 10000)}`,
+          prompt: `Quem foi um dos produtores de "${picked.title}"?`,
+          correctLabel: correct,
+          pool: filmProducers,
+          optionsCount,
+          rng,
+        });
+      },
+    },
+    {
+      category: 'films',
+      generate: () => {
+        const eligible = films.filter((f) => f.episode_id && normalizeText(f.title));
+        const picked = eligible[Math.floor(rng() * eligible.length)];
+        if (!picked) return null;
+        const episodeNumbers = eligible.map((f) => `Episódio ${f.episode_id}`);
+        return createQuestion({
+          id: `film-episode-${picked.id}-${Math.floor(rng() * 10000)}`,
+          prompt: `Qual é o número do episódio de "${picked.title}"?`,
+          correctLabel: `Episódio ${picked.episode_id}`,
+          pool: episodeNumbers,
+          optionsCount,
+          rng,
+        });
+      },
+    },
+    // ===== PLANETAS (2 tipos de pergunta) =====
     {
       category: 'planets',
       generate: () => {
@@ -259,7 +351,7 @@ function buildQuizFromCache(params: {
         const correct = climates[Math.floor(rng() * climates.length)];
         if (!correct) return null;
         return createQuestion({
-          id: `planet-climate-${picked.id}`,
+          id: `planet-climate-${picked.id}-${Math.floor(rng() * 10000)}`,
           prompt: `Qual é um dos climas de ${picked.name}?`,
           correctLabel: correct,
           pool: planetClimates,
@@ -268,6 +360,26 @@ function buildQuizFromCache(params: {
         });
       },
     },
+    {
+      category: 'planets',
+      generate: () => {
+        const eligible = planets.filter((p) => splitCsv(p.terrain).length > 0 && normalizeText(p.name));
+        const picked = eligible[Math.floor(rng() * eligible.length)];
+        if (!picked) return null;
+        const terrains = splitCsv(picked.terrain);
+        const correct = terrains[Math.floor(rng() * terrains.length)];
+        if (!correct) return null;
+        return createQuestion({
+          id: `planet-terrain-${picked.id}-${Math.floor(rng() * 10000)}`,
+          prompt: `Qual é um dos terrenos de ${picked.name}?`,
+          correctLabel: correct,
+          pool: planetTerrains,
+          optionsCount,
+          rng,
+        });
+      },
+    },
+    // ===== NAVES (3 tipos de pergunta) =====
     {
       category: 'starships',
       generate: () => {
@@ -278,8 +390,8 @@ function buildQuizFromCache(params: {
         const correct = manufacturers[Math.floor(rng() * manufacturers.length)];
         if (!correct) return null;
         return createQuestion({
-          id: `starship-manufacturer-${picked.id}`,
-          prompt: `Quem é um dos fabricantes da nave “${picked.name}”?`,
+          id: `starship-manufacturer-${picked.id}-${Math.floor(rng() * 10000)}`,
+          prompt: `Quem é um dos fabricantes da nave "${picked.name}"?`,
           correctLabel: correct,
           pool: starshipManufacturers,
           optionsCount,
@@ -288,14 +400,47 @@ function buildQuizFromCache(params: {
       },
     },
     {
+      category: 'starships',
+      generate: () => {
+        const eligible = starships.filter((s) => normalizeText(s.starship_class) && normalizeText(s.name));
+        const picked = eligible[Math.floor(rng() * eligible.length)];
+        if (!picked) return null;
+        return createQuestion({
+          id: `starship-class-${picked.id}-${Math.floor(rng() * 10000)}`,
+          prompt: `Qual é a classe da nave "${picked.name}"?`,
+          correctLabel: picked.starship_class,
+          pool: starshipClasses,
+          optionsCount,
+          rng,
+        });
+      },
+    },
+    {
+      category: 'starships',
+      generate: () => {
+        const eligible = starships.filter((s) => normalizeText(s.model) && normalizeText(s.name));
+        const picked = eligible[Math.floor(rng() * eligible.length)];
+        if (!picked) return null;
+        return createQuestion({
+          id: `starship-model-${picked.id}-${Math.floor(rng() * 10000)}`,
+          prompt: `Qual é o modelo da nave "${picked.name}"?`,
+          correctLabel: picked.model,
+          pool: starshipModels,
+          optionsCount,
+          rng,
+        });
+      },
+    },
+    // ===== VEÍCULOS (3 tipos de pergunta) =====
+    {
       category: 'vehicles',
       generate: () => {
         const eligible = vehicles.filter((v) => normalizeText(v.vehicle_class) && normalizeText(v.name));
         const picked = eligible[Math.floor(rng() * eligible.length)];
         if (!picked) return null;
         return createQuestion({
-          id: `vehicle-class-${picked.id}`,
-          prompt: `Qual é a classe do veículo “${picked.name}”?`,
+          id: `vehicle-class-${picked.id}-${Math.floor(rng() * 10000)}`,
+          prompt: `Qual é a classe do veículo "${picked.name}"?`,
           correctLabel: picked.vehicle_class,
           pool: vehicleClasses,
           optionsCount,
@@ -304,14 +449,50 @@ function buildQuizFromCache(params: {
       },
     },
     {
+      category: 'vehicles',
+      generate: () => {
+        const eligible = vehicles.filter((v) => splitCsv(v.manufacturer).length > 0 && normalizeText(v.name));
+        const picked = eligible[Math.floor(rng() * eligible.length)];
+        if (!picked) return null;
+        const manufacturers = splitCsv(picked.manufacturer);
+        const correct = manufacturers[Math.floor(rng() * manufacturers.length)];
+        if (!correct) return null;
+        return createQuestion({
+          id: `vehicle-manufacturer-${picked.id}-${Math.floor(rng() * 10000)}`,
+          prompt: `Quem fabricou o veículo "${picked.name}"?`,
+          correctLabel: correct,
+          pool: vehicleManufacturers,
+          optionsCount,
+          rng,
+        });
+      },
+    },
+    {
+      category: 'vehicles',
+      generate: () => {
+        const eligible = vehicles.filter((v) => normalizeText(v.model) && normalizeText(v.name));
+        const picked = eligible[Math.floor(rng() * eligible.length)];
+        if (!picked) return null;
+        return createQuestion({
+          id: `vehicle-model-${picked.id}-${Math.floor(rng() * 10000)}`,
+          prompt: `Qual é o modelo do veículo "${picked.name}"?`,
+          correctLabel: picked.model,
+          pool: vehicleModels,
+          optionsCount,
+          rng,
+        });
+      },
+    },
+    // ===== ESPÉCIES (3 tipos de pergunta) =====
+    {
       category: 'species',
       generate: () => {
         const eligible = species.filter((s) => normalizeText(s.language) && normalizeText(s.name));
         const picked = eligible[Math.floor(rng() * eligible.length)];
         if (!picked) return null;
         return createQuestion({
-          id: `species-language-${picked.id}`,
-          prompt: `Qual é o idioma associado à espécie “${picked.name}”?`,
+          id: `species-language-${picked.id}-${Math.floor(rng() * 10000)}`,
+          prompt: `Qual é o idioma associado à espécie "${picked.name}"?`,
           correctLabel: picked.language,
           pool: speciesLanguages,
           optionsCount,
@@ -320,14 +501,47 @@ function buildQuizFromCache(params: {
       },
     },
     {
+      category: 'species',
+      generate: () => {
+        const eligible = species.filter((s) => normalizeText(s.classification) && normalizeText(s.name));
+        const picked = eligible[Math.floor(rng() * eligible.length)];
+        if (!picked) return null;
+        return createQuestion({
+          id: `species-classification-${picked.id}-${Math.floor(rng() * 10000)}`,
+          prompt: `Qual é a classificação da espécie "${picked.name}"?`,
+          correctLabel: picked.classification,
+          pool: speciesClassifications,
+          optionsCount,
+          rng,
+        });
+      },
+    },
+    {
+      category: 'species',
+      generate: () => {
+        const eligible = species.filter((s) => normalizeText(s.designation) && normalizeText(s.name));
+        const picked = eligible[Math.floor(rng() * eligible.length)];
+        if (!picked) return null;
+        return createQuestion({
+          id: `species-designation-${picked.id}-${Math.floor(rng() * 10000)}`,
+          prompt: `Qual é a designação da espécie "${picked.name}"?`,
+          correctLabel: picked.designation,
+          pool: speciesDesignations,
+          optionsCount,
+          rng,
+        });
+      },
+    },
+    // ===== PERSONAGENS (5 tipos de pergunta) =====
+    {
       category: 'characters',
       generate: () => {
         const eligible = characters.filter((c) => normalizeText(c.gender) && normalizeText(c.name));
         const picked = eligible[Math.floor(rng() * eligible.length)];
         if (!picked) return null;
         return createQuestion({
-          id: `character-gender-${picked.id}`,
-          prompt: `Qual é o gênero de “${picked.name}”?`,
+          id: `character-gender-${picked.id}-${Math.floor(rng() * 10000)}`,
+          prompt: `Qual é o gênero de "${picked.name}"?`,
           correctLabel: picked.gender,
           pool: characterGenders,
           optionsCount,
@@ -342,10 +556,106 @@ function buildQuizFromCache(params: {
         const picked = eligible[Math.floor(rng() * eligible.length)];
         if (!picked) return null;
         return createQuestion({
-          id: `character-homeworld-${picked.id}`,
-          prompt: `Qual é o planeta natal de “${picked.name}”?`,
+          id: `character-homeworld-${picked.id}-${Math.floor(rng() * 10000)}`,
+          prompt: `Qual é o planeta natal de "${picked.name}"?`,
           correctLabel: picked.homeworld?.name ?? '',
           pool: planetNames,
+          optionsCount,
+          rng,
+        });
+      },
+    },
+    {
+      category: 'characters',
+      generate: () => {
+        const eligible = characters.filter((c) => normalizeText(c.eye_color) && c.eye_color !== 'unknown' && c.eye_color !== 'n/a' && normalizeText(c.name));
+        const picked = eligible[Math.floor(rng() * eligible.length)];
+        if (!picked) return null;
+        const eyeColors = splitCsv(picked.eye_color);
+        const correct = eyeColors[Math.floor(rng() * eyeColors.length)];
+        if (!correct) return null;
+        return createQuestion({
+          id: `character-eyecolor-${picked.id}-${Math.floor(rng() * 10000)}`,
+          prompt: `Qual é a cor dos olhos de "${picked.name}"?`,
+          correctLabel: correct,
+          pool: characterEyeColors.filter((c) => c !== 'unknown' && c !== 'n/a'),
+          optionsCount,
+          rng,
+        });
+      },
+    },
+    {
+      category: 'characters',
+      generate: () => {
+        const eligible = characters.filter((c) => normalizeText(c.hair_color) && c.hair_color !== 'none' && c.hair_color !== 'n/a' && normalizeText(c.name));
+        const picked = eligible[Math.floor(rng() * eligible.length)];
+        if (!picked) return null;
+        const hairColors = splitCsv(picked.hair_color);
+        const correct = hairColors[Math.floor(rng() * hairColors.length)];
+        if (!correct || correct === 'none' || correct === 'n/a') return null;
+        return createQuestion({
+          id: `character-haircolor-${picked.id}-${Math.floor(rng() * 10000)}`,
+          prompt: `Qual é a cor do cabelo de "${picked.name}"?`,
+          correctLabel: correct,
+          pool: characterHairColors.filter((c) => c !== 'none' && c !== 'n/a'),
+          optionsCount,
+          rng,
+        });
+      },
+    },
+    {
+      category: 'characters',
+      generate: () => {
+        const eligible = characters.filter((c) => normalizeText(c.skin_color) && c.skin_color !== 'unknown' && normalizeText(c.name));
+        const picked = eligible[Math.floor(rng() * eligible.length)];
+        if (!picked) return null;
+        const skinColors = splitCsv(picked.skin_color);
+        const correct = skinColors[Math.floor(rng() * skinColors.length)];
+        if (!correct) return null;
+        return createQuestion({
+          id: `character-skincolor-${picked.id}-${Math.floor(rng() * 10000)}`,
+          prompt: `Qual é a cor da pele de "${picked.name}"?`,
+          correctLabel: correct,
+          pool: characterSkinColors.filter((c) => c !== 'unknown'),
+          optionsCount,
+          rng,
+        });
+      },
+    },
+    // ===== PERGUNTAS CRUZADAS (relacionam categorias) =====
+    {
+      category: 'characters',
+      generate: () => {
+        // Personagem -> Filme que aparece
+        const eligible = characters.filter((c) => c.films && c.films.length > 0 && normalizeText(c.name));
+        const picked = eligible[Math.floor(rng() * eligible.length)];
+        if (!picked?.films?.length) return null;
+        const filmAppearance = picked.films[Math.floor(rng() * picked.films.length)];
+        if (!filmAppearance?.title) return null;
+        return createQuestion({
+          id: `character-film-${picked.id}-${Math.floor(rng() * 10000)}`,
+          prompt: `Em qual filme "${picked.name}" aparece?`,
+          correctLabel: filmAppearance.title,
+          pool: filmTitles,
+          optionsCount,
+          rng,
+        });
+      },
+    },
+    {
+      category: 'planets',
+      generate: () => {
+        // Planeta -> Residente famoso
+        const eligible = planets.filter((p) => p.residents && p.residents.length > 0 && normalizeText(p.name));
+        const picked = eligible[Math.floor(rng() * eligible.length)];
+        if (!picked?.residents?.length) return null;
+        const resident = picked.residents[Math.floor(rng() * picked.residents.length)];
+        if (!resident?.name) return null;
+        return createQuestion({
+          id: `planet-resident-${picked.id}-${Math.floor(rng() * 10000)}`,
+          prompt: `Quem é um residente de ${picked.name}?`,
+          correctLabel: resident.name,
+          pool: characterNames,
           optionsCount,
           rng,
         });
@@ -454,6 +764,15 @@ export function QuizModal({ open, onClose }: Readonly<QuizModalProps>) {
     QUIZ_CATEGORIES.map((c) => c.id)
   );
   const [setupError, setSetupError] = useState<string | null>(null);
+  // Cache stats para mostrar na UI
+  const [cacheStats, setCacheStats] = useState<Record<QuizCategoryId, number>>({
+    characters: 0,
+    planets: 0,
+    films: 0,
+    starships: 0,
+    vehicles: 0,
+    species: 0,
+  });
 
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -464,6 +783,23 @@ export function QuizModal({ open, onClose }: Readonly<QuizModalProps>) {
 
   // Flag para evitar submit duplicado
   const submittedRef = useRef(false);
+
+  // Atualiza estatísticas de cache quando o modal abre
+  useEffect(() => {
+    if (open) {
+      setCacheStats(getCacheStats(queryClient));
+    }
+  }, [open, queryClient]);
+
+  const totalCacheItems = useMemo(
+    () => selectedCategories.reduce((sum, cat) => sum + (cacheStats[cat] || 0), 0),
+    [selectedCategories, cacheStats]
+  );
+
+  const maxQuestionsAvailable = useMemo(
+    () => estimateMaxQuestions(queryClient, selectedCategories),
+    [queryClient, selectedCategories]
+  );
 
   const resetRun = useCallback(() => {
     setQuestions([]);
@@ -477,9 +813,13 @@ export function QuizModal({ open, onClose }: Readonly<QuizModalProps>) {
 
   const regenerate = useCallback(
     (categories: QuizCategoryId[]) => {
+      // Usa número dinâmico de perguntas: min 3, max 10, baseado nos dados disponíveis
+      const maxAvailable = estimateMaxQuestions(queryClient, categories);
+      const questionCount = Math.max(3, Math.min(10, maxAvailable));
+      
       const next = buildQuizFromCache({
         queryClient,
-        questionCount: 10,
+        questionCount,
         optionsCount: 4,
         enabledCategories: categories,
       });
@@ -498,9 +838,20 @@ export function QuizModal({ open, onClose }: Readonly<QuizModalProps>) {
       setSetupError('Selecione pelo menos uma categoria para iniciar.');
       return;
     }
+    
+    // Verifica se há dados suficientes (mínimo 3 perguntas possíveis)
+    const maxAvailable = estimateMaxQuestions(queryClient, selectedCategories);
+    if (maxAvailable < 3) {
+      setSetupError(
+        `Dados insuficientes para gerar o quiz (${totalCacheItems} itens em cache). ` +
+        'Navegue pelo Dashboard ou listas para carregar mais dados.'
+      );
+      return;
+    }
+    
     regenerate(selectedCategories);
     setMode('playing');
-  }, [regenerate, selectedCategories]);
+  }, [regenerate, selectedCategories, queryClient, totalCacheItems]);
 
   const goToSetup = useCallback(() => {
     setSetupError(null);
@@ -524,9 +875,13 @@ export function QuizModal({ open, onClose }: Readonly<QuizModalProps>) {
   };
 
   const reroll = useCallback(() => {
+    // Usa número dinâmico de perguntas: min 3, max 10
+    const maxAvailable = estimateMaxQuestions(queryClient, selectedCategories);
+    const questionCount = Math.max(3, Math.min(10, maxAvailable));
+    
     const next = buildQuizFromCache({
       queryClient,
-      questionCount: 10,
+      questionCount,
       optionsCount: 4,
       enabledCategories: selectedCategories,
     });
@@ -618,18 +973,29 @@ export function QuizModal({ open, onClose }: Readonly<QuizModalProps>) {
         <div className={styles.categoryGrid}>
           {QUIZ_CATEGORIES.map((cat) => {
             const active = selectedCategories.includes(cat.id);
+            const itemCount = cacheStats[cat.id] || 0;
+            const hasData = itemCount > 0;
             return (
               <button
                 key={cat.id}
                 type="button"
-                className={[styles.categoryCard, active ? styles.categoryCardActive : ''].join(' ')}
+                className={[
+                  styles.categoryCard,
+                  active ? styles.categoryCardActive : '',
+                  hasData ? '' : styles.categoryCardEmpty,
+                ].join(' ')}
                 onClick={() => toggleCategory(cat.id)}
+                disabled={!hasData}
+                title={hasData ? undefined : 'Sem dados em cache. Navegue pela seção correspondente para carregar.'}
               >
                 <div className={styles.categoryTitle}>
                   <span className={styles.categoryCheckbox} aria-hidden="true">
                     {active ? '✓' : ''}
                   </span>
                   {cat.label}
+                  <span className={styles.categoryBadge} data-empty={!hasData}>
+                    {itemCount}
+                  </span>
                 </div>
                 <div className={styles.categoryDescription}>{cat.description}</div>
               </button>
@@ -637,11 +1003,23 @@ export function QuizModal({ open, onClose }: Readonly<QuizModalProps>) {
           })}
         </div>
 
+        {/* Info sobre perguntas disponíveis */}
+        <div className={styles.setupStats}>
+          <span>
+            {totalCacheItems} itens em cache • até {Math.min(maxQuestionsAvailable, 10)} perguntas
+          </span>
+        </div>
+
         {setupError && <div className={styles.setupError}>{setupError}</div>}
 
         <div className={styles.setupFooter}>
-          <button type="button" className={styles.primaryButton} onClick={start}>
-            Iniciar
+          <button 
+            type="button" 
+            className={styles.primaryButton} 
+            onClick={start}
+            disabled={maxQuestionsAvailable < 3}
+          >
+            Iniciar {maxQuestionsAvailable >= 3 ? `(${Math.min(maxQuestionsAvailable, 10)} perguntas)` : ''}
           </button>
         </div>
       </div>
@@ -774,4 +1152,3 @@ export function QuizModal({ open, onClose }: Readonly<QuizModalProps>) {
     </DetailsModal>
   );
 }
-
