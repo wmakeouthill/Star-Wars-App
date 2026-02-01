@@ -7,6 +7,7 @@ export async function fetchSpecies(filters: SpeciesFilters) {
         name: filters.name,
         classification: filters.classification,
         language: filters.language,
+        film_id: filters.filmId,
         sort_by: filters.sortBy,
         sort_order: filters.sortOrder,
         page: filters.page,

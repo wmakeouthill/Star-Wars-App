@@ -10,6 +10,16 @@ from app.domain.schemas.common import PaginatedResponse, PageMeta
 from app.domain.schemas.species import SpeciesFilter, SpeciesResponse
 from app.infrastructure.external.swapi.client import extract_id, normalize_number
 from app.infrastructure.external.swapi.parsers import parse_swapi_number
+from app.application.services.fuzzy_filter import (
+    apply_fuzzy_name_filter,
+    apply_film_filter,
+    apply_enum_filter,
+)
+from app.application.services.fuzzy_filter import (
+    apply_fuzzy_name_filter,
+    apply_film_filter,
+    apply_enum_filter,
+)
 
 
 def _norm_name(value: str) -> str:
@@ -29,7 +39,7 @@ class SpeciesService:
         page: int,
         page_size: int,
     ) -> PaginatedResponse[SpeciesResponse]:
-        can_use_swapi_paging = sort_by is None and not filters.classification and not filters.language
+        can_use_swapi_paging = sort_by is None and not filters.classification and not filters.language and not filters.film_id
 
         image_index = await self._images.get_species_index() if self._images else None
 
@@ -59,18 +69,22 @@ class SpeciesService:
         return self._map_species(specie, image_index=image_index)
 
     def _apply_filters(self, species: List[dict], filters: SpeciesFilter) -> List[dict]:
-        def matches(specie: dict) -> bool:
-            if filters.name and filters.name.lower() not in specie.get("name", "").lower():
-                return False
-            if filters.classification and filters.classification.lower() not in specie.get(
-                "classification", ""
-            ).lower():
-                return False
-            if filters.language and filters.language.lower() not in specie.get("language", "").lower():
-                return False
-            return True
-
-        return [s for s in species if matches(s)]
+        """Aplica filtros com fuzzy matching para nome."""
+        result = species
+        
+        if filters.name:
+            result = apply_fuzzy_name_filter(result, filters.name, field_name="name")
+        
+        if filters.classification:
+            result = apply_enum_filter(result, filters.classification, field_name="classification")
+        
+        if filters.language:
+            result = apply_enum_filter(result, filters.language, field_name="language")
+        
+        if filters.film_id:
+            result = apply_film_filter(result, filters.film_id, films_field="films")
+        
+        return result
 
     def _apply_sort(self, species: List[dict], sort_by: Optional[str], sort_order: str) -> List[dict]:
         if not sort_by:

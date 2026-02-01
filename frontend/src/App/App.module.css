@@ -7,20 +7,19 @@
 .subtitleBlock {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.15rem;
 }
 
 .punLine {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .tagline {
   color: rgba(199, 226, 255, 0.78);
-  font-size: 0.95rem;
-  line-height: 1.35;
+  font-size: 0.85rem;
+  line-height: 1.2;
 }
 
 .tagline strong {
@@ -31,18 +30,18 @@
 .subline {
   color: var(--muted);
   font-family: var(--font-pixel);
-  font-size: 0.7rem;
-  letter-spacing: 0.08em;
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
 }
 
 .languageToggle {
-  padding: 0.35rem 0.7rem;
+  padding: 0.2rem 0.5rem;
   border-radius: 999px;
   border: 1px solid var(--border);
   background: rgba(5, 7, 13, 0.25);
   color: var(--text);
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: 0.7rem;
   letter-spacing: 0.02em;
   transition: all 0.2s ease;
   white-space: nowrap;

@@ -15,6 +15,7 @@ from app.interfaces.api.v1.routers import (
     image_fallbacks,
     vehicles,
     species,
+    metadata,
 )
 
 API_V1_PREFIX = "/api/v1"
@@ -38,6 +39,7 @@ def create_app() -> FastAPI:
 
     app.include_router(health.router, prefix=API_V1_PREFIX)
     app.include_router(auth.router, prefix=API_V1_PREFIX)
+    app.include_router(metadata.router, prefix=API_V1_PREFIX)
     app.include_router(characters.router, prefix=API_V1_PREFIX)
     app.include_router(planets.router, prefix=API_V1_PREFIX)
     app.include_router(starships.router, prefix=API_V1_PREFIX)

@@ -5,7 +5,7 @@
 }
 
 .header {
-  padding: 2.25rem 2rem 1.15rem;
+  padding: 1rem 2rem;
   border-bottom: 1px solid var(--border);
   background: linear-gradient(135deg, rgba(8, 16, 32, 0.58), rgba(8, 16, 32, 0.24));
   position: sticky;
@@ -15,13 +15,21 @@
   isolation: isolate;
 }
 
-.headerTop {
+.headerContent {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 2rem;
   position: relative;
   z-index: 1;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex: 1;
+  min-width: 0;
 }
 
 .headerRight {
@@ -75,13 +83,15 @@
   text-shadow: 0 0 22px rgba(53, 230, 255, 0.18), 0 0 10px rgba(255, 61, 242, 0.08);
   position: relative;
   z-index: 1;
+  white-space: nowrap;
 }
 
 .subtitle {
-  margin-top: 0.35rem;
   color: var(--muted);
   position: relative;
   z-index: 1;
+  flex: 1;
+  min-width: 0;
 }
 
 .body {

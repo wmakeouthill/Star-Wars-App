@@ -11,6 +11,11 @@ from app.domain.schemas.resource import NamedResourceSummary
 from app.domain.repositories.swapi_client import ISWAPIClient
 from app.infrastructure.external.swapi.client import extract_id
 from app.application.services.swapi_pagination import fetch_swapi_slice
+from app.application.services.fuzzy_filter import (
+    apply_fuzzy_name_filter,
+    apply_enum_filter,
+    apply_multi_value_filter,
+)
 
 
 _FILM_POSTER_BY_EPISODE: dict[int, str] = {
@@ -108,16 +113,20 @@ class FilmService:
         )
 
     def _apply_filters(self, films: List[dict], filters: FilmFilter) -> List[dict]:
-        def matches(film: dict) -> bool:
-            if filters.title and filters.title.lower() not in film.get("title", "").lower():
-                return False
-            if filters.director and filters.director.lower() not in film.get("director", "").lower():
-                return False
-            if filters.producer and filters.producer.lower() not in film.get("producer", "").lower():
-                return False
-            return True
-
-        return [film for film in films if matches(film)]
+        """Aplica filtros com fuzzy matching para título."""
+        result = films
+        
+        if filters.title:
+            result = apply_fuzzy_name_filter(result, filters.title, field_name="title")
+        
+        if filters.director:
+            result = apply_enum_filter(result, filters.director, field_name="director")
+        
+        if filters.producer:
+            # Produtor pode ser multi-value (ex: "Gary Kurtz, Rick McCallum")
+            result = apply_multi_value_filter(result, filters.producer, field_name="producer")
+        
+        return result
 
     def _apply_sort(self, films: List[dict], sort_by: Optional[str], sort_order: str) -> List[dict]:
         if not sort_by:

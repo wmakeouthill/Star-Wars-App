@@ -35,5 +35,6 @@ class PlanetFilter(BaseModel):
     name: Optional[str] = None
     climate: Optional[str] = None
     terrain: Optional[str] = None
+    film_id: Optional[str] = None
     min_population: Optional[int] = None
     max_population: Optional[int] = None

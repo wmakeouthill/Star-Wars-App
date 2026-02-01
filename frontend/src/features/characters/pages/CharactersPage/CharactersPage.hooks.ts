@@ -2,14 +2,13 @@ import { useMemo, useState } from 'react';
 import { useCharacters } from '../../hooks/useCharacters';
 import { useCharacterDetails } from '../../hooks/useCharacterDetails';
 
-export function useCharactersPage() {
+export function useCharactersPage(pageSize: number = 24) {
     const [name, setName] = useState('');
     const [gender, setGender] = useState('');
     const [filmId, setFilmId] = useState('');
     const [sortBy, setSortBy] = useState<'name' | 'height' | 'mass'>('name');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
     const [page, setPage] = useState(1);
-    const [pageSize] = useState(12);
     const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
 
     const filters = useMemo(

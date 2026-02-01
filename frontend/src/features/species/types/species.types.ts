@@ -15,6 +15,7 @@ export interface SpeciesFilters {
     name?: string;
     classification?: string;
     language?: string;
+    filmId?: string;
     sortBy?: 'name' | 'average_height';
     sortOrder?: 'asc' | 'desc';
     page?: number;

@@ -229,28 +229,46 @@ function normalizeGravity(gravity: string | null | undefined): string {
 // INDIVIDUAL QUERY HOOKS - Para loading progressivo
 // ═══════════════════════════════════════════════════════════════
 
-function useCharactersQuery() {
+function useCharactersQuery(filmId?: string) {
   return useQuery({
-    queryKey: ['reports', 'characters'],
-    queryFn: () => fetchCharacters({ page: 1, pageSize: REPORTS_PAGE_SIZE, sortBy: 'name', sortOrder: 'asc' }),
+    queryKey: ['reports', 'characters', filmId || 'all'],
+    queryFn: () => fetchCharacters({
+      page: 1,
+      pageSize: REPORTS_PAGE_SIZE,
+      sortBy: 'name',
+      sortOrder: 'asc',
+      filmId: filmId || undefined,
+    }),
     staleTime: STALE_TIME_SWAPI,
     gcTime: GC_TIME_SWAPI,
   });
 }
 
-function usePlanetsQuery() {
+function usePlanetsQuery(filmId?: string) {
   return useQuery({
-    queryKey: ['reports', 'planets'],
-    queryFn: () => fetchPlanets({ page: 1, pageSize: REPORTS_PAGE_SIZE, sortBy: 'name', sortOrder: 'asc' }),
+    queryKey: ['reports', 'planets', filmId || 'all'],
+    queryFn: () => fetchPlanets({
+      page: 1,
+      pageSize: REPORTS_PAGE_SIZE,
+      sortBy: 'name',
+      sortOrder: 'asc',
+      filmId: filmId || undefined,
+    }),
     staleTime: STALE_TIME_SWAPI,
     gcTime: GC_TIME_SWAPI,
   });
 }
 
-function useStarshipsQuery() {
+function useStarshipsQuery(filmId?: string) {
   return useQuery({
-    queryKey: ['reports', 'starships'],
-    queryFn: () => fetchStarships({ page: 1, pageSize: REPORTS_PAGE_SIZE, sortBy: 'name', sortOrder: 'asc' }),
+    queryKey: ['reports', 'starships', filmId || 'all'],
+    queryFn: () => fetchStarships({
+      page: 1,
+      pageSize: REPORTS_PAGE_SIZE,
+      sortBy: 'name',
+      sortOrder: 'asc',
+      filmId: filmId || undefined,
+    }),
     staleTime: STALE_TIME_SWAPI,
     gcTime: GC_TIME_SWAPI,
   });
@@ -265,19 +283,31 @@ function useFilmsQuery() {
   });
 }
 
-function useSpeciesQuery() {
+function useSpeciesQuery(filmId?: string) {
   return useQuery({
-    queryKey: ['reports', 'species'],
-    queryFn: () => fetchSpecies({ page: 1, pageSize: REPORTS_PAGE_SIZE, sortBy: 'name', sortOrder: 'asc' }),
+    queryKey: ['reports', 'species', filmId || 'all'],
+    queryFn: () => fetchSpecies({
+      page: 1,
+      pageSize: REPORTS_PAGE_SIZE,
+      sortBy: 'name',
+      sortOrder: 'asc',
+      filmId: filmId || undefined,
+    }),
     staleTime: STALE_TIME_SWAPI,
     gcTime: GC_TIME_SWAPI,
   });
 }
 
-function useVehiclesQuery() {
+function useVehiclesQuery(filmId?: string) {
   return useQuery({
-    queryKey: ['reports', 'vehicles'],
-    queryFn: () => fetchVehicles({ page: 1, pageSize: REPORTS_PAGE_SIZE, sortBy: 'name', sortOrder: 'asc' }),
+    queryKey: ['reports', 'vehicles', filmId || 'all'],
+    queryFn: () => fetchVehicles({
+      page: 1,
+      pageSize: REPORTS_PAGE_SIZE,
+      sortBy: 'name',
+      sortOrder: 'asc',
+      filmId: filmId || undefined,
+    }),
     staleTime: STALE_TIME_SWAPI,
     gcTime: GC_TIME_SWAPI,
   });
@@ -660,18 +690,23 @@ function useFilmsReport(films: Film[] | undefined) {
 // MAIN HOOK
 // ═══════════════════════════════════════════════════════════════
 
-export function useReportsPage() {
+export interface UseReportsPageOptions {
+  filmId?: string;
+}
+
+export function useReportsPage(options: UseReportsPageOptions = {}) {
+  const { filmId } = options;
   const { user } = useAuth();
   const currentUserId = (user?.id ?? '').trim() || null;
   const currentUserName = (user?.name ?? '').trim() || (user?.email ?? '').trim() || null;
 
-  // Queries individuais para loading progressivo
-  const charactersQuery = useCharactersQuery();
-  const planetsQuery = usePlanetsQuery();
-  const starshipsQuery = useStarshipsQuery();
-  const filmsQuery = useFilmsQuery();
-  const speciesQuery = useSpeciesQuery();
-  const vehiclesQuery = useVehiclesQuery();
+  // Queries individuais para loading progressivo (com filmId para filtrar)
+  const charactersQuery = useCharactersQuery(filmId);
+  const planetsQuery = usePlanetsQuery(filmId);
+  const starshipsQuery = useStarshipsQuery(filmId);
+  const filmsQuery = useFilmsQuery(); // Filmes não precisam de filtro por filme
+  const speciesQuery = useSpeciesQuery(filmId);
+  const vehiclesQuery = useVehiclesQuery(filmId);
   const gamificationQuery = useGamificationQuery();
   const leaderboardDetailedQuery = useLeaderboardDetailedQuery();
 
@@ -844,9 +879,9 @@ export function useReportsPage() {
     gamification: gamificationQuery.isLoading,
     leaderboardDetailed: leaderboardDetailedQuery.isLoading,
     any: charactersQuery.isLoading || planetsQuery.isLoading || starshipsQuery.isLoading ||
-         filmsQuery.isLoading || speciesQuery.isLoading || vehiclesQuery.isLoading || gamificationQuery.isLoading,
+      filmsQuery.isLoading || speciesQuery.isLoading || vehiclesQuery.isLoading || gamificationQuery.isLoading,
     all: charactersQuery.isLoading && planetsQuery.isLoading && starshipsQuery.isLoading &&
-         filmsQuery.isLoading && speciesQuery.isLoading && vehiclesQuery.isLoading && gamificationQuery.isLoading,
+      filmsQuery.isLoading && speciesQuery.isLoading && vehiclesQuery.isLoading && gamificationQuery.isLoading,
   };
 
   const errors = {
@@ -859,7 +894,7 @@ export function useReportsPage() {
     gamification: gamificationQuery.isError,
     leaderboardDetailed: leaderboardDetailedQuery.isError,
     any: charactersQuery.isError || planetsQuery.isError || starshipsQuery.isError ||
-         filmsQuery.isError || speciesQuery.isError || vehiclesQuery.isError || gamificationQuery.isError,
+      filmsQuery.isError || speciesQuery.isError || vehiclesQuery.isError || gamificationQuery.isError,
   };
 
   return {

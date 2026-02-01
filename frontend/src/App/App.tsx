@@ -17,6 +17,7 @@ import { AuthLoadingPage } from '@/features/auth/pages/AuthLoadingPage';
 import { UserMenu } from '@/features/auth/components/UserMenu/UserMenu';
 import { PageLayout } from '@/shared/components/PageLayout';
 import { StarfieldEvents } from '@/shared/components/StarfieldEvents';
+import { ScrollToTop } from '@/shared/components/ScrollToTop';
 import { usePrefetchAllData } from '@/shared/hooks/usePrefetchAllData';
 import { useAppNavigation } from './App.hooks';
 import styles from './App.module.css';
@@ -97,6 +98,7 @@ function AppShell() {
             {activeSection === 'gamification' && <GamificationPage />}
           </section>
           <YodaChatBubble />
+          <ScrollToTop />
         </PageLayout>
       </div>
     </ChatProvider>

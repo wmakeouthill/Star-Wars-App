@@ -5,6 +5,7 @@ export function useVehiclesPage() {
   const [name, setName] = useState('');
   const [manufacturer, setManufacturer] = useState('');
   const [vehicleClass, setVehicleClass] = useState('');
+  const [filmId, setFilmId] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'crew'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [page, setPage] = useState(1);
@@ -15,12 +16,13 @@ export function useVehiclesPage() {
       name: name || undefined,
       manufacturer: manufacturer || undefined,
       vehicleClass: vehicleClass || undefined,
+      filmId: filmId || undefined,
       sortBy,
       sortOrder,
       page,
       pageSize,
     }),
-    [name, manufacturer, vehicleClass, sortBy, sortOrder, page, pageSize]
+    [name, manufacturer, vehicleClass, filmId, sortBy, sortOrder, page, pageSize]
   );
 
   const query = useVehicles(filters);
@@ -29,12 +31,14 @@ export function useVehiclesPage() {
     name,
     manufacturer,
     vehicleClass,
+    filmId,
     sortBy,
     sortOrder,
     page,
     setName,
     setManufacturer,
     setVehicleClass,
+    setFilmId,
     setSortBy,
     setSortOrder,
     setPage,

@@ -12,6 +12,12 @@ from app.infrastructure.external.swapi.client import extract_id, normalize_numbe
 from app.infrastructure.external.swapi.parsers import parse_swapi_number
 from app.application.services.swapi_pagination import fetch_swapi_slice
 from app.application.services.image_lookup_service import ImageLookupService
+from app.application.services.fuzzy_filter import (
+    fuzzy_match,
+    apply_fuzzy_name_filter,
+    apply_film_filter,
+    apply_enum_filter,
+)
 
 
 def _norm_name(value: str) -> str:
@@ -124,23 +130,43 @@ class CharacterService:
         return PaginatedResponse(items=response_items, meta=meta)
 
     def _apply_filters(self, people: List[dict], filters: CharacterFilter) -> List[dict]:
-        def matches(person: dict) -> bool:
-            if filters.name and filters.name.lower() not in person.get("name", "").lower():
-                return False
-            if filters.gender and filters.gender.lower() != person.get("gender", "").lower():
-                return False
-            if filters.homeworld and extract_id(person.get("homeworld", "")) != filters.homeworld:
-                return False
-            if filters.film_id and filters.film_id not in [extract_id(url) for url in person.get("films", [])]:
-                return False
-            height_value = normalize_number(person.get("height"))
-            if filters.min_height is not None and (height_value is None or height_value < filters.min_height):
-                return False
-            if filters.max_height is not None and (height_value is None or height_value > filters.max_height):
-                return False
-            return True
-
-        return [person for person in people if matches(person)]
+        """
+        Aplica filtros na lista de personagens.
+        
+        Usa fuzzy matching para nome (Levenshtein + stemming).
+        Filtros exatos para demais campos.
+        """
+        result = people
+        
+        # Filtro de nome com fuzzy matching
+        if filters.name:
+            result = apply_fuzzy_name_filter(result, filters.name, field_name="name")
+        
+        # Filtro de gênero (exato, case-insensitive)
+        if filters.gender:
+            result = apply_enum_filter(result, filters.gender, field_name="gender")
+        
+        # Filtro de filme
+        if filters.film_id:
+            result = apply_film_filter(result, filters.film_id, films_field="films")
+        
+        # Filtro de homeworld (exato)
+        if filters.homeworld:
+            result = [p for p in result if extract_id(p.get("homeworld", "")) == filters.homeworld]
+        
+        # Filtros de altura (range)
+        if filters.min_height is not None or filters.max_height is not None:
+            filtered_by_height = []
+            for person in result:
+                height_value = normalize_number(person.get("height"))
+                if filters.min_height is not None and (height_value is None or height_value < filters.min_height):
+                    continue
+                if filters.max_height is not None and (height_value is None or height_value > filters.max_height):
+                    continue
+                filtered_by_height.append(person)
+            result = filtered_by_height
+        
+        return result
 
     def _apply_sort(self, people: List[dict], sort_by: Optional[str], sort_order: str) -> List[dict]:
         if not sort_by:

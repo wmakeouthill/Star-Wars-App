@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { PlanetCard } from '../../components/PlanetCard';
-import { DetailsModal, Pagination } from '@/shared/components';
+import { DetailsModal, Pagination, CustomSelect, FilmFilter } from '@/shared/components';
+import { useClimateOptions, useTerrainOptions } from '@/shared/hooks/useMetadataOptions';
 import { usePlanetsPage } from './PlanetsPage.hooks';
 import styles from './PlanetsPage.module.css';
 
@@ -8,12 +9,16 @@ export function PlanetsPage() {
   const {
     name,
     climate,
+    terrain,
+    filmId,
     sortBy,
     sortOrder,
     page,
     selectedPlanetId,
     setName,
     setClimate,
+    setTerrain,
+    setFilmId,
     setSortBy,
     setSortOrder,
     setPage,
@@ -23,6 +28,8 @@ export function PlanetsPage() {
   } = usePlanetsPage();
 
   const [detailsTitle, setDetailsTitle] = useState('');
+  const { options: climateOptions } = useClimateOptions();
+  const { options: terrainOptions } = useTerrainOptions();
 
   const summaryPlanet = useMemo(() => {
     if (!selectedPlanetId) return null;
@@ -38,28 +45,47 @@ export function PlanetsPage() {
           value={name}
           onChange={(event) => setName(event.target.value)}
         />
-        <input
-          className={styles.input}
-          placeholder="Filtrar por clima"
+        
+        <CustomSelect
           value={climate}
-          onChange={(event) => setClimate(event.target.value)}
+          onChange={(value) => setClimate(value as string)}
+          options={[{ value: '', label: 'Todos os climas' }, ...climateOptions]}
+          placeholder="Filtrar por clima"
+          className={styles.input}
         />
-        <select
+
+        <CustomSelect
+          value={terrain}
+          onChange={(value) => setTerrain(value as string)}
+          options={[{ value: '', label: 'Todos os terrenos' }, ...terrainOptions]}
+          placeholder="Filtrar por terreno"
           className={styles.input}
+        />
+
+        <FilmFilter
+          value={filmId}
+          onChange={setFilmId}
+          className={styles.input}
+        />
+
+        <CustomSelect
           value={sortBy}
-          onChange={(event) => setSortBy(event.target.value as typeof sortBy)}
-        >
-          <option value="name">Ordenar por nome</option>
-          <option value="population">Ordenar por população</option>
-        </select>
-        <select
-          className={styles.input}
+          onChange={(value) => setSortBy(value as typeof sortBy)}
+          options={[
+            { value: 'name', label: 'Ordenar por nome' },
+            { value: 'population', label: 'Ordenar por população' },
+          ]}
+          placeholder="Ordenar por"
+        />
+        <CustomSelect
           value={sortOrder}
-          onChange={(event) => setSortOrder(event.target.value as typeof sortOrder)}
-        >
-          <option value="asc">Ascendente</option>
-          <option value="desc">Descendente</option>
-        </select>
+          onChange={(value) => setSortOrder(value as typeof sortOrder)}
+          options={[
+            { value: 'asc', label: 'Ascendente' },
+            { value: 'desc', label: 'Descendente' },
+          ]}
+          placeholder="Ordem"
+        />
       </div>
 
       {query.isLoading && <p className={styles.status}>Carregando planetas...</p>}

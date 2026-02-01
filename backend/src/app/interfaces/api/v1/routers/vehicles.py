@@ -20,6 +20,7 @@ async def list_vehicles(
     name: Optional[str] = Query(None, description="Filtrar por nome"),
     manufacturer: Optional[str] = Query(None, description="Filtrar por fabricante"),
     vehicle_class: Optional[str] = Query(None, description="Filtrar por classe"),
+    film_id: Optional[str] = Query(None, description="Filtrar por filme"),
     sort_by: Optional[str] = Query(None, pattern="^(name|crew)$"),
     sort_order: str = Query("asc", pattern="^(asc|desc)$"),
     page: int = Query(1, ge=1),
@@ -29,7 +30,7 @@ async def list_vehicles(
     user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
-    filters = VehicleFilter(name=name, manufacturer=manufacturer, vehicle_class=vehicle_class)
+    filters = VehicleFilter(name=name, manufacturer=manufacturer, vehicle_class=vehicle_class, film_id=film_id)
     result = await service.list_vehicles(filters, sort_by, sort_order, page, page_size)
     gamification.record_query(user_id, 5, db)
     return result

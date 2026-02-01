@@ -23,6 +23,8 @@ export interface Planet {
 export interface PlanetFilters {
     name?: string;
     climate?: string;
+    terrain?: string;
+    filmId?: string;
     sortBy?: 'name' | 'population';
     sortOrder?: 'asc' | 'desc';
     page?: number;

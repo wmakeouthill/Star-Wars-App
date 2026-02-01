@@ -27,4 +27,5 @@ class VehicleFilter(BaseModel):
     name: Optional[str] = None
     manufacturer: Optional[str] = None
     vehicle_class: Optional[str] = None
+    film_id: Optional[str] = None
 

@@ -5,6 +5,8 @@ import { usePlanetDetails } from '../../hooks/usePlanetDetails';
 export function usePlanetsPage() {
     const [name, setName] = useState('');
     const [climate, setClimate] = useState('');
+    const [terrain, setTerrain] = useState('');
+    const [filmId, setFilmId] = useState('');
     const [sortBy, setSortBy] = useState<'name' | 'population'>('name');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
     const [page, setPage] = useState(1);
@@ -15,12 +17,14 @@ export function usePlanetsPage() {
         () => ({
             name: name || undefined,
             climate: climate || undefined,
+            terrain: terrain || undefined,
+            filmId: filmId || undefined,
             sortBy,
             sortOrder,
             page,
             pageSize,
         }),
-        [name, climate, sortBy, sortOrder, page, pageSize]
+        [name, climate, terrain, filmId, sortBy, sortOrder, page, pageSize]
     );
 
     const query = usePlanets(filters);
@@ -29,12 +33,16 @@ export function usePlanetsPage() {
     return {
         name,
         climate,
+        terrain,
+        filmId,
         sortBy,
         sortOrder,
         page,
         selectedPlanetId,
         setName,
         setClimate,
+        setTerrain,
+        setFilmId,
         setSortBy,
         setSortOrder,
         setPage,

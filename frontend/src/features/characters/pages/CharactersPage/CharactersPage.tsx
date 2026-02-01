@@ -1,10 +1,41 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CharacterCard } from '../../components/CharacterCard';
-import { DetailsModal, Pagination } from '@/shared/components';
+import { DetailsModal, Pagination, CustomSelect, FilmFilter } from '@/shared/components';
+import { useGenderOptions } from '@/shared/hooks/useMetadataOptions';
 import { useCharactersPage } from './CharactersPage.hooks';
 import styles from './CharactersPage.module.css';
 
+const CARD_MIN_WIDTH = 260;
+const CARD_GAP = 16; // 1rem
+const ROWS_PER_PAGE = 3; // Número de linhas desejadas por página
+
 export function CharactersPage() {
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [cols, setCols] = useState(4);
+
+  // Calcula quantas colunas cabem no grid
+  useEffect(() => {
+    const el = gridRef.current;
+    if (!el) return;
+
+    const computeCols = (width: number) => {
+      const columns = Math.floor((width + CARD_GAP) / (CARD_MIN_WIDTH + CARD_GAP));
+      return Math.max(1, columns);
+    };
+
+    const ro = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      setCols(computeCols(entry.contentRect.width));
+    });
+
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // pageSize = colunas * linhas desejadas
+  const pageSize = cols * ROWS_PER_PAGE;
+
   const {
     name,
     gender,
@@ -22,9 +53,10 @@ export function CharactersPage() {
     setSelectedCharacterId,
     query,
     characterDetailsQuery,
-  } = useCharactersPage();
+  } = useCharactersPage(pageSize);
 
   const [detailsTitle, setDetailsTitle] = useState('');
+  const { options: genderOptions } = useGenderOptions();
 
   const summaryCharacter = useMemo(() => {
     if (!selectedCharacterId) return null;
@@ -40,41 +72,46 @@ export function CharactersPage() {
           value={name}
           onChange={(event) => setName(event.target.value)}
         />
-        <input
-          className={styles.input}
-          placeholder="Filtrar por gênero"
+        
+        <CustomSelect
           value={gender}
-          onChange={(event) => setGender(event.target.value)}
-        />
-        <input
+          onChange={(value) => setGender(value as string)}
+          options={genderOptions}
+          placeholder="Filtrar por gênero"
           className={styles.input}
-          placeholder="Filme ID"
+        />
+
+        <FilmFilter
           value={filmId}
-          onChange={(event) => setFilmId(event.target.value)}
+          onChange={setFilmId}
+          className={styles.input}
         />
-        <select
-          className={styles.input}
+
+        <CustomSelect
           value={sortBy}
-          onChange={(event) => setSortBy(event.target.value as typeof sortBy)}
-        >
-          <option value="name">Ordenar por nome</option>
-          <option value="height">Ordenar por altura</option>
-          <option value="mass">Ordenar por massa</option>
-        </select>
-        <select
-          className={styles.input}
+          onChange={(value) => setSortBy(value as typeof sortBy)}
+          options={[
+            { value: 'name', label: 'Ordenar por nome' },
+            { value: 'height', label: 'Ordenar por altura' },
+            { value: 'mass', label: 'Ordenar por massa' },
+          ]}
+          placeholder="Ordenar por"
+        />
+        <CustomSelect
           value={sortOrder}
-          onChange={(event) => setSortOrder(event.target.value as typeof sortOrder)}
-        >
-          <option value="asc">Ascendente</option>
-          <option value="desc">Descendente</option>
-        </select>
+          onChange={(value) => setSortOrder(value as typeof sortOrder)}
+          options={[
+            { value: 'asc', label: 'Ascendente' },
+            { value: 'desc', label: 'Descendente' },
+          ]}
+          placeholder="Ordem"
+        />
       </div>
 
       {query.isLoading && <p className={styles.status}>Carregando personagens...</p>}
       {query.isError && <p className={styles.status}>Erro ao carregar personagens.</p>}
 
-      <div className={styles.grid}>
+      <div ref={gridRef} className={styles.grid}>
         {query.data?.items.map((character) => (
           <CharacterCard
             key={character.id}

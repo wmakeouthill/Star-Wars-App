@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { SpeciesCard } from '../../components/SpeciesCard/SpeciesCard';
-import { DetailsModal, Pagination } from '@/shared/components';
+import { DetailsModal, Pagination, CustomSelect, FilmFilter } from '@/shared/components';
+import { useClassificationOptions, useLanguageOptions } from '@/shared/hooks/useMetadataOptions';
 import { useSpeciesDetails } from '../../hooks/useSpeciesDetails';
 import type { Species } from '../../types/species.types';
 import { useSpeciesPage } from './SpeciesPage.hooks';
@@ -12,12 +13,14 @@ export function SpeciesPage() {
     name,
     classification,
     language,
+    filmId,
     sortBy,
     sortOrder,
     page,
     setName,
     setClassification,
     setLanguage,
+    setFilmId,
     setSortBy,
     setSortOrder,
     setPage,
@@ -25,6 +28,8 @@ export function SpeciesPage() {
   } = useSpeciesPage();
 
   const speciesDetailsQuery = useSpeciesDetails(details?.id ?? null);
+  const { options: classificationOptions } = useClassificationOptions();
+  const { options: languageOptions } = useLanguageOptions();
 
   const modalSpecies = useMemo(() => {
     if (!details) return null;
@@ -40,34 +45,47 @@ export function SpeciesPage() {
           value={name}
           onChange={(event) => setName(event.target.value)}
         />
-        <input
-          className={styles.input}
-          placeholder="Filtrar por classificação"
+        
+        <CustomSelect
           value={classification}
-          onChange={(event) => setClassification(event.target.value)}
-        />
-        <input
+          onChange={(value) => setClassification(value as string)}
+          options={classificationOptions}
+          placeholder="Filtrar por classificação"
           className={styles.input}
-          placeholder="Filtrar por idioma"
+        />
+
+        <CustomSelect
           value={language}
-          onChange={(event) => setLanguage(event.target.value)}
+          onChange={(value) => setLanguage(value as string)}
+          options={languageOptions}
+          placeholder="Filtrar por idioma"
+          className={styles.input}
         />
-        <select
+
+        <FilmFilter
+          value={filmId}
+          onChange={setFilmId}
           className={styles.input}
+        />
+
+        <CustomSelect
           value={sortBy}
-          onChange={(event) => setSortBy(event.target.value as typeof sortBy)}
-        >
-          <option value="name">Ordenar por nome</option>
-          <option value="average_height">Ordenar por altura média</option>
-        </select>
-        <select
-          className={styles.input}
+          onChange={(value) => setSortBy(value as typeof sortBy)}
+          options={[
+            { value: 'name', label: 'Ordenar por nome' },
+            { value: 'average_height', label: 'Ordenar por altura média' },
+          ]}
+          placeholder="Ordenar por"
+        />
+        <CustomSelect
           value={sortOrder}
-          onChange={(event) => setSortOrder(event.target.value as typeof sortOrder)}
-        >
-          <option value="asc">Ascendente</option>
-          <option value="desc">Descendente</option>
-        </select>
+          onChange={(value) => setSortOrder(value as typeof sortOrder)}
+          options={[
+            { value: 'asc', label: 'Ascendente' },
+            { value: 'desc', label: 'Descendente' },
+          ]}
+          placeholder="Ordem"
+        />
       </div>
 
       {query.isLoading && <p className={styles.status}>Carregando espécies...</p>}

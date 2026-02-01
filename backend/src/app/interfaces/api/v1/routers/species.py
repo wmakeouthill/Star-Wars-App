@@ -20,6 +20,7 @@ async def list_species(
     name: Optional[str] = Query(None, description="Filtrar por nome"),
     classification: Optional[str] = Query(None, description="Filtrar por classificação"),
     language: Optional[str] = Query(None, description="Filtrar por idioma"),
+    film_id: Optional[str] = Query(None, description="Filtrar por filme"),
     sort_by: Optional[str] = Query(None, pattern="^(name|average_height)$"),
     sort_order: str = Query("asc", pattern="^(asc|desc)$"),
     page: int = Query(1, ge=1),
@@ -29,7 +30,7 @@ async def list_species(
     user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
-    filters = SpeciesFilter(name=name, classification=classification, language=language)
+    filters = SpeciesFilter(name=name, classification=classification, language=language, film_id=film_id)
     result = await service.list_species(filters, sort_by, sort_order, page, page_size)
     gamification.record_query(user_id, 5, db)
     return result

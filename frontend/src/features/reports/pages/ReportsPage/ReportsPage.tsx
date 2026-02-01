@@ -1,3 +1,4 @@
+import * as React from 'react';
 import {
   ChartSkeleton,
   DonutChart,
@@ -15,10 +16,12 @@ import {
   TreemapChart,
   VerticalBarChart,
 } from '@/features/reports/components';
+import { FilmFilter } from '@/shared/components';
 import { useReportsPage } from './ReportsPage.hooks';
 import styles from './ReportsPage.module.css';
 
 export function ReportsPage() {
+  const [globalFilmId, setGlobalFilmId] = React.useState('');
   const {
     loading,
     errors,
@@ -37,7 +40,7 @@ export function ReportsPage() {
     challengeProgress,
     currentUserId,
     currentUserName,
-  } = useReportsPage();
+  } = useReportsPage({ filmId: globalFilmId || undefined });
 
   return (
     <section className={styles.container}>
@@ -216,6 +219,27 @@ export function ReportsPage() {
           />
         </ReportPanel>
       )}
+
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* FILTRO GLOBAL */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      <div className={styles.globalFilterBar}>
+        <div className={styles.globalFilterLabel}>Filtrar relatórios por filme:</div>
+        <FilmFilter
+          value={globalFilmId}
+          onChange={setGlobalFilmId}
+          className={styles.globalFilterSelect}
+        />
+        {globalFilmId && (
+          <button
+            type="button"
+            className={styles.globalFilterClear}
+            onClick={() => setGlobalFilmId('')}
+          >
+            Limpar
+          </button>
+        )}
+      </div>
 
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* CROSS ANALYTICS - Visão Geral da Galáxia */}

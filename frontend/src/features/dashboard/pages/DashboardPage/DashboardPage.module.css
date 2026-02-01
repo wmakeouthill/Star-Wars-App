@@ -35,19 +35,21 @@
 .search {
   display: flex;
   gap: 0.75rem;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  align-items: center;
 }
 
 .searchInput {
   flex: 1;
-  min-width: 260px;
-  padding: 0.75rem 0.9rem;
+  min-width: 180px;
+  padding: 0.6rem 0.9rem;
   border-radius: 14px;
   background: rgba(5, 7, 13, 0.35);
   border: 1px solid var(--border);
   color: var(--text);
   outline: none;
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  font-size: 0.9rem;
 }
 
 .searchInput:focus {
@@ -55,8 +57,12 @@
   box-shadow: var(--shadow-neon);
 }
 
+.globalFilter {
+  flex-shrink: 0;
+}
+
 .searchButton {
-  padding: 0.75rem 1rem;
+  padding: 0.6rem 1rem;
   border-radius: 999px;
   border: 1px solid var(--border);
   background: linear-gradient(135deg, rgba(255, 61, 242, 0.1), rgba(53, 230, 255, 0.08));
@@ -64,6 +70,9 @@
   cursor: pointer;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
@@ -146,25 +155,29 @@
 
 .panelControls {
   display: flex;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+  align-items: center;
 }
 
 .panelInput {
-  width: 160px;
-  max-width: 44vw;
-  padding: 0.55rem 0.7rem;
-  border-radius: 12px;
+  padding: 0.45rem 0.6rem;
+  border-radius: 10px;
   background: rgba(5, 7, 13, 0.28);
   border: 1px solid rgba(110, 231, 255, 0.22);
   color: var(--text);
   outline: none;
+  font-size: 0.85rem;
+  white-space: nowrap;
 }
 
 .panelInput:focus {
   border-color: rgba(53, 230, 255, 0.7);
   box-shadow: var(--shadow-neon);
+}
+
+.panelSelect {
+  flex-shrink: 0;
 }
 
 .panelBody {

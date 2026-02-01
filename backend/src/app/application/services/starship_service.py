@@ -12,6 +12,12 @@ from app.infrastructure.external.swapi.client import extract_id, normalize_numbe
 from app.infrastructure.external.swapi.parsers import parse_swapi_number
 from app.application.services.swapi_pagination import fetch_swapi_slice
 from app.application.services.image_lookup_service import ImageLookupService
+from app.application.services.fuzzy_filter import (
+    apply_fuzzy_name_filter,
+    apply_film_filter,
+    apply_multi_value_filter,
+    apply_enum_filter,
+)
 
 
 def _norm_name(value: str) -> str:
@@ -32,7 +38,7 @@ class StarshipService:
         page_size: int,
     ) -> PaginatedResponse[StarshipResponse]:
         can_use_swapi_paging = (
-            sort_by is None and not filters.manufacturer and not filters.starship_class
+            sort_by is None and not filters.manufacturer and not filters.starship_class and not filters.film_id
         )
 
         if can_use_swapi_paging:
@@ -94,16 +100,31 @@ class StarshipService:
         )
 
     def _apply_filters(self, starships: List[dict], filters: StarshipFilter) -> List[dict]:
-        def matches(starship: dict) -> bool:
-            if filters.name and filters.name.lower() not in starship.get("name", "").lower():
-                return False
-            if filters.manufacturer and filters.manufacturer.lower() not in starship.get("manufacturer", "").lower():
-                return False
-            if filters.starship_class and filters.starship_class.lower() not in starship.get("starship_class", "").lower():
-                return False
-            return True
-
-        return [ship for ship in starships if matches(ship)]
+        """
+        Aplica filtros na lista de naves.
+        
+        Usa fuzzy matching para nome.
+        Manufacturer pode ser multi-value (separado por vírgula).
+        """
+        result = starships
+        
+        # Filtro de nome com fuzzy matching
+        if filters.name:
+            result = apply_fuzzy_name_filter(result, filters.name, field_name="name")
+        
+        # Filtro de fabricante (multi-value)
+        if filters.manufacturer:
+            result = apply_multi_value_filter(result, filters.manufacturer, field_name="manufacturer")
+        
+        # Filtro de classe (exato, case-insensitive)
+        if filters.starship_class:
+            result = apply_enum_filter(result, filters.starship_class, field_name="starship_class")
+        
+        # Filtro de filme
+        if filters.film_id:
+            result = apply_film_filter(result, filters.film_id, films_field="films")
+        
+        return result
 
     def _apply_sort(self, starships: List[dict], sort_by: Optional[str], sort_order: str) -> List[dict]:
         if not sort_by:

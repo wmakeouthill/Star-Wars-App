@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { StarshipCard } from '../../components/StarshipCard';
-import { DetailsModal, Pagination } from '@/shared/components';
+import { DetailsModal, Pagination, CustomSelect, FilmFilter } from '@/shared/components';
+import { useStarshipManufacturerOptions, useStarshipClassOptions } from '@/shared/hooks/useMetadataOptions';
 import { useStarshipsPage } from './StarshipsPage.hooks';
 import styles from './StarshipsPage.module.css';
 
@@ -8,12 +9,16 @@ export function StarshipsPage() {
   const {
     name,
     manufacturer,
+    starshipClass,
+    filmId,
     sortBy,
     sortOrder,
     page,
     selectedStarshipId,
     setName,
     setManufacturer,
+    setStarshipClass,
+    setFilmId,
     setSortBy,
     setSortOrder,
     setPage,
@@ -23,6 +28,8 @@ export function StarshipsPage() {
   } = useStarshipsPage();
 
   const [detailsTitle, setDetailsTitle] = useState('');
+  const { options: manufacturerOptions } = useStarshipManufacturerOptions();
+  const { options: classOptions } = useStarshipClassOptions();
 
   const summaryStarship = useMemo(() => {
     if (!selectedStarshipId) return null;
@@ -38,28 +45,47 @@ export function StarshipsPage() {
           value={name}
           onChange={(event) => setName(event.target.value)}
         />
-        <input
-          className={styles.input}
-          placeholder="Filtrar por fabricante"
+        
+        <CustomSelect
           value={manufacturer}
-          onChange={(event) => setManufacturer(event.target.value)}
+          onChange={(value) => setManufacturer(value as string)}
+          options={manufacturerOptions}
+          placeholder="Filtrar por fabricante"
+          className={styles.input}
         />
-        <select
+
+        <CustomSelect
+          value={starshipClass}
+          onChange={(value) => setStarshipClass(value as string)}
+          options={classOptions}
+          placeholder="Filtrar por classe"
           className={styles.input}
+        />
+
+        <FilmFilter
+          value={filmId}
+          onChange={setFilmId}
+          className={styles.input}
+        />
+
+        <CustomSelect
           value={sortBy}
-          onChange={(event) => setSortBy(event.target.value as typeof sortBy)}
-        >
-          <option value="name">Ordenar por nome</option>
-          <option value="crew">Ordenar por tripulação</option>
-        </select>
-        <select
-          className={styles.input}
+          onChange={(value) => setSortBy(value as typeof sortBy)}
+          options={[
+            { value: 'name', label: 'Ordenar por nome' },
+            { value: 'crew', label: 'Ordenar por tripulação' },
+          ]}
+          placeholder="Ordenar por"
+        />
+        <CustomSelect
           value={sortOrder}
-          onChange={(event) => setSortOrder(event.target.value as typeof sortOrder)}
-        >
-          <option value="asc">Ascendente</option>
-          <option value="desc">Descendente</option>
-        </select>
+          onChange={(value) => setSortOrder(value as typeof sortOrder)}
+          options={[
+            { value: 'asc', label: 'Ascendente' },
+            { value: 'desc', label: 'Descendente' },
+          ]}
+          placeholder="Ordem"
+        />
       </div>
 
       {query.isLoading && <p className={styles.status}>Carregando naves...</p>}

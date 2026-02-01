@@ -35,6 +35,8 @@ export interface Starship {
 export interface StarshipFilters {
     name?: string;
     manufacturer?: string;
+    starshipClass?: string;
+    filmId?: string;
     sortBy?: 'name' | 'crew';
     sortOrder?: 'asc' | 'desc';
     page?: number;

@@ -6,6 +6,8 @@ export async function fetchPlanets(filters: PlanetFilters) {
     return apiGet<PaginatedResponse<Planet>>('/api/v1/planets', {
         name: filters.name,
         climate: filters.climate,
+        terrain: filters.terrain,
+        film_id: filters.filmId,
         sort_by: filters.sortBy,
         sort_order: filters.sortOrder,
         page: filters.page,

@@ -12,6 +12,11 @@ from app.infrastructure.external.swapi.client import extract_id, normalize_numbe
 from app.infrastructure.external.swapi.parsers import parse_swapi_number
 from app.application.services.swapi_pagination import fetch_swapi_slice
 from app.application.services.image_lookup_service import ImageLookupService
+from app.application.services.fuzzy_filter import (
+    apply_fuzzy_name_filter,
+    apply_film_filter,
+    apply_multi_value_filter,
+)
 
 
 def _norm_name(value: str) -> str:
@@ -35,6 +40,7 @@ class PlanetService:
             sort_by is None
             and not filters.climate
             and not filters.terrain
+            and not filters.film_id
             and filters.min_population is None
             and filters.max_population is None
         )
@@ -100,25 +106,47 @@ class PlanetService:
         )
 
     def _apply_filters(self, planets: List[dict], filters: PlanetFilter) -> List[dict]:
-        def matches(planet: dict) -> bool:
-            if filters.name and filters.name.lower() not in planet.get("name", "").lower():
-                return False
-            if filters.climate and filters.climate.lower() not in planet.get("climate", "").lower():
-                return False
-            if filters.terrain and filters.terrain.lower() not in planet.get("terrain", "").lower():
-                return False
-            population_value = normalize_number(planet.get("population"))
-            if filters.min_population is not None and (
-                population_value is None or population_value < filters.min_population
-            ):
-                return False
-            if filters.max_population is not None and (
-                population_value is None or population_value > filters.max_population
-            ):
-                return False
-            return True
-
-        return [planet for planet in planets if matches(planet)]
+        """
+        Aplica filtros na lista de planetas.
+        
+        Usa fuzzy matching para nome.
+        Climate/terrain usam multi-value filter (valores separados por vírgula).
+        """
+        result = planets
+        
+        # Filtro de nome com fuzzy matching
+        if filters.name:
+            result = apply_fuzzy_name_filter(result, filters.name, field_name="name")
+        
+        # Filtro de clima (multi-value: "arid, hot")
+        if filters.climate:
+            result = apply_multi_value_filter(result, filters.climate, field_name="climate")
+        
+        # Filtro de terreno (multi-value)
+        if filters.terrain:
+            result = apply_multi_value_filter(result, filters.terrain, field_name="terrain")
+        
+        # Filtro de filme
+        if filters.film_id:
+            result = apply_film_filter(result, filters.film_id, films_field="films")
+        
+        # Filtros de população (range)
+        if filters.min_population is not None or filters.max_population is not None:
+            filtered_by_pop = []
+            for planet in result:
+                population_value = normalize_number(planet.get("population"))
+                if filters.min_population is not None and (
+                    population_value is None or population_value < filters.min_population
+                ):
+                    continue
+                if filters.max_population is not None and (
+                    population_value is None or population_value > filters.max_population
+                ):
+                    continue
+                filtered_by_pop.append(planet)
+            result = filtered_by_pop
+        
+        return result
 
     def _apply_sort(self, planets: List[dict], sort_by: Optional[str], sort_order: str) -> List[dict]:
         if not sort_by:

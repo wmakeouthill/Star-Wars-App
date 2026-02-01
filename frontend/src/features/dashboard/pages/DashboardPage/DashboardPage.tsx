@@ -24,7 +24,17 @@ import { VehicleCard } from '@/features/vehicles/components/VehicleCard';
 import { useVehicleDetails } from '@/features/vehicles/hooks/useVehicleDetails';
 import { useVehicles } from '@/features/vehicles/hooks/useVehicles';
 import type { Vehicle } from '@/features/vehicles/types/vehicles.types';
-import { Pagination } from '@/shared/components';
+import { Pagination, CustomSelect, FilmFilter } from '@/shared/components';
+import {
+  useGenderOptions,
+  useClimateOptions,
+  useStarshipManufacturerOptions,
+  useVehicleManufacturerOptions,
+  useVehicleClassOptions,
+  useClassificationOptions,
+  useLanguageOptions,
+  useDirectorOptions,
+} from '@/shared/hooks/useMetadataOptions';
 import styles from './DashboardPage.module.css';
 
 const DASHBOARD_MIN_CARD_WIDTH = 260;
@@ -41,6 +51,7 @@ type DetailsState =
 
 export function DashboardPage() {
   const [globalQuery, setGlobalQuery] = useState('');
+  const [globalFilmId, setGlobalFilmId] = useState('');
   const [details, setDetails] = useState<DetailsState | null>(null);
   const gridRef = useRef<HTMLDivElement | null>(null);
   const [cardsCols, setCardsCols] = useState(4);
@@ -72,6 +83,16 @@ export function DashboardPage() {
     // Garante 1 linha por seção: pegamos exatamente a quantidade de colunas visíveis.
     return Math.max(1, Math.min(DASHBOARD_MAX_COLS, cardsCols));
   }, [cardsCols]);
+
+  // Opções para os dropdowns de filtro
+  const { options: genderOptions } = useGenderOptions();
+  const { options: climateOptions } = useClimateOptions();
+  const { options: starshipManufacturerOptions } = useStarshipManufacturerOptions();
+  const { options: vehicleManufacturerOptions } = useVehicleManufacturerOptions();
+  const { options: vehicleClassOptions } = useVehicleClassOptions();
+  const { options: classificationOptions } = useClassificationOptions();
+  const { options: languageOptions } = useLanguageOptions();
+  const { options: directorOptions } = useDirectorOptions();
 
   useEffect(() => {
     const el = gridRef.current;
@@ -108,37 +129,39 @@ export function DashboardPage() {
     () => ({
       name: globalQuery || undefined,
       gender: charactersGender || undefined,
-      filmId: charactersFilmId || undefined,
+      filmId: globalFilmId || charactersFilmId || undefined,
       sortBy: 'name' as const,
       sortOrder: 'asc' as const,
       page: charactersPage,
       pageSize: dashboardPageSize,
     }),
-    [globalQuery, charactersGender, charactersFilmId, charactersPage, dashboardPageSize]
+    [globalQuery, charactersGender, globalFilmId, charactersFilmId, charactersPage, dashboardPageSize]
   );
 
   const planetsFilters = useMemo(
     () => ({
       name: globalQuery || undefined,
       climate: planetsClimate || undefined,
+      filmId: globalFilmId || undefined,
       sortBy: 'name' as const,
       sortOrder: 'asc' as const,
       page: planetsPage,
       pageSize: dashboardPageSize,
     }),
-    [globalQuery, planetsClimate, planetsPage, dashboardPageSize]
+    [globalQuery, planetsClimate, globalFilmId, planetsPage, dashboardPageSize]
   );
 
   const starshipsFilters = useMemo(
     () => ({
       name: globalQuery || undefined,
       manufacturer: starshipsManufacturer || undefined,
+      filmId: globalFilmId || undefined,
       sortBy: 'name' as const,
       sortOrder: 'asc' as const,
       page: starshipsPage,
       pageSize: dashboardPageSize,
     }),
-    [globalQuery, starshipsManufacturer, starshipsPage, dashboardPageSize]
+    [globalQuery, starshipsManufacturer, globalFilmId, starshipsPage, dashboardPageSize]
   );
 
   const vehiclesFilters = useMemo(
@@ -146,12 +169,13 @@ export function DashboardPage() {
       name: globalQuery || undefined,
       manufacturer: vehiclesManufacturer || undefined,
       vehicleClass: vehiclesClass || undefined,
+      filmId: globalFilmId || undefined,
       sortBy: 'name' as const,
       sortOrder: 'asc' as const,
       page: vehiclesPage,
       pageSize: dashboardPageSize,
     }),
-    [globalQuery, vehiclesManufacturer, vehiclesClass, vehiclesPage, dashboardPageSize]
+    [globalQuery, vehiclesManufacturer, vehiclesClass, globalFilmId, vehiclesPage, dashboardPageSize]
   );
 
   const speciesFilters = useMemo(
@@ -159,12 +183,13 @@ export function DashboardPage() {
       name: globalQuery || undefined,
       classification: speciesClassification || undefined,
       language: speciesLanguage || undefined,
+      filmId: globalFilmId || undefined,
       sortBy: 'name' as const,
       sortOrder: 'asc' as const,
       page: speciesPage,
       pageSize: dashboardPageSize,
     }),
-    [globalQuery, speciesClassification, speciesLanguage, speciesPage, dashboardPageSize]
+    [globalQuery, speciesClassification, speciesLanguage, globalFilmId, speciesPage, dashboardPageSize]
   );
 
   const filmsFilters = useMemo(
@@ -231,13 +256,26 @@ export function DashboardPage() {
               setSpeciesPage(1);
               setFilmsPage(1);
             }}
-            placeholder="Buscar em toda a galáxia… (personagens, planetas, naves, veículos, espécies, filmes)"
+            placeholder="Buscar em toda a galáxia…"
+          />
+          <FilmFilter
+            value={globalFilmId}
+            onChange={(value) => {
+              setGlobalFilmId(value);
+              setCharactersPage(1);
+              setPlanetsPage(1);
+              setStarshipsPage(1);
+              setVehiclesPage(1);
+              setSpeciesPage(1);
+            }}
+            className={styles.globalFilter}
           />
           <button
             type="button"
             className={styles.searchButton}
             onClick={() => {
               setGlobalQuery('');
+              setGlobalFilmId('');
               setCharactersGender('');
               setCharactersFilmId('');
               setPlanetsClimate('');
@@ -294,23 +332,23 @@ export function DashboardPage() {
           <header className={styles.panelHeader}>
             <h2 className={styles.panelTitle}>👤 Personagens</h2>
             <div className={styles.panelControls}>
-              <input
-                className={styles.panelInput}
+              <CustomSelect
                 value={charactersGender}
-                onChange={(e) => {
-                  setCharactersGender(e.target.value);
+                onChange={(value) => {
+                  setCharactersGender(value as string);
                   setCharactersPage(1);
                 }}
+                options={genderOptions}
                 placeholder="Gênero"
+                className={styles.panelSelect}
               />
-              <input
-                className={styles.panelInput}
+              <FilmFilter
                 value={charactersFilmId}
-                onChange={(e) => {
-                  setCharactersFilmId(e.target.value);
+                onChange={(value) => {
+                  setCharactersFilmId(value);
                   setCharactersPage(1);
                 }}
-                placeholder="Filme ID"
+                className={styles.panelSelect}
               />
             </div>
           </header>
@@ -356,14 +394,15 @@ export function DashboardPage() {
           <header className={styles.panelHeader}>
             <h2 className={styles.panelTitle}>🌍 Planetas</h2>
             <div className={styles.panelControls}>
-              <input
-                className={styles.panelInput}
+              <CustomSelect
                 value={planetsClimate}
-                onChange={(e) => {
-                  setPlanetsClimate(e.target.value);
+                onChange={(value) => {
+                  setPlanetsClimate(value as string);
                   setPlanetsPage(1);
                 }}
+                options={[{ value: '', label: 'Todos os climas' }, ...climateOptions]}
                 placeholder="Clima"
+                className={styles.panelSelect}
               />
             </div>
           </header>
@@ -409,14 +448,15 @@ export function DashboardPage() {
           <header className={styles.panelHeader}>
             <h2 className={styles.panelTitle}>🚀 Naves</h2>
             <div className={styles.panelControls}>
-              <input
-                className={styles.panelInput}
+              <CustomSelect
                 value={starshipsManufacturer}
-                onChange={(e) => {
-                  setStarshipsManufacturer(e.target.value);
+                onChange={(value) => {
+                  setStarshipsManufacturer(value as string);
                   setStarshipsPage(1);
                 }}
+                options={starshipManufacturerOptions}
                 placeholder="Fabricante"
+                className={styles.panelSelect}
               />
             </div>
           </header>
@@ -462,23 +502,25 @@ export function DashboardPage() {
           <header className={styles.panelHeader}>
             <h2 className={styles.panelTitle}>🛻 Veículos</h2>
             <div className={styles.panelControls}>
-              <input
-                className={styles.panelInput}
+              <CustomSelect
                 value={vehiclesManufacturer}
-                onChange={(e) => {
-                  setVehiclesManufacturer(e.target.value);
+                onChange={(value) => {
+                  setVehiclesManufacturer(value as string);
                   setVehiclesPage(1);
                 }}
+                options={vehicleManufacturerOptions}
                 placeholder="Fabricante"
+                className={styles.panelSelect}
               />
-              <input
-                className={styles.panelInput}
+              <CustomSelect
                 value={vehiclesClass}
-                onChange={(e) => {
-                  setVehiclesClass(e.target.value);
+                onChange={(value) => {
+                  setVehiclesClass(value as string);
                   setVehiclesPage(1);
                 }}
+                options={vehicleClassOptions}
                 placeholder="Classe"
+                className={styles.panelSelect}
               />
             </div>
           </header>
@@ -524,23 +566,25 @@ export function DashboardPage() {
           <header className={styles.panelHeader}>
             <h2 className={styles.panelTitle}>🧬 Espécies</h2>
             <div className={styles.panelControls}>
-              <input
-                className={styles.panelInput}
+              <CustomSelect
                 value={speciesClassification}
-                onChange={(e) => {
-                  setSpeciesClassification(e.target.value);
+                onChange={(value) => {
+                  setSpeciesClassification(value as string);
                   setSpeciesPage(1);
                 }}
+                options={classificationOptions}
                 placeholder="Classificação"
+                className={styles.panelSelect}
               />
-              <input
-                className={styles.panelInput}
+              <CustomSelect
                 value={speciesLanguage}
-                onChange={(e) => {
-                  setSpeciesLanguage(e.target.value);
+                onChange={(value) => {
+                  setSpeciesLanguage(value as string);
                   setSpeciesPage(1);
                 }}
+                options={languageOptions}
                 placeholder="Idioma"
+                className={styles.panelSelect}
               />
             </div>
           </header>
@@ -586,14 +630,15 @@ export function DashboardPage() {
           <header className={styles.panelHeader}>
             <h2 className={styles.panelTitle}>🎬 Crônicas (Filmes)</h2>
             <div className={styles.panelControls}>
-              <input
-                className={styles.panelInput}
+              <CustomSelect
                 value={filmsDirector}
-                onChange={(e) => {
-                  setFilmsDirector(e.target.value);
+                onChange={(value) => {
+                  setFilmsDirector(value as string);
                   setFilmsPage(1);
                 }}
+                options={directorOptions}
                 placeholder="Diretor"
+                className={styles.panelSelect}
               />
             </div>
           </header>

@@ -21,6 +21,7 @@ async def list_starships(
     name: Optional[str] = Query(None, description="Filtrar por nome"),
     manufacturer: Optional[str] = Query(None, description="Filtrar por fabricante"),
     starship_class: Optional[str] = Query(None, description="Filtrar por classe"),
+    film_id: Optional[str] = Query(None, description="Filtrar por filme"),
     sort_by: Optional[str] = Query(None, pattern="^(name|crew)$"),
     sort_order: str = Query("asc", pattern="^(asc|desc)$"),
     page: int = Query(1, ge=1),
@@ -34,6 +35,7 @@ async def list_starships(
         name=name,
         manufacturer=manufacturer,
         starship_class=starship_class,
+        film_id=film_id,
     )
     result = await service.list_starships(filters, sort_by, sort_order, page, page_size)
     gamification.record_query(user_id, 5, db)

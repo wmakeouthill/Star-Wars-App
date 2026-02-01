@@ -8,11 +8,13 @@ export function PageLayout({ title, subtitle, right, children }: Readonly<PageLa
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <div className={styles.headerTop}>
-          <h1 className={styles.title}>{title}</h1>
+        <div className={styles.headerContent}>
+          <div className={styles.headerLeft}>
+            <h1 className={styles.title}>{title}</h1>
+            {subtitle && <div className={styles.subtitle}>{subtitle}</div>}
+          </div>
           {right && <div className={styles.headerRight}>{right}</div>}
         </div>
-        {subtitle && <div className={styles.subtitle}>{subtitle}</div>}
       </header>
       <div className={styles.body}>{children}</div>
     </div>

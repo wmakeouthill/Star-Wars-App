@@ -10,6 +10,18 @@ from app.domain.schemas.common import PaginatedResponse, PageMeta
 from app.domain.schemas.vehicle import VehicleFilter, VehicleResponse
 from app.infrastructure.external.swapi.client import extract_id, normalize_number
 from app.infrastructure.external.swapi.parsers import parse_swapi_number
+from app.application.services.fuzzy_filter import (
+    apply_fuzzy_name_filter,
+    apply_film_filter,
+    apply_multi_value_filter,
+    apply_enum_filter,
+)
+from app.application.services.fuzzy_filter import (
+    apply_fuzzy_name_filter,
+    apply_film_filter,
+    apply_multi_value_filter,
+    apply_enum_filter,
+)
 
 
 def _norm_name(value: str) -> str:
@@ -30,7 +42,7 @@ class VehicleService:
         page_size: int,
     ) -> PaginatedResponse[VehicleResponse]:
         can_use_swapi_paging = (
-            sort_by is None and not filters.manufacturer and not filters.vehicle_class
+            sort_by is None and not filters.manufacturer and not filters.vehicle_class and not filters.film_id
         )
 
         image_index = await self._images.get_vehicles_index() if self._images else None
@@ -61,16 +73,22 @@ class VehicleService:
         return self._map_vehicle(vehicle, image_index=image_index)
 
     def _apply_filters(self, vehicles: List[dict], filters: VehicleFilter) -> List[dict]:
-        def matches(vehicle: dict) -> bool:
-            if filters.name and filters.name.lower() not in vehicle.get("name", "").lower():
-                return False
-            if filters.manufacturer and filters.manufacturer.lower() not in vehicle.get("manufacturer", "").lower():
-                return False
-            if filters.vehicle_class and filters.vehicle_class.lower() not in vehicle.get("vehicle_class", "").lower():
-                return False
-            return True
-
-        return [v for v in vehicles if matches(v)]
+        """Aplica filtros com fuzzy matching para nome."""
+        result = vehicles
+        
+        if filters.name:
+            result = apply_fuzzy_name_filter(result, filters.name, field_name="name")
+        
+        if filters.manufacturer:
+            result = apply_multi_value_filter(result, filters.manufacturer, field_name="manufacturer")
+        
+        if filters.vehicle_class:
+            result = apply_enum_filter(result, filters.vehicle_class, field_name="vehicle_class")
+        
+        if filters.film_id:
+            result = apply_film_filter(result, filters.film_id, films_field="films")
+        
+        return result
 
     def _apply_sort(self, vehicles: List[dict], sort_by: Optional[str], sort_order: str) -> List[dict]:
         if not sort_by:

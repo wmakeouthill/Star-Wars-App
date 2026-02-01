@@ -6,6 +6,8 @@ export async function fetchStarships(filters: StarshipFilters) {
     return apiGet<PaginatedResponse<Starship>>('/api/v1/starships', {
         name: filters.name,
         manufacturer: filters.manufacturer,
+        starship_class: filters.starshipClass,
+        film_id: filters.filmId,
         sort_by: filters.sortBy,
         sort_order: filters.sortOrder,
         page: filters.page,

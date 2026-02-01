@@ -46,3 +46,4 @@ class StarshipFilter(BaseModel):
     name: Optional[str] = None
     manufacturer: Optional[str] = None
     starship_class: Optional[str] = None
+    film_id: Optional[str] = None

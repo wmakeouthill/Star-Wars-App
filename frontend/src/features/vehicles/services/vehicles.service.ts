@@ -7,6 +7,7 @@ export async function fetchVehicles(filters: VehicleFilters) {
         name: filters.name,
         manufacturer: filters.manufacturer,
         vehicle_class: filters.vehicleClass,
+        film_id: filters.filmId,
         sort_by: filters.sortBy,
         sort_order: filters.sortOrder,
         page: filters.page,

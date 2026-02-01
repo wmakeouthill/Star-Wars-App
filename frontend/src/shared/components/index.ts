@@ -4,3 +4,6 @@ export * from './DetailsModal';
 export * from './StarfieldEvents';
 export * from './ImageFallbackEditorModal';
 export * from './FallbackEditableImage';
+export * from './CustomSelect';
+export * from './FilmFilter';
+export * from './ScrollToTop';

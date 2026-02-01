@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { FilmCard } from '../../components/FilmCard';
 import { CharacterCard } from '@/features/characters/components/CharacterCard';
-import { DetailsModal, Pagination } from '@/shared/components';
+import { DetailsModal, Pagination, CustomSelect } from '@/shared/components';
+import { useDirectorOptions } from '@/shared/hooks/useMetadataOptions';
 import { useFilmDetails } from '../../hooks/useFilmDetails';
 import type { Film } from '../../types/films.types';
 import { useFilmsPage } from './FilmsPage.hooks';
@@ -30,6 +31,7 @@ export function FilmsPage() {
   } = useFilmsPage();
 
   const filmDetailsModalQuery = useFilmDetails(details?.id ?? null);
+  const { options: directorOptions } = useDirectorOptions();
 
   const modalFilm = useMemo(() => {
     if (!details) return null;
@@ -45,28 +47,33 @@ export function FilmsPage() {
           value={title}
           onChange={(event) => setTitle(event.target.value)}
         />
-        <input
-          className={styles.input}
-          placeholder="Filtrar por diretor"
+        
+        <CustomSelect
           value={director}
-          onChange={(event) => setDirector(event.target.value)}
+          onChange={(value) => setDirector(value as string)}
+          options={directorOptions}
+          placeholder="Filtrar por diretor"
+          className={styles.input}
         />
-        <select
-          className={styles.input}
+
+        <CustomSelect
           value={sortBy}
-          onChange={(event) => setSortBy(event.target.value as typeof sortBy)}
-        >
-          <option value="episode_id">Ordenar por episódio</option>
-          <option value="title">Ordenar por título</option>
-        </select>
-        <select
-          className={styles.input}
+          onChange={(value) => setSortBy(value as typeof sortBy)}
+          options={[
+            { value: 'episode_id', label: 'Ordenar por episódio' },
+            { value: 'title', label: 'Ordenar por título' },
+          ]}
+          placeholder="Ordenar por"
+        />
+        <CustomSelect
           value={sortOrder}
-          onChange={(event) => setSortOrder(event.target.value as typeof sortOrder)}
-        >
-          <option value="asc">Ascendente</option>
-          <option value="desc">Descendente</option>
-        </select>
+          onChange={(value) => setSortOrder(value as typeof sortOrder)}
+          options={[
+            { value: 'asc', label: 'Ascendente' },
+            { value: 'desc', label: 'Descendente' },
+          ]}
+          placeholder="Ordem"
+        />
       </div>
 
       {query.isLoading && <p className={styles.status}>Carregando filmes...</p>}

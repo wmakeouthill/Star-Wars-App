@@ -23,4 +23,5 @@ class SpeciesFilter(BaseModel):
     name: Optional[str] = None
     classification: Optional[str] = None
     language: Optional[str] = None
+    film_id: Optional[str] = None
 

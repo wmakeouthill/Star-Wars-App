@@ -19,6 +19,7 @@ export interface VehicleFilters {
     name?: string;
     manufacturer?: string;
     vehicleClass?: string;
+    filmId?: string;
     sortBy?: 'name' | 'crew';
     sortOrder?: 'asc' | 'desc';
     page?: number;

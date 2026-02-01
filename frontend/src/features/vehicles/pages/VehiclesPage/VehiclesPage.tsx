@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { VehicleCard } from '../../components/VehicleCard/VehicleCard';
-import { DetailsModal, Pagination } from '@/shared/components';
+import { DetailsModal, Pagination, CustomSelect, FilmFilter } from '@/shared/components';
+import { useVehicleManufacturerOptions, useVehicleClassOptions } from '@/shared/hooks/useMetadataOptions';
 import { useVehicleDetails } from '../../hooks/useVehicleDetails';
 import type { Vehicle } from '../../types/vehicles.types';
 import { useVehiclesPage } from './VehiclesPage.hooks';
@@ -12,12 +13,14 @@ export function VehiclesPage() {
     name,
     manufacturer,
     vehicleClass,
+    filmId,
     sortBy,
     sortOrder,
     page,
     setName,
     setManufacturer,
     setVehicleClass,
+    setFilmId,
     setSortBy,
     setSortOrder,
     setPage,
@@ -25,6 +28,8 @@ export function VehiclesPage() {
   } = useVehiclesPage();
 
   const vehicleDetailsQuery = useVehicleDetails(details?.id ?? null);
+  const { options: manufacturerOptions } = useVehicleManufacturerOptions();
+  const { options: classOptions } = useVehicleClassOptions();
 
   const modalVehicle = useMemo(() => {
     if (!details) return null;
@@ -40,34 +45,47 @@ export function VehiclesPage() {
           value={name}
           onChange={(event) => setName(event.target.value)}
         />
-        <input
-          className={styles.input}
-          placeholder="Filtrar por fabricante"
+        
+        <CustomSelect
           value={manufacturer}
-          onChange={(event) => setManufacturer(event.target.value)}
-        />
-        <input
+          onChange={(value) => setManufacturer(value as string)}
+          options={manufacturerOptions}
+          placeholder="Filtrar por fabricante"
           className={styles.input}
-          placeholder="Filtrar por classe"
+        />
+
+        <CustomSelect
           value={vehicleClass}
-          onChange={(event) => setVehicleClass(event.target.value)}
+          onChange={(value) => setVehicleClass(value as string)}
+          options={classOptions}
+          placeholder="Filtrar por classe"
+          className={styles.input}
         />
-        <select
+
+        <FilmFilter
+          value={filmId}
+          onChange={setFilmId}
           className={styles.input}
+        />
+
+        <CustomSelect
           value={sortBy}
-          onChange={(event) => setSortBy(event.target.value as typeof sortBy)}
-        >
-          <option value="name">Ordenar por nome</option>
-          <option value="crew">Ordenar por tripulação</option>
-        </select>
-        <select
-          className={styles.input}
+          onChange={(value) => setSortBy(value as typeof sortBy)}
+          options={[
+            { value: 'name', label: 'Ordenar por nome' },
+            { value: 'crew', label: 'Ordenar por tripulação' },
+          ]}
+          placeholder="Ordenar por"
+        />
+        <CustomSelect
           value={sortOrder}
-          onChange={(event) => setSortOrder(event.target.value as typeof sortOrder)}
-        >
-          <option value="asc">Ascendente</option>
-          <option value="desc">Descendente</option>
-        </select>
+          onChange={(value) => setSortOrder(value as typeof sortOrder)}
+          options={[
+            { value: 'asc', label: 'Ascendente' },
+            { value: 'desc', label: 'Descendente' },
+          ]}
+          placeholder="Ordem"
+        />
       </div>
 
       {query.isLoading && <p className={styles.status}>Carregando veículos...</p>}

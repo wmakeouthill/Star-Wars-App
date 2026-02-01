@@ -21,6 +21,7 @@ async def list_planets(
     name: Optional[str] = Query(None, description="Filtrar por nome"),
     climate: Optional[str] = Query(None, description="Filtrar por clima"),
     terrain: Optional[str] = Query(None, description="Filtrar por terreno"),
+    film_id: Optional[str] = Query(None, description="Filtrar por filme"),
     min_population: Optional[int] = Query(None, ge=0),
     max_population: Optional[int] = Query(None),
     sort_by: Optional[str] = Query(None, pattern="^(name|population)$"),
@@ -36,6 +37,7 @@ async def list_planets(
         name=name,
         climate=climate,
         terrain=terrain,
+        film_id=film_id,
         min_population=min_population,
         max_population=max_population,
     )
