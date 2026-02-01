@@ -371,6 +371,99 @@
   background: rgba(255, 255, 255, 0.08);
 }
 
+/* Mobile Responsivo */
+@media (max-width: 576px) {
+  .container {
+    gap: 12px;
+  }
+
+  .grid {
+    gap: 12px;
+  }
+
+  .card {
+    border-radius: 10px;
+    padding: 12px;
+  }
+
+  .cardTitle {
+    font-size: 0.9rem;
+    margin: 0 0 10px 0;
+  }
+
+  .rankingHeader {
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .rankingSearch {
+    max-width: 120px;
+    padding: 0.35rem 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  .rankingList {
+    max-height: 160px;
+    gap: 6px;
+  }
+
+  .stat {
+    padding: 6px 8px;
+  }
+
+  .statLabel {
+    font-size: 10px;
+  }
+
+  .statValue {
+    font-size: 15px;
+  }
+
+  .leaderboardLeft {
+    gap: 8px;
+  }
+
+  .leaderboardAvatar,
+  .leaderboardAvatarPlaceholder {
+    width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
+    border-radius: 8px;
+  }
+
+  .mono {
+    font-size: 11px;
+  }
+
+  .profileStats {
+    gap: 10px;
+  }
+
+  .profileAvatar,
+  .profileAvatarPlaceholder {
+    width: 38px;
+    height: 38px;
+    flex: 0 0 38px;
+  }
+
+  .quizSection {
+    padding: 14px;
+  }
+
+  .quizKicker {
+    font-size: 10px;
+  }
+
+  .quizTitle {
+    font-size: 26px;
+    letter-spacing: 0.08em;
+  }
+
+  .quizHint {
+    font-size: 12px;
+  }
+}
+
 @media (max-width: 420px) {
   .chatPersonas {
     grid-template-columns: 1fr;

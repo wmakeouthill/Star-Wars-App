@@ -25,12 +25,14 @@
   justify-content: space-between;
   gap: 0.75rem;
   border-bottom: 1px solid rgba(110, 231, 255, 0.16);
+  flex-wrap: wrap;
 }
 
 .headerText {
   display: grid;
   gap: 0.25rem;
   min-width: 0;
+  flex: 1 1 auto;
 }
 
 .title {
@@ -53,5 +55,59 @@
 .body {
   position: relative;
   padding: 1rem;
+}
+
+/* Mobile responsivo */
+@media (max-width: 576px) {
+  .panel {
+    border-radius: 14px;
+  }
+
+  .header {
+    padding: 0.75rem 0.85rem 0.6rem;
+    gap: 0.5rem;
+  }
+
+  .title {
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+  }
+
+  .subtitle {
+    font-size: 0.78rem;
+    line-height: 1.3;
+  }
+
+  .body {
+    padding: 0.75rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .panel {
+    border-radius: 12px;
+  }
+
+  .header {
+    padding: 0.65rem 0.75rem 0.5rem;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .title {
+    font-size: 0.78rem;
+  }
+
+  .subtitle {
+    font-size: 0.72rem;
+  }
+
+  .rightSlot {
+    width: 100%;
+  }
+
+  .body {
+    padding: 0.65rem;
+  }
 }
 

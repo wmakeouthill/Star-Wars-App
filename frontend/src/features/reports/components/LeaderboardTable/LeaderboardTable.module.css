@@ -186,6 +186,51 @@
 }
 
 @media (max-width: 768px) {
+  .container {
+    max-height: 280px;
+  }
+
+  .table {
+    font-size: 12px;
+  }
+
+  /* Esconde colunas menos importantes em tablet */
+  .thStat:nth-child(n+5),
+  .statCell:nth-child(n+5) {
+    display: none;
+  }
+
+  .thStat {
+    width: 70px;
+  }
+}
+
+@media (max-width: 576px) {
+  .container {
+    max-height: 260px;
+    overflow-x: hidden;
+  }
+
+  .table {
+    font-size: 11px;
+    min-width: 0;
+  }
+
+  .thead {
+    background: rgba(5, 7, 13, 0.98);
+  }
+
+  .th {
+    padding: 8px 6px;
+    font-size: 9px;
+    letter-spacing: 0.04em;
+  }
+
+  .thRank {
+    width: 32px;
+  }
+
+  /* Mobile: mostra apenas #, Jogador e XP */
   .thStat,
   .statCell {
     display: none;
@@ -194,22 +239,73 @@
   .thStat:nth-child(3),
   .statCell:nth-child(3) {
     display: table-cell;
-  }
-}
-
-@media (max-width: 420px) {
-  .th {
-    padding: 10px 8px;
+    width: 50px;
   }
 
   .td {
-    padding: 9px 8px;
+    padding: 8px 6px;
   }
 
   .avatar,
   .avatarPlaceholder {
-    width: 32px;
-    height: 32px;
-    flex: 0 0 32px;
+    width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
+    font-size: 11px;
+  }
+
+  .playerCell {
+    gap: 8px;
+  }
+
+  .playerName {
+    font-size: 12px;
+  }
+
+  .playerRank {
+    font-size: 9px;
+  }
+
+  .rank {
+    font-size: 12px;
+  }
+
+  .statValue {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 380px) {
+  .th {
+    padding: 6px 4px;
+    font-size: 8px;
+  }
+
+  .td {
+    padding: 6px 4px;
+  }
+
+  .thRank {
+    width: 28px;
+  }
+
+  .avatar,
+  .avatarPlaceholder {
+    width: 24px;
+    height: 24px;
+    flex: 0 0 24px;
+    font-size: 10px;
+  }
+
+  .playerCell {
+    gap: 6px;
+  }
+
+  .playerName {
+    font-size: 11px;
+  }
+
+  .statValue {
+    font-size: 11px;
   }
 }
