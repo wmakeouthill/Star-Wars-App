@@ -548,6 +548,46 @@ gcloud run services logs read star-wars-backend
 ```
 
 </details>
+</details>
+
+<details>
+<summary><strong>🎨 UX & Frontend Architecture</strong> (Clique para expandir)</summary>
+
+### 📱 State Management Strategy
+
+Utilizamos uma estratégia híbrida para gerenciamento de estado:
+
+1.  **Server State (React Query / TanStack)**:
+    *   Dados da API (Personagens, Filmes, User Profile).
+    *   Cache, retries e revalidação automática.
+    *   *Exemplo*: `useQuery(['characters', page], fetchCharacters)`.
+
+2.  **Client/UI State (Zustand)**:
+    *   Estados globais de interface não persistentes.
+    *   Sem necessidade de Providers complexos (Context API Hell).
+    *   *Exemplo*: `useImageEditModeStore` para controlar modais de edição de imagem.
+
+---
+
+### 🔐 Auth UX Pattern (Silent Refresh)
+
+Para evitar que o usuário seja deslogado bruscamente ou veja erros 401 na tela:
+
+*   **Refresh Token**: Armazenado em Cookie `HttpOnly` (inacessível via JS).
+*   **Strategy**: O endpoint `/auth/refresh` retorna **204 No Content** (ao invés de 401) se não houver sessão.
+    *   Isso permite que o frontend decida suavemente se mostra o botão "Login" ou "Perfil", sem estourar exceções no console.
+
+---
+
+### ⚡ Performance & Caching (Backend Side)
+
+O backend implementa o `ETagMiddleware` para otimizar a transferência de dados:
+
+1.  **ETag Generation**: Todo response JSON recebe um hash SHA-256 do corpo.
+2.  **304 Not Modified**: Se o navegador enviar `If-None-Match` igual ao hash, o backend retorna apenas headers (sem corpo), economizando banda e tempo de parse.
+3.  **Vary Headers**: Cache é variado por `Origin` e `Authorization` para evitar vazamento de dados entre usuários.
+
+</details>
 
 ---
 
