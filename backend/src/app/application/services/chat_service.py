@@ -569,17 +569,21 @@ class ChatService:
         if not content:
             return None
         
-        # Procura por nomes conhecidos de Star Wars na resposta
-        content_lower = content.lower()
+        # Procura por nomes conhecidos de Star Wars na resposta (normalizado)
+        content_norm = self._normalize_text(content)
         
         # Verifica aliases de personagens
         for alias, canonical in CHARACTER_ALIASES.items():
-            if alias in content_lower or self._normalize_text(canonical) in content_lower:
+            alias_norm = self._normalize_text(alias)
+            canonical_norm = self._normalize_text(canonical)
+            if (alias_norm and alias_norm in content_norm) or (canonical_norm and canonical_norm in content_norm):
                 return canonical
         
         # Verifica aliases de planetas
         for alias, canonical in PLANET_ALIASES.items():
-            if alias in content_lower:
+            alias_norm = self._normalize_text(alias)
+            canonical_norm = self._normalize_text(canonical)
+            if (alias_norm and alias_norm in content_norm) or (canonical_norm and canonical_norm in content_norm):
                 return canonical
         
         # Verifica categorias mencionadas
@@ -591,7 +595,7 @@ class ChatService:
             "planeta": "planeta Tatooine Coruscant",
         }
         for keyword, search_terms in category_keywords.items():
-            if keyword in content_lower:
+            if self._normalize_text(keyword) in content_norm:
                 return search_terms
         
         return None
@@ -1435,6 +1439,26 @@ class ChatService:
         # Remove prefixo do Vader "*pshhh... khhh*" (se existir).
         raw = re.sub(r"^\s*\*[^*]+\*\s*", "", raw).strip()
 
+        # Padrão comum em respostas "livres": "Sobre X, ..."
+        # Ex.: "Sobre R2-D2, hmm..."; "Sobre Tatooine, ..."; "Sobre A New Hope, ..."
+        m = re.search(r"^\s*Sobre\s+(?P<name>.+?)[,\.!\?—\-]\s*", raw, flags=re.IGNORECASE)
+        if m:
+            name = (m.group("name") or "").strip()
+            # Remove artigos iniciais.
+            name = re.sub(r"^(?:o|a|os|as)\s+", "", name, flags=re.IGNORECASE).strip()
+            if name:
+                # Tenta inferir tipo por alias (planeta/filme/personagem), nesta ordem.
+                planet = self._resolve_alias(name, "planet")
+                if planet:
+                    return {"type": "planet", "name": planet}
+                film = self._resolve_alias(name, "film")
+                if film:
+                    return {"type": "film", "name": film}
+                char = self._resolve_alias(name, "character")
+                if char:
+                    return {"type": "character", "name": char}
+                return {"type": "character", "name": name}
+
         # Personagem: "Luke Skywalker é. Gênero: ..." ou "Luke Skywalker. Gênero: ..."
         m = re.search(r"^\s*(?P<name>.+?)(?:\s+é|\.)\s*G[eê]nero\s*:", raw, flags=re.IGNORECASE)
         if m:
@@ -1472,9 +1496,32 @@ class ChatService:
         for item in reversed(context or []):
             if getattr(item, "role", "") != "user":
                 continue
-            prev = self._infer_entity_request(getattr(item, "content", ""))
+            prev_content = getattr(item, "content", "") or ""
+
+            # 1) Se o usuário citou explicitamente uma entidade (mesmo em pergunta de opinião), usa isso.
+            explicit = self._extract_explicit_entity(prev_content)
+            if explicit and explicit.get("name") and not self._looks_like_pronoun(explicit.get("name")):
+                return explicit
+
+            # 2) Perguntas do tipo "quem é X?" / "o que é X?"
+            q_entity = self._extract_entity_from_question(prev_content)
+            if q_entity and q_entity.get("name") and not self._looks_like_pronoun(q_entity.get("name")):
+                return q_entity
+
+            # 3) Opinião com alvo explícito ("acha do Luke?")
+            op = self._infer_opinion_target(prev_content)
+            if op and op.get("name") and not self._looks_like_pronoun(op.get("name")):
+                return op
+
+            # 4) Intenção "falar sobre X"
+            prev = self._infer_entity_request(prev_content)
             if prev and prev.get("name") and not self._looks_like_pronoun(prev.get("name")):
                 return prev
+
+            # 5) Mensagem curta que parece só um nome (mas não categoria)
+            standalone = self._infer_standalone_entity(prev_content)
+            if standalone and standalone.get("name") and not self._looks_like_pronoun(standalone.get("name")):
+                return standalone
         return None
 
     def _resolve_pronoun_from_context(self, inferred: dict[str, str], context: List) -> dict[str, str] | None:
