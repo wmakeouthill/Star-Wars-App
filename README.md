@@ -581,11 +581,50 @@ Para evitar que o usuário seja deslogado bruscamente ou veja erros 401 na tela:
 
 ### ⚡ Performance & Caching (Backend Side)
 
-O backend implementa o `ETagMiddleware` para otimizar a transferência de dados:
+O backend implementa o `ETagMiddleware` (`etag_middleware.py`) para otimizar a transferência de dados e reduzir a latência:
 
-1.  **ETag Generation**: Todo response JSON recebe um hash SHA-256 do corpo.
-2.  **304 Not Modified**: Se o navegador enviar `If-None-Match` igual ao hash, o backend retorna apenas headers (sem corpo), economizando banda e tempo de parse.
-3.  **Vary Headers**: Cache é variado por `Origin` e `Authorization` para evitar vazamento de dados entre usuários.
+1.  **Algoritmo de Hashing**: Interceptamos todo response JSON e calculamos um hash **SHA-256** do corpo (`hexdigest`).
+2.  **Negociação de Conteúdo (RFC 7232)**:
+    *   O servidor sempre envia `Cache-Control: private, max-age=0, must-revalidate`. Isso força o navegador a *sempre* perguntar ao servidor "isso mudou?" antes de usar o cache.
+    *   Se o header `If-None-Match` da requisição bater com o hash calculado:
+        *   Retornamos status **304 Not Modified**.
+        *   **CRITICAL**: Removemos o corpo da resposta e o header `Content-Length`, reduzindo o payload de KB/MB para ~0 bytes.
+3.  **Segurança de Cache**:
+    *   Adicionamos `Vary: Origin, Authorization` para garantir que um usuário nunca receba o cache privado de outro (ex: dados de perfil).
+    *   O middleware reconstrói o iterador de resposta (`response.body_iterator`) para garantir que o stream possa ser consumido tanto pelo hash quanto pelo cliente final.
+
+</details>
+</details>
+
+<details>
+<summary><strong>📐 Quality Assurance & Data Architecture</strong> (Clique para expandir)</summary>
+
+### 🧪 Estratégia de Testes (QA)
+
+Mantemos a qualidade do código com uma suíte de testes dividida em duas camadas:
+
+1.  **Backend (Pytest)**:
+    *   Foco em **Unit Tests** isolados para regras de negócio (`GamificationService`, `ChatService`).
+    *   Testes de integração garantem que os contratos da API (`schemas`) sejam respeitados.
+    
+2.  **Frontend (Vitest)**:
+    *   Testes unitários rápidos para Hooks e Stores (`useImageEditModeStore`).
+    *   Garante que a lógica de UI (ex: toggles, formatação) funcione sem renderizar o app inteiro.
+
+### 💾 Engenharia de Dados
+
+A robustez dos dados é garantida por trẽs pilares:
+
+1.  **Validação Rígida (Pydantic V2)**:
+    *   Entradas e Saídas da API são tipadas.
+    *   Settings do app usam validadores customizados para parsear CSV/JSON de variáveis de ambiente (`cors_allow_origins`).
+
+2.  **Migrações de Banco (Alembic)**:
+    *   Versionamento de schema do PostgreSQL.
+    *   O `env.py` foi customizado para injetar o `PYTHONPATH` dinamicamente, permitindo rodar migrações mesmo em ambientes complexos de container.
+
+3.  **Logging & Observability**:
+    *   Configuração centralizada (`alembic.ini`, `custom loggers`) para rastrear erros silenciosos em produção.
 
 </details>
 

@@ -144,3 +144,62 @@
     opacity: 0.26;
   }
 }
+
+@media (max-width: 640px) {
+  .tagline {
+    font-size: 0.9rem;
+  }
+
+  .subline {
+    font-size: 0.62rem;
+  }
+
+  .languageToggle {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.8rem;
+  }
+
+  .navigation {
+    padding: 0.85rem 1rem;
+    gap: 0.55rem;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+  }
+
+  .navigation::-webkit-scrollbar {
+    height: 0;
+  }
+
+  .navigationButton {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    scroll-snap-align: start;
+    padding: 0.55rem 0.85rem;
+    font-size: 0.85rem;
+    letter-spacing: 0.04em;
+  }
+
+  .content {
+    padding: 1.05rem 1rem 2.25rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .navigation {
+    padding: 0.75rem 0.85rem;
+    gap: 0.5rem;
+  }
+
+  .navigationButton {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.78rem;
+    letter-spacing: 0.03em;
+  }
+
+  .content {
+    padding: 0.95rem 0.85rem 2rem;
+  }
+}

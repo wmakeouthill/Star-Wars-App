@@ -174,3 +174,20 @@
     display: table-cell;
   }
 }
+
+@media (max-width: 420px) {
+  .th {
+    padding: 10px 8px;
+  }
+
+  .td {
+    padding: 9px 8px;
+  }
+
+  .avatar,
+  .avatarPlaceholder {
+    width: 32px;
+    height: 32px;
+    flex: 0 0 32px;
+  }
+}

@@ -68,3 +68,37 @@
   display: grid;
   gap: 1rem;
 }
+
+@media (max-width: 640px) {
+  .overlay {
+    padding: 0.85rem;
+  }
+
+  .dialog {
+    max-height: 92vh;
+    border-radius: 16px;
+  }
+
+  .header {
+    padding: 0.8rem 0.85rem;
+    flex-wrap: wrap;
+  }
+
+  .title {
+    font-size: 0.95rem;
+  }
+
+  .content {
+    padding: 0.9rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .overlay {
+    padding: 0.75rem;
+  }
+
+  .content {
+    padding: 0.85rem;
+  }
+}

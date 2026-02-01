@@ -62,3 +62,17 @@
   cursor: not-allowed;
   opacity: 0.55;
 }
+
+@media (max-width: 640px) {
+  .headerRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .actions {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+}

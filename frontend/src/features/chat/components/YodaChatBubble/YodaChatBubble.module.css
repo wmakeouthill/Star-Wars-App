@@ -413,3 +413,59 @@
   font-size: 0.7rem;
 }
 
+@media (max-width: 640px) {
+  .root {
+    right: 12px;
+    bottom: 12px;
+  }
+
+  .quickToggle {
+    height: 40px;
+    padding: 0 0.75rem;
+  }
+
+  .fab {
+    width: 68px;
+    height: 68px;
+  }
+
+  .window {
+    width: min(560px, calc(100vw - 24px));
+    border-radius: 16px;
+  }
+
+  .header {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .headerActions {
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .footer {
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+
+  .historyPanel {
+    height: 260px;
+  }
+}
+
+@media (max-width: 420px) {
+  .fab {
+    width: 60px;
+    height: 60px;
+  }
+
+  .avatar {
+    width: 38px;
+    height: 38px;
+  }
+
+  .title {
+    letter-spacing: 0.12em;
+  }
+}

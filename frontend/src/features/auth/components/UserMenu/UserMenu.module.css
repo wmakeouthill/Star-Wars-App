@@ -94,3 +94,31 @@
   box-shadow: 0 0 18px rgba(151, 255, 61, 0.12);
 }
 
+@media (max-width: 640px) {
+  .menu {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 8px 10px;
+  }
+
+  .meta {
+    flex: 1;
+  }
+
+  .name,
+  .email {
+    max-width: 52vw;
+  }
+
+  .logout {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 420px) {
+  .name,
+  .email {
+    max-width: 60vw;
+  }
+}

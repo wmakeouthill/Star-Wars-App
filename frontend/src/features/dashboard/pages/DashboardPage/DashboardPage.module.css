@@ -319,3 +319,63 @@
   line-height: 1.35;
 }
 
+@media (max-width: 640px) {
+  .commandBar {
+    padding: 0.9rem;
+    border-radius: 16px;
+  }
+
+  .search {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .searchInput {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .searchButton {
+    width: 100%;
+  }
+
+  .panelHeader {
+    flex-wrap: wrap;
+  }
+
+  .panelControls {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .panelInput {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .detailsOverlay {
+    padding: 0.85rem;
+  }
+
+  .detailsHeader {
+    flex-wrap: wrap;
+  }
+
+  .detailsTitle {
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .commandBar {
+    padding: 0.8rem;
+  }
+
+  .statValue {
+    font-size: 0.95rem;
+  }
+
+  .panelBody {
+    padding: 1rem;
+  }
+}

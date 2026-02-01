@@ -30,3 +30,16 @@
   color: rgba(199, 226, 255, 0.75);
   font-family: var(--font-mono);
 }
+
+@media (max-width: 420px) {
+  .container {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1.1rem;
+  }
+
+  .button {
+    padding: 0.4rem 0.75rem;
+  }
+}

@@ -301,3 +301,34 @@
   background: rgba(255, 255, 255, 0.08);
 }
 
+@media (max-width: 420px) {
+  .chatPersonas {
+    grid-template-columns: 1fr;
+  }
+
+  .personaCard {
+    padding: 14px 12px;
+  }
+
+  .quizSection {
+    padding: 16px;
+  }
+
+  .quizTitle {
+    font-size: 28px;
+    letter-spacing: 0.1em;
+    line-height: 1.05;
+  }
+
+  .quizActions {
+    gap: 8px;
+  }
+
+  .quizButton,
+  .quizHistoryButton {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}

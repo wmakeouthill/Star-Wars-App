@@ -169,6 +169,22 @@
   }
 }
 
+@media (max-width: 480px) {
+  .chart {
+    height: 220px;
+    min-height: 180px;
+  }
+
+  .chartTall {
+    height: 260px;
+    min-height: 220px;
+  }
+
+  .tooltip {
+    max-width: min(220px, 68vw);
+  }
+}
+
 /* Leaderboard List */
 .leaderboard {
   display: flex;
