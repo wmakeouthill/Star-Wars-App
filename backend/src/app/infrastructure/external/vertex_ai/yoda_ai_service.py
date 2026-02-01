@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import logging
 from typing import List, Optional, Tuple
 
 from app.infrastructure.config.settings import get_settings
+
+logger = logging.getLogger(__name__)
 
 try:
     from openai import AsyncOpenAI
@@ -23,6 +26,12 @@ class YodaAIService:
         self._fallback_models = settings.openai_fallback_models
 
         self._client: AsyncOpenAI | None = None
+        
+        # Log de configuração
+        logger.info(f"[AI] Inicializando YodaAIService: enabled={self._enabled}, provider={self._provider}")
+        logger.info(f"[AI] Model: {self._model_name}, Fallbacks: {self._fallback_models}")
+        logger.info(f"[AI] API Key presente: {bool(self._api_key)}, AsyncOpenAI disponível: {AsyncOpenAI is not None}")
+        
         if (
             self._enabled
             and self._provider == "openai"
@@ -33,6 +42,9 @@ class YodaAIService:
                 api_key=self._api_key,
                 base_url=self._base_url or None,
             )
+            logger.info("[AI] Cliente OpenAI criado com sucesso")
+        else:
+            logger.warning(f"[AI] Cliente NÃO criado. Condições: enabled={self._enabled}, provider={self._provider}, has_key={bool(self._api_key)}, has_lib={AsyncOpenAI is not None}")
 
     async def generate_response(
         self,
@@ -42,19 +54,34 @@ class YodaAIService:
         *,
         persona: str = "yoda",
     ) -> Optional[str]:
-        if not self._enabled or self._provider != "openai" or not self._client:
+        logger.info(f"[AI] generate_response chamado: persona={persona}, msg_len={len(message)}")
+        
+        if not self._enabled:
+            logger.warning("[AI] IA desabilitada (AI_ENABLED=false)")
+            return None
+        if self._provider != "openai":
+            logger.warning(f"[AI] Provider não é openai: {self._provider}")
+            return None
+        if not self._client:
+            logger.error("[AI] Cliente OpenAI é None - não foi inicializado corretamente")
             return None
 
         models = self._model_chain()
+        logger.info(f"[AI] Tentando modelos: {models}")
+        
         last_error: Exception | None = None
         for model in models:
             try:
-                return await self._invoke_openai(model, message, context, data_snippet, persona=persona)
-            except Exception as exc:  # pragma: no cover - rede/limites/credenciais/modelo indisponível
+                logger.info(f"[AI] Chamando modelo: {model}")
+                result = await self._invoke_openai(model, message, context, data_snippet, persona=persona)
+                logger.info(f"[AI] Sucesso com modelo {model}, resposta tem {len(result or '')} chars")
+                return result
+            except Exception as exc:
+                logger.error(f"[AI] ERRO com modelo {model}: {type(exc).__name__}: {exc}")
                 last_error = exc
                 continue
 
-        _ = last_error
+        logger.error(f"[AI] Todos os modelos falharam. Último erro: {last_error}")
         return None
 
     def _model_chain(self) -> List[str]:
