@@ -86,8 +86,56 @@ export function YodaChatBubble() {
     return () => window.clearTimeout(t);
   }, [isOpen]);
 
+  // Efeito para ajustar a posição quando o teclado virtual abre/fecha no mobile
+  useEffect(() => {
+    if (!isOpen || !windowRef.current) {
+      return;
+    }
+
+    const dialog = windowRef.current;
+
+    const handleViewportResize = () => {
+      if (!window.visualViewport) return;
+      
+      const viewport = window.visualViewport;
+      const offsetY = window.innerHeight - viewport.height;
+      
+      // Aplica transform para subir o conteúdo quando o teclado abre
+      if (offsetY > 50) {
+        // Teclado aberto
+        dialog.style.height = `${viewport.height}px`;
+        dialog.style.transform = `translateY(${viewport.offsetTop}px)`;
+      } else {
+        // Teclado fechado
+        dialog.style.height = '';
+        dialog.style.transform = '';
+      }
+    };
+
+    const visualViewport = window.visualViewport;
+    if (visualViewport) {
+      visualViewport.addEventListener('resize', handleViewportResize);
+      visualViewport.addEventListener('scroll', handleViewportResize);
+    }
+
+    return () => {
+      if (visualViewport) {
+        visualViewport.removeEventListener('resize', handleViewportResize);
+        visualViewport.removeEventListener('scroll', handleViewportResize);
+      }
+      // Limpa estilos ao fechar
+      dialog.style.height = '';
+      dialog.style.transform = '';
+    };
+  }, [isOpen]);
+
+  // Classe condicional para fullscreen no mobile quando aberto
+  const rootClassName = [styles.root, isOpen ? styles.rootOpen : '']
+    .filter(Boolean)
+    .join(' ');
+
   return (
-    <div className={styles.root} aria-live="polite">
+    <div className={rootClassName} aria-live="polite">
       {isOpen && (
         <button
           type="button"

@@ -419,6 +419,16 @@
     bottom: 12px;
   }
 
+  .rootOpen {
+    /* Quando aberto no mobile, ocupa a tela toda */
+    position: fixed;
+    inset: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
   .quickToggle {
     height: 40px;
     padding: 0 0.75rem;
@@ -429,14 +439,31 @@
     height: 68px;
   }
 
+  .backdrop {
+    display: none;
+  }
+
   .window {
-    width: min(560px, calc(100vw - 24px));
-    border-radius: 16px;
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    /* Fallback para browsers que não suportam dvh */
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+    border: none;
+    display: flex;
+    flex-direction: column;
   }
 
   .header {
     flex-wrap: wrap;
     gap: 0.75rem;
+    flex-shrink: 0;
+    /* Safe area para notch/ilha dinâmica */
+    padding-top: max(0.9rem, env(safe-area-inset-top));
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
   }
 
   .headerActions {
@@ -444,13 +471,29 @@
     gap: 0.45rem;
   }
 
+  .body {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+
   .footer {
     flex-wrap: wrap;
     gap: 0.6rem;
+    flex-shrink: 0;
+    /* Safe area para barra de navegação */
+    padding-bottom: max(0.85rem, env(safe-area-inset-bottom));
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
   }
 
   .historyPanel {
-    height: 260px;
+    height: auto;
+    flex: 1;
+    max-height: none;
   }
 }
 

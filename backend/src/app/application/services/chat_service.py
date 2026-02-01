@@ -371,36 +371,48 @@ class ChatService:
         message = request.message.strip()
 
         if not message:
+            # Mesmo mensagem vazia usa IA para responder no personagem
+            ai_empty = await self._ai_response(
+                persona, 
+                "O usuário enviou uma mensagem vazia", 
+                request.context, 
+                None
+            )
             return ChatResponse(
-                message=self._persona_reply(
-                    persona,
-                    "Vazio está o seu pedido. Perguntar, você deve" if persona == "yoda" else "Não há nada aqui. Fale",
-                )
+                message=ai_empty or self._ai_unavailable_message(persona),
             )
 
         # Garante que o cache RAG está populado
         await self._ensure_rag_cache()
 
-        routed = await self._route_structured_intent(persona, message, request.context)
-        if routed is not None:
-            return routed
-
-        # Busca contexto RAG para mensagens não roteadas
-        # Também considera o contexto da conversa para melhor relevância
+        # Busca dados SWAPI relevantes para dar contexto factual à IA
+        swapi_data = await self._fetch_relevant_swapi_data(message, request.context)
+        
+        # Busca contexto RAG para enriquecer a resposta
         rag_context = self._get_rag_context_with_history(message, request.context)
-        rag_snippet = rag_context.to_context_string(max_results=5) if rag_context.results else None
+        
+        # Monta o snippet de dados para a IA (SWAPI + RAG)
+        data_snippet = self._build_ai_context(swapi_data, rag_context)
 
-        ai_message = await self._ai_response(persona, message, request.context, rag_snippet)
-        # Passa o contexto para o fallback para manter coerência
-        fallback_message = self._persona_freestyle_fallback(persona, message, request.context)
+        # IA RESPONDE TUDO - sem fallbacks de templates
+        ai_message = await self._ai_response(persona, message, request.context, data_snippet)
+        
+        if not ai_message:
+            # Se IA falhou, retorna mensagem honesta (ainda no personagem)
+            return ChatResponse(
+                message=self._ai_unavailable_message(persona),
+                suggested_actions=[
+                    "Tentar novamente em alguns segundos",
+                    "Verificar se a API está disponível",
+                ],
+                xp_earned=0,
+            )
+        
         return ChatResponse(
-            message=ai_message or fallback_message,
-            suggested_actions=[
-                "Buscar personagens por nome",
-                "Listar planetas e climas",
-                "Explorar filmes por episódio",
-            ],
-            xp_earned=5,
+            message=ai_message,
+            data=swapi_data,
+            suggested_actions=self._generate_suggestions(message, swapi_data),
+            xp_earned=10,
         )
 
     def _get_rag_context(self, message: str) -> RAGContext:
@@ -911,6 +923,140 @@ class ChatService:
             return None
         history = [f"{item.role}: {item.content}" for item in context]
         return await self._yoda_ai.generate_response(message, history, data_snippet, persona=persona)
+
+    def _ai_unavailable_message(self, persona: str) -> str:
+        """Mensagem quando a IA não está disponível - ainda no personagem mas honesta."""
+        if persona == "vader":
+            return (
+                "*khhh... pshhh* A conexão com a Força está... instável. "
+                "Meus sistemas de comunicação falharam temporariamente. "
+                "Tente novamente em alguns instantes. Minha paciência é limitada, mas estou aqui."
+            )
+        return (
+            "Hmm... perturbação na Força, sinto. Conectar-me, não consegui desta vez. "
+            "Tentar novamente, você deve, em alguns instantes. "
+            "Paciência, jovem padawan, virtude é. 🌟"
+        )
+
+    async def _fetch_relevant_swapi_data(self, message: str, context: List) -> Dict[str, Any] | None:
+        """Busca dados SWAPI relevantes baseado na mensagem e contexto."""
+        # Detecta entidade explícita na mensagem
+        entity = self._extract_explicit_entity(message)
+        if entity:
+            entity_type = entity.get("type")
+            entity_name = entity.get("name")
+            
+            if entity_type == "character" and entity_name:
+                people = await self._swapi.get_all_people()
+                match = self._find_match(people, entity_name)
+                if match:
+                    return {
+                        "type": "character",
+                        "id": extract_id(match.get("url", "")),
+                        "name": match.get("name"),
+                        "gender": match.get("gender"),
+                        "birth_year": match.get("birth_year"),
+                        "height": match.get("height"),
+                        "mass": match.get("mass"),
+                        "hair_color": match.get("hair_color"),
+                        "eye_color": match.get("eye_color"),
+                    }
+            
+            if entity_type == "planet" and entity_name:
+                planets = await self._swapi.get_all_planets()
+                match = self._find_match(planets, entity_name)
+                if match:
+                    return {
+                        "type": "planet",
+                        "id": extract_id(match.get("url", "")),
+                        "name": match.get("name"),
+                        "climate": match.get("climate"),
+                        "terrain": match.get("terrain"),
+                        "population": match.get("population"),
+                    }
+            
+            if entity_type == "film" and entity_name:
+                films = await self._swapi.get_all_films()
+                match = self._find_match(films, entity_name, key="title")
+                if match:
+                    return {
+                        "type": "film",
+                        "id": extract_id(match.get("url", "")),
+                        "title": match.get("title"),
+                        "episode_id": match.get("episode_id"),
+                        "director": match.get("director"),
+                        "producer": match.get("producer"),
+                        "release_date": match.get("release_date"),
+                    }
+        
+        # Verifica contexto para referências pronominais
+        if self._message_mentions_pronoun(message):
+            last = self._last_entity_from_context(context)
+            if last and last.get("name"):
+                return await self._fetch_relevant_swapi_data(last["name"], [])
+        
+        return None
+
+    def _build_ai_context(self, swapi_data: Dict[str, Any] | None, rag_context: RAGContext | None) -> str | None:
+        """Constrói o contexto de dados para a IA usar como referência factual."""
+        parts = []
+        
+        if swapi_data:
+            parts.append(f"DADOS SWAPI (use como referência factual):\n{json.dumps(swapi_data, ensure_ascii=False, indent=2)}")
+        
+        if rag_context and rag_context.results:
+            rag_text = rag_context.to_context_string(max_results=5)
+            if rag_text:
+                parts.append(f"CONTEXTO ADICIONAL (RAG):\n{rag_text}")
+        
+        return "\n\n".join(parts) if parts else None
+
+    def _generate_suggestions(self, message: str, swapi_data: Dict[str, Any] | None) -> List[str]:
+        """Gera sugestões dinâmicas baseadas no contexto da conversa."""
+        suggestions = []
+        
+        if swapi_data:
+            data_type = swapi_data.get("type")
+            if data_type == "character":
+                suggestions = [
+                    "Qual a opinião sobre esse personagem?",
+                    "Conte uma história envolvendo ele",
+                    "Compare com outro personagem",
+                ]
+            elif data_type == "planet":
+                suggestions = [
+                    "Quem vive nesse planeta?",
+                    "O que aconteceu de importante lá?",
+                    "Compare com outro planeta",
+                ]
+            elif data_type == "film":
+                suggestions = [
+                    "Qual sua cena favorita?",
+                    "Quem são os personagens principais?",
+                    "O que achou do filme?",
+                ]
+        else:
+            lowered = message.lower()
+            if any(w in lowered for w in ["jedi", "sith", "força", "force"]):
+                suggestions = [
+                    "Me explique o Lado Negro",
+                    "Quem foi o Jedi mais forte?",
+                    "Como funciona um sabre de luz?",
+                ]
+            elif any(w in lowered for w in ["guerra", "batalha", "império"]):
+                suggestions = [
+                    "Conte sobre as Guerras Clônicas",
+                    "Como foi a batalha de Endor?",
+                    "O que pensa sobre a Rebelião?",
+                ]
+            else:
+                suggestions = [
+                    "Me conte uma história de Star Wars",
+                    "Quem é seu personagem favorito?",
+                    "O que acha do Lado Negro?",
+                ]
+        
+        return suggestions
 
     def _find_match(self, items: List[Dict[str, Any]], name: Optional[str], key: str = "name") -> Optional[Dict[str, Any]]:
         """

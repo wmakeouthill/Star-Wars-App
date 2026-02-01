@@ -150,7 +150,8 @@ $ErrorActionPreference = "Continue"
 try {
   gcloud artifacts repositories describe $ArtifactRepo --location $Region --project $ProjectId 2>$null | Out-Null
   if ($LASTEXITCODE -eq 0) { $repoExists = $true }
-} finally {
+}
+finally {
   $ErrorActionPreference = $prevEap
 }
 
@@ -161,7 +162,8 @@ if (-not $repoExists) {
     --location=$Region `
     --description="Imagens Docker para Cloud Run" `
     --project=$ProjectId | Out-Null
-} else {
+}
+else {
   Write-Host "OK: repo '$ArtifactRepo' já existe." -ForegroundColor Green
 }
 
@@ -217,7 +219,7 @@ if ($hasOpenAi) { $secretsArg += "OPENAI_API_KEY=holocron-openai-api-key:latest"
 
 $secretsCsv = ($secretsArg -join ",")
 
-$envVars = "^~^APP_NAME=Holocron Analytics API~APP_VERSION=0.1.0~JWT_ISSUER=holocron-analytics~JWT_ACCESS_TTL_SECONDS=900~JWT_REFRESH_TTL_SECONDS=2592000~GOOGLE_OAUTH_CLIENT_ID=$GoogleOauthClientId~AUTH_COOKIE_SECURE=$AuthCookieSecure~AUTH_COOKIE_SAMESITE=$AuthCookieSameSite~CORS_ALLOW_ORIGINS=$CorsAllowOrigins~DATABASE_HOST=$DatabaseHost~DATABASE_PORT=$DatabasePort~DATABASE_NAME=$DatabaseName~DATABASE_USERNAME=$DatabaseUsername~AI_ENABLED=false~AI_PROVIDER=openai~OPENAI_MODEL=gpt-4o-mini~SWAPI_BASE_URL=https://swapi.dev/api~CACHE_TTL_SECONDS=3600"
+$envVars = "^~^APP_NAME=Holocron Analytics API~APP_VERSION=0.1.0~JWT_ISSUER=holocron-analytics~JWT_ACCESS_TTL_SECONDS=900~JWT_REFRESH_TTL_SECONDS=2592000~GOOGLE_OAUTH_CLIENT_ID=$GoogleOauthClientId~AUTH_COOKIE_SECURE=$AuthCookieSecure~AUTH_COOKIE_SAMESITE=$AuthCookieSameSite~CORS_ALLOW_ORIGINS=$CorsAllowOrigins~DATABASE_HOST=$DatabaseHost~DATABASE_PORT=$DatabasePort~DATABASE_NAME=$DatabaseName~DATABASE_USERNAME=$DatabaseUsername~AI_ENABLED=true~AI_PROVIDER=openai~OPENAI_MODEL=gpt-4o-mini~SWAPI_BASE_URL=https://swapi.dev/api~CACHE_TTL_SECONDS=3600"
 
 $authFlag = if ($allowUnauthenticated) { "--allow-unauthenticated" } else { "--no-allow-unauthenticated" }
 
