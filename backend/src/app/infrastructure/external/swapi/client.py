@@ -16,7 +16,7 @@ class SWAPIClient:
         settings = get_settings()
         self._base_url = settings.swapi_base_url
         self._cache = cache
-        self._client = httpx.AsyncClient(timeout=30.0)
+        self._client = httpx.AsyncClient(timeout=30.0, follow_redirects=True)
 
     async def close(self) -> None:
         await self._client.aclose()
