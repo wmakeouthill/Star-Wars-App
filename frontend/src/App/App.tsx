@@ -1,15 +1,5 @@
-import { useState } from 'react';
-import { CharactersPage } from '@/features/characters/pages/CharactersPage/CharactersPage';
+import { lazy, Suspense, useState } from 'react';
 import { ChatProvider } from '@/features/chat/context';
-import { YodaChatBubble } from '@/features/chat/components/YodaChatBubble/YodaChatBubble';
-import { DashboardPage } from '@/features/dashboard/pages/DashboardPage/DashboardPage';
-import { FilmsPage } from '@/features/films/pages/FilmsPage/FilmsPage';
-import { GamificationPage } from '@/features/gamification/pages/GamificationPage/GamificationPage';
-import { PlanetsPage } from '@/features/planets/pages/PlanetsPage/PlanetsPage';
-import { ReportsPage } from '@/features/reports/pages/ReportsPage/ReportsPage';
-import { StarshipsPage } from '@/features/starships/pages/StarshipsPage/StarshipsPage';
-import { VehiclesPage } from '@/features/vehicles/pages/VehiclesPage/VehiclesPage';
-import { SpeciesPage } from '@/features/species/pages/SpeciesPage/SpeciesPage';
 import { AuthProvider } from '@/features/auth/context/AuthProvider';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { LoginPage } from '@/features/auth/pages/LoginPage/LoginPage';
@@ -22,13 +12,42 @@ import { usePrefetchAllData } from '@/shared/hooks/usePrefetchAllData';
 import { useAppNavigation } from './App.hooks';
 import styles from './App.module.css';
 
+const DashboardPage = lazy(() =>
+  import('@/features/dashboard/pages/DashboardPage/DashboardPage').then((m) => ({ default: m.DashboardPage }))
+);
+const ReportsPage = lazy(() =>
+  import('@/features/reports/pages/ReportsPage/ReportsPage').then((m) => ({ default: m.ReportsPage }))
+);
+const CharactersPage = lazy(() =>
+  import('@/features/characters/pages/CharactersPage/CharactersPage').then((m) => ({ default: m.CharactersPage }))
+);
+const PlanetsPage = lazy(() =>
+  import('@/features/planets/pages/PlanetsPage/PlanetsPage').then((m) => ({ default: m.PlanetsPage }))
+);
+const StarshipsPage = lazy(() =>
+  import('@/features/starships/pages/StarshipsPage/StarshipsPage').then((m) => ({ default: m.StarshipsPage }))
+);
+const VehiclesPage = lazy(() =>
+  import('@/features/vehicles/pages/VehiclesPage/VehiclesPage').then((m) => ({ default: m.VehiclesPage }))
+);
+const SpeciesPage = lazy(() =>
+  import('@/features/species/pages/SpeciesPage/SpeciesPage').then((m) => ({ default: m.SpeciesPage }))
+);
+const FilmsPage = lazy(() =>
+  import('@/features/films/pages/FilmsPage/FilmsPage').then((m) => ({ default: m.FilmsPage }))
+);
+const GamificationPage = lazy(() =>
+  import('@/features/gamification/pages/GamificationPage/GamificationPage').then((m) => ({ default: m.GamificationPage }))
+);
+const YodaChatBubble = lazy(() =>
+  import('@/features/chat/components/YodaChatBubble/YodaChatBubble').then((m) => ({ default: m.YodaChatBubble }))
+);
+
 function AppShell() {
   const { activeSection, navigationItems, setActiveSection } = useAppNavigation();
   const [language, setLanguage] = useState<'en' | 'pt-BR'>('en');
   const { status } = useAuth();
 
-  // Prefetch de todos os dados em background SOMENTE após autenticação confirmada
-  // Isso garante navegação rápida e dados disponíveis para o quiz
   const isAuthenticated = status === 'authenticated';
   usePrefetchAllData({ enabled: isAuthenticated });
 
@@ -87,17 +106,21 @@ function AppShell() {
             ))}
           </nav>
           <section className={styles.content}>
-            {activeSection === 'dashboard' && <DashboardPage />}
-            {activeSection === 'reports' && <ReportsPage />}
-            {activeSection === 'characters' && <CharactersPage />}
-            {activeSection === 'planets' && <PlanetsPage />}
-            {activeSection === 'starships' && <StarshipsPage />}
-            {activeSection === 'vehicles' && <VehiclesPage />}
-            {activeSection === 'species' && <SpeciesPage />}
-            {activeSection === 'films' && <FilmsPage />}
-            {activeSection === 'gamification' && <GamificationPage />}
+            <Suspense fallback={null}>
+              {activeSection === 'dashboard' && <DashboardPage />}
+              {activeSection === 'reports' && <ReportsPage />}
+              {activeSection === 'characters' && <CharactersPage />}
+              {activeSection === 'planets' && <PlanetsPage />}
+              {activeSection === 'starships' && <StarshipsPage />}
+              {activeSection === 'vehicles' && <VehiclesPage />}
+              {activeSection === 'species' && <SpeciesPage />}
+              {activeSection === 'films' && <FilmsPage />}
+              {activeSection === 'gamification' && <GamificationPage />}
+            </Suspense>
           </section>
-          <YodaChatBubble />
+          <Suspense fallback={null}>
+            <YodaChatBubble />
+          </Suspense>
           <ScrollToTop />
         </PageLayout>
       </div>
